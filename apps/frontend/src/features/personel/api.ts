@@ -81,7 +81,7 @@ export type EmployeeListParams = {
 };
 
 export interface CreateEmployeePayload {
-  account?: { username: string; password: string; roleIds?: string[] };
+  account?: { username: string; email?: string; password: string; roleIds?: string[] };
   firstName: string;
   lastName: string;
   employeeNo?: string;

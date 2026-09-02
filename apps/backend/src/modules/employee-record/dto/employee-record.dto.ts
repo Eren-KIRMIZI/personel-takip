@@ -99,13 +99,11 @@ export class EmployeeRecordListQueryDto extends ListQueryDto {
 
   @ApiPropertyOptional({ description: 'Başlangıç tarihi (ISO)' })
   @IsOptional()
-  @Type(() => Date)
   @IsDateString()
   from?: string;
 
   @ApiPropertyOptional({ description: 'Bitiş tarihi (ISO)' })
   @IsOptional()
-  @Type(() => Date)
   @IsDateString()
   to?: string;
 }

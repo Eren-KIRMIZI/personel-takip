@@ -118,8 +118,11 @@ export class EmployeesService {
 
     let createdEmployee;
 
-    if (account?.username && account?.password) {
+    if (account?.password && (account?.email || account?.username)) {
       const email = account.email ?? profile.email ?? `${account.username}@kurum.local`;
+      const username =
+        account.username ??
+        (account.email ? account.email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g, '_') : 'user');
       const fullName = `${profile.firstName} ${profile.lastName}`;
       const { authId } = await this.supabase.createAuthUser(email, account.password, fullName);
 
@@ -129,7 +132,7 @@ export class EmployeesService {
           user: {
             create: {
               authId,
-              username: account.username,
+              username,
               email,
               status: 'ACTIVE',
               roles: account.roleIds?.length

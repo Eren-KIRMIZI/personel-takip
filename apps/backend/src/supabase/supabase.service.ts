@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -24,7 +24,7 @@ export class SupabaseService implements OnModuleInit, OnModuleDestroy {
 
   get adminClient(): SupabaseClient {
     if (!this.admin) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY yapılandırılmamış.');
+      throw new InternalServerErrorException('SUPABASE_SERVICE_ROLE_KEY yapılandırılmamış.');
     }
     return this.admin;
   }
@@ -38,10 +38,10 @@ export class SupabaseService implements OnModuleInit, OnModuleDestroy {
       user_metadata: displayName ? { full_name: displayName } : undefined,
     });
     if (error) {
-      throw new Error(`Supabase Auth kullanıcı oluşturulamadı: ${error.message}`);
+      throw new BadRequestException(`Supabase Auth kullanıcı oluşturulamadı: ${error.message}`);
     }
     if (!data?.user) {
-      throw new Error('Supabase Auth kullanıcı oluşturulamadı: kullanıcı yok.');
+      throw new BadRequestException('Supabase Auth kullanıcı oluşturulamadı: kullanıcı yok.');
     }
     return { authId: data.user.id, email: data.user.email ?? email };
   }

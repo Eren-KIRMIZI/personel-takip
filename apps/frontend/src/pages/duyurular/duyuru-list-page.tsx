@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Plus, Bell, Megaphone, Check } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -154,9 +155,9 @@ export function DuyuruListPage() {
         description="Kurum içi duyurular ve bildirimler"
         actions={
           hasPermission('announcement:write') ? (
-            <Button>
+            <Link to="/duyurular/yeni" className={buttonVariants()}>
               <Plus className="mr-2 h-4 w-4" /> Yeni Duyuru
-            </Button>
+            </Link>
           ) : undefined
         }
       />

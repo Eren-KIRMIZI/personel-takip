@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { importJWK, jwtVerify, type JWTPayload } from 'jose';
+import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
@@ -13,67 +13,39 @@ export interface SupabaseClaims {
   role?: string;
 }
 
-interface JwkKey {
-  kty?: string;
-  alg?: string;
-  kid?: string;
-  [key: string]: unknown;
-}
-
 @Injectable()
 export class AuthService {
-  private readonly keys: Array<Uint8Array | CryptoKey> = [];
-  private readonly expectedIssuer: string;
-
   constructor(
     private readonly prisma: PrismaService,
-    config: ConfigService,
-  ) {
-    const rawSecret = config.get<string>('SUPABASE_JWT_SECRET');
-    if (!rawSecret) {
-      throw new Error('SUPABASE_JWT_SECRET ortam değişkeni tanımlanmamış.');
-    }
-    // HS256: önce ham metin, sonra base64-decoded olarak dene (her iki kullanım biçimini kapsar)
-    this.keys.push(new TextEncoder().encode(rawSecret));
-    const decoded = this.tryBase64(rawSecret);
-    if (decoded) this.keys.push(decoded);
+    private readonly supabaseService: SupabaseService,
+    private readonly config: ConfigService,
+  ) {}
 
-    const jwksRaw = config.get<string>('SUPABASE_JWT_JWKS');
-    if (jwksRaw) {
-      try {
-        const jwks = JSON.parse(jwksRaw) as { keys?: JwkKey[] };
-        for (const jwk of jwks.keys ?? []) {
-          if (jwk.kty && jwk.alg) {
-            void importJWK(jwk as any, jwk.alg).then((key) => this.keys.push(key as CryptoKey));
-          }
-        }
-      } catch (error) {
-        throw new Error(`SUPABASE_JWT_JWKS ayrıştırılamadı: ${(error as Error).message}`);
-      }
-    }
-
-    const base = config.get<string>('SUPABASE_URL') ?? '';
-    this.expectedIssuer = `${base}/auth/v1`;
-  }
-
+  /**
+   * Supabase Admin SDK ile token'ı doğrular.
+   * Bu yöntem tüm JWT formatlarını (HS256, ES256, yeni sb_ prefix vb.) otomatik destekler.
+   */
   async verifyToken(token: string): Promise<SupabaseClaims> {
-    const errors: string[] = [];
-    for (const key of this.keys) {
-      try {
-        const { payload } = await jwtVerify(token, key, {
-          algorithms: ['HS256', 'ES256'],
-          issuer: this.expectedIssuer,
-          audience: 'authenticated',
-        });
-        return payload as unknown as SupabaseClaims;
-      } catch (err) {
-        errors.push(String((err as Error).message));
+    try {
+      const { data, error } = await this.supabaseService.adminClient.auth.getUser(token);
+      if (error || !data?.user) {
+        console.error('[Auth] Supabase token verification failed:', error?.message);
+        throw new UnauthorizedException('Geçersiz veya süresi dolmuş oturum.');
       }
+      return {
+        sub: data.user.id,
+        email: data.user.email,
+        phone: data.user.phone,
+        iss: `${this.config.get<string>('SUPABASE_URL')}/auth/v1`,
+        aud: 'authenticated',
+        role: data.user.role,
+      };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      console.error('[Auth] Token verification error:', err);
+      throw new UnauthorizedException('Geçersiz veya süresi dolmuş oturum.');
     }
-    console.error('[Auth] JWT verification failed for all keys. Errors:', errors.join(' | '), '| Issuer expected:', this.expectedIssuer, '| Keys count:', this.keys.length);
-    throw new UnauthorizedException('Geçersiz veya süresi dolmuş oturum.');
   }
-
 
   async resolveUser(claims: SupabaseClaims): Promise<AuthenticatedUser> {
     const authId = claims.sub;
@@ -136,20 +108,6 @@ export class AuthService {
       return base.replace(/[^a-zA-Z0-9_.-]/g, '_');
     }
     return `user_${authId.slice(0, 8)}`;
-  }
-
-  private tryBase64(value: string): Uint8Array | null {
-    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
-    try {
-      const decoded = Buffer.from(value, 'base64');
-      if (decoded.length === 0) return null;
-      if (Buffer.from(decoded).toString('base64').replace(/=+$/, '') !== value.replace(/=+$/, '')) {
-        return null;
-      }
-      return new Uint8Array(decoded);
-    } catch {
-      return null;
-    }
   }
 }
 

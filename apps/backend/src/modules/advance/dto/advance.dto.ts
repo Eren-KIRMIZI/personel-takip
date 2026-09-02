@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDecimal, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, MinLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNumberString, IsOptional, IsString, IsUUID, Max, MaxLength, MinLength, Min } from 'class-validator';
 import { AdvanceStatus } from '@prisma/client';
 import { ListQueryDto } from '../../organization/dto/organization.dto';
 
@@ -9,8 +9,8 @@ export class CreateAdvanceDto {
   @IsUUID()
   employeeId!: string;
 
-  @ApiProperty({ description: 'Avans tutarı (TRY)' })
-  @IsDecimal({ decimal_digits: '1,2', force_decimal: false })
+  @ApiProperty({ description: 'Avans tutarı (TRY)', example: '1000.00' })
+  @IsNumberString({}, { message: 'Geçerli bir tutar girin (örn: 1000 veya 1000.50)' })
   amount!: string;
 
   @ApiPropertyOptional({ description: 'Taksit sayısı', default: 1 })

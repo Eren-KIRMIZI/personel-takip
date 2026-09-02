@@ -101,7 +101,7 @@ function CreateBonusDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const { data: employees } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list({ pageSize: 500 }) });
+  const { data: employees } = useQuery({ queryKey: ['employees-all'], queryFn: () => employeesApi.list({ pageSize: 500 }) });
 
   const mut = useMutation({
     mutationFn: bonusApi.create,

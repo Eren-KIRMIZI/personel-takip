@@ -15,11 +15,12 @@ import { ListQueryDto } from '../../organization/dto/organization.dto';
 import { EmploymentStatus } from '@prisma/client';
 
 export class CreateUserAccountDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Kullanıcı adı (belirtilmezse e-postadan üretilir)' })
+  @IsOptional()
   @IsString()
-  @MinLength(3)
+  @MinLength(1)
   @MaxLength(50)
-  username!: string;
+  username?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

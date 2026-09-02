@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,9 +42,9 @@ export function EvrakListPage() {
         description={`${data?.total ?? 0} evrak kaydı`}
         actions={
           hasPermission('document:write') ? (
-            <Button>
+            <Link to="/evrak/yeni" className={buttonVariants()}>
               <Plus className="mr-2 h-4 w-4" /> Yeni Evrak
-            </Button>
+            </Link>
           ) : undefined
         }
       />

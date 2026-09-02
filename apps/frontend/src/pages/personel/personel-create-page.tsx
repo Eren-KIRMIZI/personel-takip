@@ -20,7 +20,8 @@ import { cn, formatError } from '@/lib/utils';
 const schema = z
   .object({
     accountEnabled: z.boolean(),
-    username: z.string().min(3, 'En az 3 karakter').optional().or(z.literal('')),
+    username: z.string().optional().or(z.literal('')),
+    accountEmail: z.string().email('Geçerli e-posta girin').optional().or(z.literal('')),
     password: z.string().min(6, 'En az 6 karakter').optional().or(z.literal('')),
     firstName: z.string().min(2, 'Ad zorunlu'),
     lastName: z.string().min(2, 'Soyad zorunlu'),
@@ -41,11 +42,11 @@ const schema = z
   })
   .superRefine((data, ctx) => {
     if (data.accountEnabled) {
-      if (!data.username) {
-        ctx.addIssue({ code: 'custom', path: ['username'], message: 'Kullanıcı adı zorunlu' });
+      if (!data.accountEmail) {
+        ctx.addIssue({ code: 'custom', path: ['accountEmail'], message: 'Giriş e-postası zorunlu' });
       }
       if (!data.password) {
-        ctx.addIssue({ code: 'custom', path: ['password'], message: 'Şifre zorunlu' });
+        ctx.addIssue({ code: 'custom', path: ['password'], message: 'Parola zorunlu' });
       }
     }
   });
@@ -55,6 +56,7 @@ type FormValues = z.infer<typeof schema>;
 const defaultValues: FormValues = {
   accountEnabled: false,
   username: '',
+  accountEmail: '',
   password: '',
   firstName: '',
   lastName: '',
@@ -117,8 +119,8 @@ export function PersonelCreatePage() {
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
       employeesApi.create({
-        account: values.accountEnabled
-          ? { username: values.username!, password: values.password!, roleIds: values.roleIds.length ? values.roleIds : undefined }
+        account: values.accountEnabled && values.accountEmail
+          ? { username: values.accountEmail.split('@')[0] ?? values.accountEmail, email: values.accountEmail, password: values.password!, roleIds: values.roleIds.length ? values.roleIds : undefined }
           : undefined,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -318,11 +320,12 @@ export function PersonelCreatePage() {
 
             {accountEnabled && (
               <div className="grid gap-x-8 gap-y-6 md:grid-cols-2 animate-fade-in p-4 rounded-xl bg-accent/30 border border-border/50">
-                <FormField label="Kullanıcı Adı" error={errors.username?.message}>
-                  <Input placeholder="Sisteme giriş adı" {...register('username')} />
+                <FormField label="Giriş E-postası *" error={(errors as Record<string, { message?: string }>).accountEmail?.message}>
+                  <Input type="email" placeholder="personel@kurum.com" {...register('accountEmail')} />
+                  <p className="text-xs text-muted-foreground mt-1">Personelin sisteme giriş yapacağı e-posta adresi</p>
                 </FormField>
                 
-                <FormField label="Şifre" error={errors.password?.message}>
+                <FormField label="Parola *" error={errors.password?.message}>
                   <Input type="password" placeholder="En az 6 karakter" {...register('password')} />
                 </FormField>
                 

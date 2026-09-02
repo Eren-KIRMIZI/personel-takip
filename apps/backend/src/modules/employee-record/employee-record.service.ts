@@ -47,8 +47,8 @@ export class EmployeeRecordService {
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
 
     if (dto.issuedById) {
-      const issuer = await this.prisma.employee.findUnique({ where: { id: dto.issuedById } });
-      if (!issuer) throw new BadRequestException('Düzenleyen personel bulunamadı.');
+      const issuer = await this.prisma.user.findUnique({ where: { id: dto.issuedById } });
+      if (!issuer) throw new BadRequestException('Düzenleyen kullanıcı bulunamadı.');
     }
 
     const record = await this.prisma.employeeRecord.create({
@@ -79,8 +79,8 @@ export class EmployeeRecordService {
     if (!record) throw new NotFoundException('Ceza/Ödül kaydı bulunamadı.');
 
     if (dto.issuedById) {
-      const issuer = await this.prisma.employee.findUnique({ where: { id: dto.issuedById } });
-      if (!issuer) throw new BadRequestException('Düzenleyen personel bulunamadı.');
+      const issuer = await this.prisma.user.findUnique({ where: { id: dto.issuedById } });
+      if (!issuer) throw new BadRequestException('Düzenleyen kullanıcı bulunamadı.');
     }
 
     const updated = await this.prisma.employeeRecord.update({

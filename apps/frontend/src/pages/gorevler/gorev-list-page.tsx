@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, CheckCircle2, Circle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,9 +51,9 @@ export function GorevListPage() {
         description={`${data?.total ?? 0} görev kaydı`}
         actions={
           hasPermission('task:write') ? (
-            <Button>
+            <Link to="/gorevler/yeni" className={buttonVariants()}>
               <Plus className="mr-2 h-4 w-4" /> Görev Oluştur
-            </Button>
+            </Link>
           ) : undefined
         }
       />

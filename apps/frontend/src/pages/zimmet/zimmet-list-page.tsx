@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, Plus, RotateCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,9 +55,9 @@ export function ZimmetListPage() {
         description={`${data?.total ?? 0} zimmet kaydı`}
         actions={
           hasPermission('asset:write') ? (
-            <Button>
+            <Link to="/zimmet/yeni" className={buttonVariants()}>
               <Plus className="mr-2 h-4 w-4" /> Zimmet Ekle
-            </Button>
+            </Link>
           ) : undefined
         }
       />
