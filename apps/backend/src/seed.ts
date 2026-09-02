@@ -120,18 +120,30 @@ async function seedPermissions() {
 }
 
 async function seedAdminRole(all: Array<{ id: string }>) {
-  const role = await prisma.role.upsert({
-    where: { code: 'admin' },
-    update: { isSystem: true, isActive: true },
-    create: { name: 'Admin', code: 'admin', description: 'Tüm yetkilere sahip sistem rolü', isSystem: true },
-  });
+  // Önce code veya name ile bul, yoksa oluştur
+  let role = await prisma.role.findFirst({ where: { code: 'admin' } });
+  if (!role) {
+    role = await prisma.role.findFirst({ where: { name: 'Admin' } });
+  }
+  if (!role) {
+    role = await prisma.role.create({
+      data: { name: 'Admin', code: 'admin', description: 'Tüm yetkilere sahip sistem rolü', isSystem: true },
+    });
+  } else {
+    // Mevcut rolü güncelle
+    role = await prisma.role.update({
+      where: { id: role.id },
+      data: { isSystem: true, isActive: true },
+    });
+  }
   await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
   await prisma.rolePermission.createMany({
-    data: all.map((p) => ({ roleId: role.id, permissionId: p.id })),
+    data: all.map((p) => ({ roleId: role!.id, permissionId: p.id })),
   });
   console.log('✓ admin rolüne tüm yetkiler atandı.');
   return role;
 }
+
 
 async function seedOrganization() {
   const company = await prisma.company.upsert({

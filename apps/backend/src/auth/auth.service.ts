@@ -44,7 +44,7 @@ export class AuthService {
         const jwks = JSON.parse(jwksRaw) as { keys?: JwkKey[] };
         for (const jwk of jwks.keys ?? []) {
           if (jwk.kty && jwk.alg) {
-            void importJWK(jwk as JsonWebKey, jwk.alg).then((key) => this.keys.push(key as CryptoKey));
+            void importJWK(jwk as any, jwk.alg).then((key) => this.keys.push(key as CryptoKey));
           }
         }
       } catch (error) {
@@ -57,6 +57,7 @@ export class AuthService {
   }
 
   async verifyToken(token: string): Promise<SupabaseClaims> {
+    const errors: string[] = [];
     for (const key of this.keys) {
       try {
         const { payload } = await jwtVerify(token, key, {
@@ -65,12 +66,14 @@ export class AuthService {
           audience: 'authenticated',
         });
         return payload as unknown as SupabaseClaims;
-      } catch {
-        // bir sonraki anahtarla dene
+      } catch (err) {
+        errors.push(String((err as Error).message));
       }
     }
+    console.error('[Auth] JWT verification failed for all keys. Errors:', errors.join(' | '), '| Issuer expected:', this.expectedIssuer, '| Keys count:', this.keys.length);
     throw new UnauthorizedException('Geçersiz veya süresi dolmuş oturum.');
   }
+
 
   async resolveUser(claims: SupabaseClaims): Promise<AuthenticatedUser> {
     const authId = claims.sub;

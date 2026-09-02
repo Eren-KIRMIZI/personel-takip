@@ -47,7 +47,7 @@ const NAV_SECTIONS: Array<{
   },
   {
     title: 'Organizasyon',
-    items: [{ to: '/organizasyon', label: 'Departman / Birim', icon: <Building2 />, permission: 'organization:read' }],
+    items: [{ to: '/organizasyon', label: 'Departman / Birim', icon: <Building2 />, permission: 'department:read' }],
   },
   {
     title: 'İzin ve Puantaj',
@@ -83,17 +83,18 @@ const NAV_SECTIONS: Array<{
   },
   {
     title: 'Raporlar',
-    items: [{ to: '/sistem-raporlari', label: 'Sistem Raporları', icon: <BarChart3 />, permission: 'report:read' }],
+    items: [{ to: '/sistem-raporlari', label: 'Sistem Raporları', icon: <BarChart3 />, permission: 'report:view' }],
   },
   {
     title: 'Yönetim',
     items: [
-      { to: '/roller',        label: 'Roller ve Yetkiler', icon: <ShieldCheck />, permission: 'access:read' },
-      { to: '/kullanicilar',  label: 'Kullanıcılar',       icon: <UserCog />,     permission: 'access:read' },
+      { to: '/roller',        label: 'Roller ve Yetkiler', icon: <ShieldCheck />, permission: 'role:read' },
+      { to: '/kullanicilar',  label: 'Kullanıcılar',       icon: <UserCog />,     permission: 'user:read' },
       { to: '/islem-loglari', label: 'İşlem Logları',      icon: <ScrollText />,  permission: 'audit:read' },
     ],
   },
 ];
+
 
 export function AppLayout() {
   const profile    = useAuthStore((s) => s.profile);
