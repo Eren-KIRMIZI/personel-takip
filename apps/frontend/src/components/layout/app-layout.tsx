@@ -85,7 +85,7 @@ const NAV_SECTIONS: Array<{
   },
   {
     title: 'Raporlar',
-    items: [{ label: 'Raporlama', icon: <BarChart3 />, soon: true }],
+    items: [{ to: '/sistem-raporlari', label: 'Sistem Raporları', icon: <BarChart3 /> }],
   },
   {
     title: 'Yönetim',

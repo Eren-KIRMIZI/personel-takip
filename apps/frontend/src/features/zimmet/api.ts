@@ -70,6 +70,8 @@ export const assetApi = {
   updateStatus: (id: string, status: AssetStatus) =>
     api<Asset>(`/api/assets/${id}/status/${status}`, { method: 'PATCH' }),
   remove: (id: string) => api<Asset>(`/api/assets/${id}`, { method: 'DELETE' }),
+  getStats: () =>
+    api<{ total: number; byStatus: { status: AssetStatus; count: number }[]; byCategory: { category: string; count: number }[] }>('/api/assets/stats'),
 };
 
 export const ASSET_STATUS_META: Record<AssetStatus, { label: string; variant: 'secondary' | 'success' | 'destructive' | 'outline' | 'warning' }> = {

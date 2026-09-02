@@ -29,6 +29,8 @@ import { EvrakListPage } from '@/pages/evrak/evrak-list-page';
 import { EvrakCreatePage } from '@/pages/evrak/evrak-create-page';
 import { DuyuruListPage } from '@/pages/duyurular/duyuru-list-page';
 import { DuyuruCreatePage } from '@/pages/duyurular/duyuru-create-page';
+import { SistemRaporlariPage } from '@/pages/raporlar/sistem-raporlari-page';
+
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {
@@ -64,6 +66,7 @@ export const router = createBrowserRouter([
       { path: 'evrak/yeni', element: <EvrakCreatePage /> },
       { path: 'duyurular', element: <DuyuruListPage /> },
       { path: 'duyurular/yeni', element: <DuyuruCreatePage /> },
+      { path: 'sistem-raporlari', element: <SistemRaporlariPage /> },
       { path: 'roller', element: <RollerPage /> },
       { path: 'kullanicilar', element: <KullanicilarPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

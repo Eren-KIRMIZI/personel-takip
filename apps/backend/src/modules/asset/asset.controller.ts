@@ -14,8 +14,14 @@ export class AssetController {
 
   @Get()
   @RequirePermissions('asset:read')
-  list(@Query() query: AssetListQueryDto) {
+  async list(@Query() query: AssetListQueryDto) {
     return this.asset.list(query);
+  }
+
+  @Get('stats')
+  @RequirePermissions('asset:read')
+  async getStats() {
+    return this.asset.getStats();
   }
 
   @Post()

@@ -146,4 +146,24 @@ export class AssetService {
     });
     return { deleted: true, id };
   }
+
+  async getStats() {
+    const statusCounts = await this.prisma.asset.groupBy({
+      by: ['status'],
+      _count: { id: true },
+    });
+
+    const categoryCounts = await this.prisma.asset.groupBy({
+      by: ['category'],
+      _count: { id: true },
+    });
+
+    const total = await this.prisma.asset.count();
+
+    return {
+      total,
+      byStatus: statusCounts.map((s) => ({ status: s.status, count: s._count.id })),
+      byCategory: categoryCounts.map((c) => ({ category: c.category, count: c._count.id })),
+    };
+  }
 }

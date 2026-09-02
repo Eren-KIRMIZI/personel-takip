@@ -69,6 +69,8 @@ export const documentApi = {
   update: (id: string, payload: Partial<CreateDocumentPayload>) =>
     api<Document>(`/api/documents/${id}`, { method: 'PATCH', body: payload }),
   remove: (id: string) => api<Document>(`/api/documents/${id}`, { method: 'DELETE' }),
+  getStats: () =>
+    api<{ total: number; byStatus: { status: DocumentStatus; count: number }[]; byPriority: { priority: DocumentPriority; count: number }[] }>('/api/documents/stats'),
 };
 
 export const DOCUMENT_PRIORITY_META: Record<DocumentPriority, { label: string; variant: 'secondary' | 'outline' | 'warning' | 'destructive' }> = {

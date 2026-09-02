@@ -111,4 +111,24 @@ export class DocumentService {
     await this.find(id);
     return this.prisma.document.delete({ where: { id } });
   }
+
+  async getStats() {
+    const statusCounts = await this.prisma.document.groupBy({
+      by: ['status'],
+      _count: { id: true },
+    });
+
+    const priorityCounts = await this.prisma.document.groupBy({
+      by: ['priority'],
+      _count: { id: true },
+    });
+
+    const total = await this.prisma.document.count();
+
+    return {
+      total,
+      byStatus: statusCounts.map((s) => ({ status: s.status, count: s._count.id })),
+      byPriority: priorityCounts.map((p) => ({ priority: p.priority, count: p._count.id })),
+    };
+  }
 }

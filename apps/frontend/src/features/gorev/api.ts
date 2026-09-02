@@ -64,8 +64,12 @@ export const taskApi = {
     api<Task>('/api/tasks', { method: 'POST', body: payload }),
   update: (id: string, payload: Partial<CreateTaskPayload>) =>
     api<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: payload }),
-  updateStatus: (id: string, status: TaskStatus, note?: string) =>
-    api<Task>(`/api/tasks/${id}/status`, { method: 'PATCH', body: { status, note } }),
+  updateStatus: async (id: string, payload: { status: TaskStatus; note?: string }) => {
+    return api<Task>(`/api/tasks/${id}/status`, { method: 'PATCH', body: payload });
+  },
+  getStats: async () => {
+    return api<{ total: number; byStatus: { status: TaskStatus; count: number }[]; byPriority: { priority: TaskPriority; count: number }[] }>('/api/tasks/stats');
+  },
   remove: (id: string) => api<Task>(`/api/tasks/${id}`, { method: 'DELETE' }),
 };
 

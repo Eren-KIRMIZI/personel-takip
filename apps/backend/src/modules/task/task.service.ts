@@ -130,4 +130,24 @@ export class TaskService {
     await this.find(id);
     return this.prisma.task.delete({ where: { id } });
   }
+
+  async getStats() {
+    const statusCounts = await this.prisma.task.groupBy({
+      by: ['status'],
+      _count: { id: true },
+    });
+    
+    const priorityCounts = await this.prisma.task.groupBy({
+      by: ['priority'],
+      _count: { id: true },
+    });
+
+    const total = await this.prisma.task.count();
+
+    return {
+      total,
+      byStatus: statusCounts.map(s => ({ status: s.status, count: s._count.id })),
+      byPriority: priorityCounts.map(p => ({ priority: p.priority, count: p._count.id })),
+    };
+  }
 }
