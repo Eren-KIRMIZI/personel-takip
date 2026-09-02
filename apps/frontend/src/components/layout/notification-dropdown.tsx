@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, Trash2 } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { notificationApi } from '@/features/bildirim/api';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';

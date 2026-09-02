@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   ChevronDown,
-  Filter,
   Search,
   SlidersHorizontal,
   UserPlus,

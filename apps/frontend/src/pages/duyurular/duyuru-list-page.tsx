@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge, Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
 import { useAuthStore } from '@/stores/auth';
@@ -35,11 +35,11 @@ function AdminFeed() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-lg">{a.title}</h3>
-                    <StatusBadge 
-                      status={a.status} 
-                      label={ANNOUNCEMENT_STATUS_META[a.status].label} 
+                    <Badge 
                       variant={ANNOUNCEMENT_STATUS_META[a.status].variant} 
-                    />
+                    >
+                      {ANNOUNCEMENT_STATUS_META[a.status].label}
+                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{a.content}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">

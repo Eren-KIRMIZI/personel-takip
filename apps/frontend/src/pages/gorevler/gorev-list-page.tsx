@@ -6,7 +6,7 @@ import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { StatusBadge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,7 +39,7 @@ export function GorevListPage() {
 
   const statusMutation = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: TaskStatus }) => 
-      taskApi.updateStatus(id, newStatus),
+      taskApi.updateStatus(id, { status: newStatus }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 
@@ -126,18 +126,18 @@ export function GorevListPage() {
                 </TableCell>
                 <TableCell>{formatDate(task.dueDate)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={task.priority} 
-                    label={TASK_PRIORITY_META[task.priority].label} 
+                  <Badge 
                     variant={TASK_PRIORITY_META[task.priority].variant} 
-                  />
+                  >
+                    {TASK_PRIORITY_META[task.priority].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={task.status} 
-                    label={TASK_STATUS_META[task.status].label} 
+                  <Badge 
                     variant={TASK_STATUS_META[task.status].variant} 
-                  />
+                  >
+                    {TASK_STATUS_META[task.status].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">

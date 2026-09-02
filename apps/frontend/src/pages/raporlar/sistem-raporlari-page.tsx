@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { assetApi, ASSET_STATUS_META } from '@/features/zimmet/api';
+import { assetApi } from '@/features/zimmet/api';
 import { taskApi, TASK_STATUS_META, TASK_PRIORITY_META } from '@/features/gorev/api';
-import { documentApi, DOCUMENT_STATUS_META, DOCUMENT_PRIORITY_META } from '@/features/evrak/api';
+import { documentApi, DOCUMENT_STATUS_META } from '@/features/evrak/api';
 import { Briefcase, Package, FileText, CheckCircle2, CircleDashed, AlertCircle } from 'lucide-react';
 
 function StatCard({ title, value, icon, description, loading }: { title: string; value: string | number; icon: React.ReactNode; description?: string; loading?: boolean }) {

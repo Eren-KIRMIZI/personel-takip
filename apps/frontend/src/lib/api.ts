@@ -1,6 +1,9 @@
 import { tokenStore } from './token';
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000';
+// Production'da VITE_API_URL boş bırakılır — aynı Vercel domain'i kullanılır.
+// Geliştirmede http://localhost:3000 kullanılır.
+const _envUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+const BASE_URL = _envUrl !== '' ? _envUrl : (typeof window !== 'undefined' ? window.location.origin : '');
 
 export class ApiError extends Error {
   readonly status: number;
@@ -37,7 +40,11 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   };
   const token = tokenStore.get();
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    // Non-ASCII karakterleri temizle (ISO-8859-1 dışı karakter fetch hatasına yol açar)
+    const safeToken = token.trim().replace(/[^\x00-\x7F]/g, '');
+    if (safeToken) {
+      headers.Authorization = `Bearer ${safeToken}`;
+    }
   }
 
   let response: Response;

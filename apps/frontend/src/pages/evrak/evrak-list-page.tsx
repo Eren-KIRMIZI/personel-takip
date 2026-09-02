@@ -6,7 +6,7 @@ import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { StatusBadge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -108,18 +108,18 @@ export function EvrakListPage() {
                 </TableCell>
                 <TableCell>{formatDate(doc.receivedAt)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={doc.priority} 
-                    label={DOCUMENT_PRIORITY_META[doc.priority].label} 
+                  <Badge 
                     variant={DOCUMENT_PRIORITY_META[doc.priority].variant} 
-                  />
+                  >
+                    {DOCUMENT_PRIORITY_META[doc.priority].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={doc.status} 
-                    label={DOCUMENT_STATUS_META[doc.status].label} 
+                  <Badge 
                     variant={DOCUMENT_STATUS_META[doc.status].variant} 
-                  />
+                  >
+                    {DOCUMENT_STATUS_META[doc.status].label}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}

@@ -485,11 +485,11 @@ export function ZimmetTab({ employeeId }: { employeeId: string }) {
                 <TableCell>{a.category ?? '-'}</TableCell>
                 <TableCell>{formatDateShorthand(a.assignedDate)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={a.status} 
-                    label={ASSET_STATUS_META[a.status].label} 
+                  <Badge 
                     variant={ASSET_STATUS_META[a.status].variant} 
-                  />
+                  >
+                    {ASSET_STATUS_META[a.status].label}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
@@ -527,18 +527,18 @@ export function GorevTab({ employeeId }: { employeeId: string }) {
                 <TableCell className="font-medium">{t.title}</TableCell>
                 <TableCell>{formatDateShorthand(t.dueDate)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={t.priority} 
-                    label={TASK_PRIORITY_META[t.priority].label} 
+                  <Badge 
                     variant={TASK_PRIORITY_META[t.priority].variant} 
-                  />
+                  >
+                    {TASK_PRIORITY_META[t.priority].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={t.status} 
-                    label={TASK_STATUS_META[t.status].label} 
+                  <Badge 
                     variant={TASK_STATUS_META[t.status].variant} 
-                  />
+                  >
+                    {TASK_STATUS_META[t.status].label}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
@@ -578,18 +578,18 @@ export function EvrakTab({ employeeId }: { employeeId: string }) {
                 <TableCell className="font-medium">{d.subject}</TableCell>
                 <TableCell>{formatDateShorthand(d.receivedAt)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={d.priority} 
-                    label={DOCUMENT_PRIORITY_META[d.priority].label} 
+                  <Badge 
                     variant={DOCUMENT_PRIORITY_META[d.priority].variant} 
-                  />
+                  >
+                    {DOCUMENT_PRIORITY_META[d.priority].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={d.status} 
-                    label={DOCUMENT_STATUS_META[d.status].label} 
+                  <Badge 
                     variant={DOCUMENT_STATUS_META[d.status].variant} 
-                  />
+                  >
+                    {DOCUMENT_STATUS_META[d.status].label}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}

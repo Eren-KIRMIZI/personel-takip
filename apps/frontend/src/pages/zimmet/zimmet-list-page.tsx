@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Plus, RotateCcw, PenTool } from 'lucide-react';
+import { Archive, Plus, RotateCcw } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { StatusBadge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,7 +14,6 @@ import { Dialog } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/auth';
 import { assetApi, ASSET_STATUS_META, type AssetStatus, type Asset } from '@/features/zimmet/api';
 import { formatError, formatDate } from '@/lib/utils';
-import { Label } from '@/components/ui/label';
 
 const PAGE_SIZE = 15;
 
@@ -127,11 +126,11 @@ export function ZimmetListPage() {
                 <TableCell>{entry.serialNo ?? '-'}</TableCell>
                 <TableCell>{formatDate(entry.assignedDate)}</TableCell>
                 <TableCell>
-                  <StatusBadge 
-                    status={entry.status} 
-                    label={ASSET_STATUS_META[entry.status].label} 
+                  <Badge 
                     variant={ASSET_STATUS_META[entry.status].variant} 
-                  />
+                  >
+                    {ASSET_STATUS_META[entry.status].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
@@ -179,7 +178,9 @@ export function ZimmetListPage() {
             </Button>
           </>
         }
-      />
+      >
+        <></>
+      </Dialog>
     </div>
   );
 }
