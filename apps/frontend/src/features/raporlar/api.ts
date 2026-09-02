@@ -37,6 +37,9 @@ export interface DashboardSummary {
   today: string;
   employeesActive: number;
   employeesTotal: number;
+  departmentsTotal: number;
+  unitsTotal: number;
+  rolesTotal: number;
   presentToday: number;
   pendingLeaves: number;
   pendingOvertimes: number;

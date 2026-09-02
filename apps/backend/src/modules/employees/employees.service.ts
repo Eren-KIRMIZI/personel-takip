@@ -5,6 +5,16 @@ import { AuditService } from '../../audit/audit.service';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { CreateEmployeeDto, EmployeeListQueryDto, UpdateEmployeeDto } from './dto/employees.dto';
 
+// Listede kullanılan hafif include — user/roles JOIN'i yok
+const listInclude = {
+  department: { select: { id: true, name: true } },
+  unit: { select: { id: true, name: true } },
+  workLocation: { select: { id: true, name: true } },
+  title: { select: { id: true, name: true } },
+  position: { select: { id: true, name: true } },
+} as const;
+
+// Detay/yazma işlemlerinde kullanılan tam include
 const employeeInclude = {
   department: true,
   unit: true,
@@ -46,12 +56,12 @@ export class EmployeesService {
     const where: Record<string, unknown> = {};
     if (query.search) {
       where.OR = [
-        { firstName: { contains: query.search, mode: 'insensitive' } },
-        { lastName: { contains: query.search, mode: 'insensitive' } },
-        { employeeNo: { contains: query.search, mode: 'insensitive' } },
-        { email: { contains: query.search, mode: 'insensitive' } },
-        { internalPhone: { contains: query.search, mode: 'insensitive' } },
-        { phone: { contains: query.search, mode: 'insensitive' } },
+        { firstName: { startsWith: query.search, mode: 'insensitive' } },
+        { lastName: { startsWith: query.search, mode: 'insensitive' } },
+        { employeeNo: { startsWith: query.search, mode: 'insensitive' } },
+        { email: { startsWith: query.search, mode: 'insensitive' } },
+        { internalPhone: { startsWith: query.search, mode: 'insensitive' } },
+        { phone: { startsWith: query.search, mode: 'insensitive' } },
       ];
     }
     if (query.departmentId) where.departmentId = query.departmentId;
@@ -63,7 +73,7 @@ export class EmployeesService {
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({
         where,
-        include: employeeInclude,
+        include: listInclude,
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -81,6 +91,7 @@ export class EmployeesService {
         ...employeeInclude,
         history: {
           orderBy: { effectiveDate: 'desc' },
+          take: 50,
         },
       },
     });
@@ -98,6 +109,7 @@ export class EmployeesService {
     return this.prisma.employeeHistory.findMany({
       where: { employeeId: id },
       orderBy: { effectiveDate: 'desc' },
+      take: 50,
     });
   }
 

@@ -18,5 +18,5 @@ async function getHandler(): Promise<RequestHandler> {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const expressApp = await getHandler();
-  return expressApp(req as unknown as Parameters<RequestHandler>[0], res as never);
+  return expressApp(req as any, res as any, (() => {}) as any);
 }

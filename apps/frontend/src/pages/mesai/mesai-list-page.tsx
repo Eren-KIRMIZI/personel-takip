@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { CalendarPlus, Check, X, Ban } from 'lucide-react';
+import {
+  CalendarPlus,
+  Check,
+  X,
+  Ban,
+  Clock,
+  Filter,
+} from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -11,6 +18,8 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Avatar } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/stores/auth';
 import { overtimeApi, formatDate, type OvertimeEntry, type OvertimeStatus } from '@/features/mesai/api';
@@ -73,108 +82,164 @@ export function MesaiListPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 animate-fade-in">
       <PageHeader
         title="Mesai Yönetimi"
-        description={`${data?.total ?? 0} kayıt`}
+        description={data ? `Toplam ${data.total} mesai kaydı bulunuyor` : 'Kayıtlar yükleniyor…'}
         actions={
           hasPermission('overtime:create') ? (
             <Link to="/mesai/yeni" className={buttonVariants()}>
-              <CalendarPlus /> Mesai Ekle
+              <CalendarPlus className="mr-2 size-4" /> Mesai Ekle
             </Link>
           ) : undefined
         }
       />
 
-      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+      {errorMessage && (
+        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-100 animate-fade-in">
+          {errorMessage}
+        </div>
+      )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          className="w-44"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">Tüm durumlar</option>
-          <option value="PENDING">Bekliyor</option>
-          <option value="APPROVED">Onaylandı</option>
-          <option value="REJECTED">Reddedildi</option>
-          <option value="CANCELLED">İptal</option>
-        </Select>
-        <Input type="date" className="w-40" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
-        <span className="text-sm text-muted-foreground">–</span>
-        <Input type="date" className="w-40" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
-      </div>
+      {/* ── Filter Bar ──────────────────────────────── */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground">
+            <Filter className="size-4" /> Filtreler
+          </div>
+          <div className="h-4 w-px bg-border hidden sm:block" />
+          
+          <Select
+            className="w-full sm:w-48 bg-transparent"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Tüm durumlar</option>
+            <option value="PENDING">Bekleyenler</option>
+            <option value="APPROVED">Onaylananlar</option>
+            <option value="REJECTED">Reddedilenler</option>
+            <option value="CANCELLED">İptal Edilenler</option>
+          </Select>
 
-      <Card>
+          <div className="flex items-center gap-2 w-full sm:w-auto bg-card rounded-lg border border-border px-2">
+             <Input 
+                type="date" 
+                className="w-[130px] border-none shadow-none focus-visible:ring-0 px-1 text-sm bg-transparent" 
+                value={from} 
+                onChange={(e) => { setFrom(e.target.value); setPage(1); }} 
+              />
+              <span className="text-muted-foreground/50">–</span>
+              <Input 
+                type="date" 
+                className="w-[130px] border-none shadow-none focus-visible:ring-0 px-1 text-sm bg-transparent" 
+                value={to} 
+                onChange={(e) => { setTo(e.target.value); setPage(1); }} 
+              />
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Table ───────────────────────────────────── */}
+      <Card className="overflow-hidden shadow-[var(--shadow-xs)]">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Personel</TableHead>
+              <TableHead className="pl-6">Personel</TableHead>
               <TableHead>Tarih</TableHead>
               <TableHead>Saat</TableHead>
               <TableHead>Katsayı</TableHead>
-              <TableHead>Hesaplanan Saat</TableHead>
+              <TableHead>Toplam</TableHead>
               <TableHead>Durum</TableHead>
-              <TableHead className="w-40 text-right">İşlem</TableHead>
+              <TableHead className="w-40 text-right pr-6">İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading &&
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell>
+                  <TableCell colSpan={7} className="px-6 py-4">
+                    <Skeleton className="h-8 w-full" />
+                  </TableCell>
                 </TableRow>
               ))}
+
             {data?.items.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>
-                  <div className="leading-tight">
-                    <div className="font-medium">
-                      {entry.employee.firstName} {entry.employee.lastName}
+              <TableRow key={entry.id} className="group hover:bg-muted/30 transition-colors duration-150">
+                <TableCell className="pl-6">
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      firstName={entry.employee.firstName}
+                      lastName={entry.employee.lastName}
+                      className="size-8 text-xs font-medium shadow-sm"
+                    />
+                    <div className="leading-tight">
+                      <div className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {entry.employee.firstName} {entry.employee.lastName}
+                      </div>
+                      {entry.employee.employeeNo && (
+                        <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          #{entry.employee.employeeNo}
+                        </div>
+                      )}
                     </div>
-                    {entry.employee.employeeNo && (
-                      <div className="text-xs text-muted-foreground">{entry.employee.employeeNo}</div>
-                    )}
                   </div>
                 </TableCell>
-                <TableCell>{formatDate(entry.date)}</TableCell>
-                <TableCell>{entry.hours} saat</TableCell>
-                <TableCell>{entry.rate}×</TableCell>
-                <TableCell>{(entry.hours * entry.rate).toLocaleString('tr-TR')} saat</TableCell>
-                <TableCell><StatusBadge status={entry.status} /></TableCell>
                 <TableCell>
+                  <span className="text-foreground/80">{formatDate(entry.date)}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="font-mono text-sm">{entry.hours} sa</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">{entry.rate}×</span>
+                </TableCell>
+                <TableCell>
+                  <span className="font-mono text-sm font-semibold text-primary">{(entry.hours * entry.rate).toLocaleString('tr-TR')} sa</span>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={entry.status} />
+                </TableCell>
+                <TableCell className="pr-6">
                   {entry.status === 'PENDING' && (
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
                       {hasPermission('overtime:approve') && (
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="success"
+                          size="icon"
                           title="Onayla"
                           disabled={approveMutation.isPending}
                           onClick={() => approveMutation.mutate(entry.id)}
+                          className="size-8 rounded-full shadow-sm"
                         >
-                          <Check /> Onayla
+                          <Check className="size-4" />
                         </Button>
                       )}
                       {hasPermission('overtime:reject') && (
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="destructive"
+                          size="icon"
                           title="Reddet"
                           onClick={() => {
                             setRejectTarget(entry);
                             setRejectReason('');
                           }}
+                          className="size-8 rounded-full shadow-sm"
                         >
-                          <X /> Reddet
+                          <X className="size-4" />
                         </Button>
                       )}
                       {hasPermission('overtime:create') && (
-                        <Button variant="ghost" size="icon" title="İptal" onClick={() => setCancelTarget(entry)}>
-                          <Ban />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="İptal Et"
+                          onClick={() => setCancelTarget(entry)}
+                          className="size-8 rounded-full shadow-sm"
+                        >
+                          <Ban className="size-4 text-muted-foreground" />
                         </Button>
                       )}
                     </div>
@@ -182,37 +247,53 @@ export function MesaiListPage() {
                 </TableCell>
               </TableRow>
             ))}
+            
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">Kayıt yok</TableCell>
+                 <TableCell colSpan={7}>
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="flex size-14 items-center justify-center rounded-2xl bg-muted mb-4">
+                      <Clock className="size-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Mesai kaydı bulunamadı</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Farklı bir tarih veya durum filtresi seçin.
+                    </p>
+                  </div>
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-        {data && (
-          <div className="p-4">
+        {data && data.total > PAGE_SIZE && (
+          <div className="border-t border-border px-4 py-3">
             <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
           </div>
         )}
       </Card>
 
+      {/* ── Dialogs ─────────────────────────────────── */}
       <Dialog
         open={rejectTarget !== null}
         onClose={() => setRejectTarget(null)}
         title="Mesaiyi Reddet"
-        description={rejectTarget ? `${rejectTarget.employee.firstName} ${rejectTarget.employee.lastName} — ${formatDate(rejectTarget.date)}` : undefined}
+        description={rejectTarget ? `${rejectTarget.employee.firstName} ${rejectTarget.employee.lastName} personeline ait ${formatDate(rejectTarget.date)} tarihli mesai reddedilecek.` : undefined}
         footer={
           <>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>Vazgeç</Button>
             <Button variant="destructive" disabled={!rejectReason.trim() || rejectMutation.isPending} onClick={() => rejectMutation.mutate()}>
-              {rejectMutation.isPending ? 'İşleniyor…' : 'Reddet'}
+              {rejectMutation.isPending ? 'Reddediliyor…' : 'Reddet'}
             </Button>
           </>
         }
       >
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Red nedeni *</label>
-          <Input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+        <div className="space-y-2 pt-2">
+          <Label>Red nedeni *</Label>
+          <Input 
+            placeholder="Lütfen reddetme sebebini girin" 
+            value={rejectReason} 
+            onChange={(e) => setRejectReason(e.target.value)} 
+          />
         </div>
       </Dialog>
 
@@ -225,12 +306,12 @@ export function MesaiListPage() {
           <>
             <Button variant="outline" onClick={() => setCancelTarget(null)}>Vazgeç</Button>
             <Button variant="destructive" disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate()}>
-              {cancelMutation.isPending ? 'İşleniyor…' : 'İptal Et'}
+              {cancelMutation.isPending ? 'İptal Ediliyor…' : 'İptal Et'}
             </Button>
           </>
         }
       >
-        <p className="text-sm text-muted-foreground">Mesai kaydı iptal edilecek. Geri alınamaz.</p>
+        <p className="text-sm text-muted-foreground">Mesai kaydı kalıcı olarak iptal edilecek. Bu işlem geri alınamaz.</p>
       </Dialog>
     </div>
   );

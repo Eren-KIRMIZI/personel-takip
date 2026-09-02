@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AuditService } from './audit.service';
-import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 
 @Controller('audit-logs')
 export class AuditController {

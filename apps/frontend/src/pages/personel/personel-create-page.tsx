@@ -4,9 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Save, User, Building2, Phone } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,13 +15,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { employeesApi } from '@/features/personel/api';
 import { orgApi, type OrgGroup } from '@/features/organizasyon/api';
 import { accessApi, type Role } from '@/features/erişim/api';
-import { formatError } from '@/lib/utils';
+import { cn, formatError } from '@/lib/utils';
 
 const schema = z
   .object({
     accountEnabled: z.boolean(),
-    username: z.string().min(3, 'En az 3 karakter'),
-    password: z.string().min(6, 'En az 6 karakter'),
+    username: z.string().min(3, 'En az 3 karakter').optional().or(z.literal('')),
+    password: z.string().min(6, 'En az 6 karakter').optional().or(z.literal('')),
     firstName: z.string().min(2, 'Ad zorunlu'),
     lastName: z.string().min(2, 'Soyad zorunlu'),
     email: z.string().email('Geçerli e-posta girin').optional().or(z.literal('')),
@@ -53,7 +53,7 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 const defaultValues: FormValues = {
-  accountEnabled: true,
+  accountEnabled: false,
   username: '',
   password: '',
   firstName: '',
@@ -81,6 +81,18 @@ function useOptionList(group: OrgGroup, queryKey: string) {
   });
 }
 
+function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className={cn('text-sm font-medium', error ? 'text-destructive' : 'text-foreground/90')}>
+        {label}
+      </Label>
+      {children}
+      {error && <p className="text-xs text-destructive animate-fade-in">{error}</p>}
+    </div>
+  );
+}
+
 export function PersonelCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -106,7 +118,7 @@ export function PersonelCreatePage() {
     mutationFn: (values: FormValues) =>
       employeesApi.create({
         account: values.accountEnabled
-          ? { username: values.username, password: values.password, roleIds: values.roleIds.length ? values.roleIds : undefined }
+          ? { username: values.username!, password: values.password!, roleIds: values.roleIds.length ? values.roleIds : undefined }
           : undefined,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -145,10 +157,11 @@ export function PersonelCreatePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="animate-fade-in pb-24 relative max-w-5xl mx-auto">
       <PageHeader
         title="Yeni Personel"
-        description="Personel ve kullanıcı hesabı bilgileri"
+        description="Personel özlük bilgileri, görev yerleşimi ve hesap yetkileri."
+        className="mb-8"
         actions={
           <Link to="/personel" className={buttonVariants({ variant: 'outline' })}>
             <ArrowLeft /> Listeye Dön
@@ -156,148 +169,183 @@ export function PersonelCreatePage() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Genel Bilgiler</CardTitle>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        
+        {/* ── Section 1: Personal Info ──────────────────── */}
+        <Card className="border-border/60 shadow-[var(--shadow-xs)]">
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <div className="flex items-center gap-2">
+              <User className="size-5 text-primary" />
+              <CardTitle className="text-lg">Kişisel Bilgiler</CardTitle>
+            </div>
+            <CardDescription>Personelin temel kimlik ve iletişim bilgileri</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label>Ad *</Label>
-              <Input {...register('firstName')} />
-              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Soyad *</Label>
-              <Input {...register('lastName')} />
-              {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Sicil No</Label>
-              <Input {...register('employeeNo')} />
-            </div>
-            <div className="space-y-2">
-              <Label>E-posta</Label>
-              <Input type="email" {...register('email')} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Kişisel Telefon</Label>
-              <Input {...register('phone')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Dahili Telefon</Label>
-              <Input {...register('internalPhone')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Dış Hat</Label>
-              <Input {...register('externalLine')} />
-            </div>
-            <div className="space-y-2">
-              <Label>TC Kimlik No</Label>
-              <Input {...register('identityNo')} />
-            </div>
-            <div className="space-y-2">
-              <Label>İşe Başlama Tarihi</Label>
+          <CardContent className="grid gap-x-8 gap-y-6 pt-6 md:grid-cols-2 lg:grid-cols-3">
+            <FormField label="Ad *" error={errors.firstName?.message}>
+              <Input placeholder="Örn: Ahmet" {...register('firstName')} />
+            </FormField>
+            
+            <FormField label="Soyad *" error={errors.lastName?.message}>
+              <Input placeholder="Örn: Yılmaz" {...register('lastName')} />
+            </FormField>
+            
+            <FormField label="TC Kimlik No">
+              <Input placeholder="11 Haneli TC No" {...register('identityNo')} />
+            </FormField>
+            
+            <FormField label="E-posta" error={errors.email?.message}>
+              <Input type="email" placeholder="ahmet@kurum.com" {...register('email')} />
+            </FormField>
+            
+            <FormField label="Kişisel Telefon">
+              <Input placeholder="05XX XXX XX XX" {...register('phone')} />
+            </FormField>
+            
+            <FormField label="İşe Başlama Tarihi">
               <Input type="date" {...register('workStartDate')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Durum</Label>
-              <Select {...register('status')}>
-                <option value="ACTIVE">Aktif</option>
-                <option value="PASSIVE">Pasif</option>
-                <option value="SUSPENDED">Askıda</option>
-              </Select>
-            </div>
+            </FormField>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Görev Yeri ve Unvan</CardTitle>
+        {/* ── Section 2: Corporate Info ──────────────────── */}
+        <Card className="border-border/60 shadow-[var(--shadow-xs)]">
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="size-5 text-primary" />
+              <CardTitle className="text-lg">Kurumsal Yerleşim</CardTitle>
+            </div>
+            <CardDescription>Departman, unvan ve dahili erişim ayarları</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label>Departman</Label>
+          <CardContent className="grid gap-x-8 gap-y-6 pt-6 md:grid-cols-2 lg:grid-cols-3">
+            <FormField label="Sicil No">
+              <Input placeholder="Örn: 2023-001" {...register('employeeNo')} />
+            </FormField>
+
+            <FormField label="Durum">
+              <Select {...register('status')}>
+                <option value="ACTIVE">Aktif (Çalışıyor)</option>
+                <option value="PASSIVE">Pasif (Ayrıldı)</option>
+                <option value="SUSPENDED">Askıda (İzinde/Uzaklaştırma)</option>
+              </Select>
+            </FormField>
+
+            <div className="hidden lg:block" /> {/* Spacer */}
+
+            <FormField label="Departman">
               <Select {...register('departmentId')}>
-                <option value="">Seçin</option>
+                <option value="">Seçiniz</option>
                 {departments.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Birim</Label>
+            </FormField>
+            
+            <FormField label="Birim">
               <Select {...register('unitId')}>
-                <option value="">Seçin</option>
+                <option value="">Seçiniz</option>
                 {units.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Görev Yeri</Label>
+            </FormField>
+            
+            <FormField label="Görev Yeri">
               <Select {...register('workLocationId')}>
-                <option value="">Seçin</option>
+                <option value="">Seçiniz</option>
                 {locations.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Unvan</Label>
+            </FormField>
+            
+            <FormField label="Unvan">
               <Select {...register('titleId')}>
-                <option value="">Seçin</option>
+                <option value="">Seçiniz</option>
                 {titles.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Görev / Pozisyon</Label>
+            </FormField>
+            
+            <FormField label="Görev / Pozisyon">
               <Select {...register('positionId')}>
-                <option value="">Seçin</option>
+                <option value="">Seçiniz</option>
                 {positions.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
+            </FormField>
+
+            <div className="col-span-full mt-4 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3 pt-6 border-t border-border/40">
+              <div className="col-span-full">
+                <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                  <Phone className="size-4" /> Kurum İçi İletişim
+                </h4>
+              </div>
+              <FormField label="Dahili Telefon">
+                <Input placeholder="Örn: 101" {...register('internalPhone')} />
+              </FormField>
+              <FormField label="Dış Hat">
+                <Input placeholder="Örn: 0212 555 55 55" {...register('externalLine')} />
+              </FormField>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Kullanıcı Hesabı</CardTitle>
+        {/* ── Section 3: Account & Access ───────────────── */}
+        <Card className={cn(
+          'border-border/60 shadow-[var(--shadow-xs)] transition-colors duration-300',
+          accountEnabled && 'border-primary/40 ring-1 ring-primary/20'
+        )}>
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <div className="flex items-center gap-2">
+              <Lock className="size-5 text-primary" />
+              <CardTitle className="text-lg">Kullanıcı Hesabı & Yetkiler</CardTitle>
+            </div>
+            <CardDescription>Sisteme giriş izni ve rol atamaları</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={accountEnabled} onChange={(e) => setValue('accountEnabled', e.target.checked)} />
-              Kullanıcı hesabı oluştur (sisteme giriş yapabilir)
+          <CardContent className="pt-6 space-y-6">
+            <label className="flex items-center gap-3 cursor-pointer group w-max">
+              <Checkbox
+                checked={accountEnabled}
+                onChange={(e) => setValue('accountEnabled', e.target.checked)}
+                className="scale-110"
+              />
+              <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                Kullanıcı hesabı oluştur (Sisteme giriş yapabilir)
+              </span>
             </label>
+
             {accountEnabled && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Kullanıcı Adı</Label>
-                  <Input {...register('username')} />
-                  {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>Şifre</Label>
-                  <Input type="password" {...register('password')} />
-                  {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Roller</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {roles?.map((role: Role) => (
-                      <label
-                        key={role.id}
-                        className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent"
-                      >
-                        <Checkbox checked={roleIds.includes(role.id)} onChange={() => toggleRole(role.id)} />
-                        {role.name}
-                      </label>
-                    ))}
+              <div className="grid gap-x-8 gap-y-6 md:grid-cols-2 animate-fade-in p-4 rounded-xl bg-accent/30 border border-border/50">
+                <FormField label="Kullanıcı Adı" error={errors.username?.message}>
+                  <Input placeholder="Sisteme giriş adı" {...register('username')} />
+                </FormField>
+                
+                <FormField label="Şifre" error={errors.password?.message}>
+                  <Input type="password" placeholder="En az 6 karakter" {...register('password')} />
+                </FormField>
+                
+                <div className="space-y-3 md:col-span-2">
+                  <Label className="text-sm font-medium">Uygulama Rolleri</Label>
+                  <div className="flex flex-wrap gap-2.5">
+                    {roles?.map((role: Role) => {
+                      const isSelected = roleIds.includes(role.id);
+                      return (
+                        <label
+                          key={role.id}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all duration-200 select-none hover:shadow-sm',
+                            isSelected 
+                              ? 'border-primary bg-primary/10 text-primary font-medium' 
+                              : 'border-border bg-card text-foreground hover:border-border/80'
+                          )}
+                        >
+                          <Checkbox checked={isSelected} onChange={() => toggleRole(role.id)} />
+                          {role.name}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -305,15 +353,32 @@ export function PersonelCreatePage() {
           </CardContent>
         </Card>
 
-        {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-
-        <div className="flex justify-end gap-2">
-          <Link to="/personel" className={buttonVariants({ variant: 'outline' })}>
-            Vazgeç
-          </Link>
-          <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-            <Save /> {isSubmitting ? 'Kaydediliyor…' : 'Kaydet'}
-          </Button>
+        {/* ── Sticky Bottom Action Bar ───────────────────── */}
+        <div className="fixed bottom-0 left-0 lg:left-60 right-0 z-40 bg-background/80 backdrop-blur-md border-t border-border p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-all">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex-1">
+              {serverError && (
+                <p className="text-sm font-medium text-destructive animate-fade-in">
+                  {serverError}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Link to="/personel" className={buttonVariants({ variant: 'ghost' })}>
+                Vazgeç
+              </Link>
+              <Button type="submit" size="lg" disabled={isSubmitting || createMutation.isPending}>
+                {isSubmitting ? (
+                  <>Kaydediliyor…</>
+                ) : (
+                  <>
+                    <Save /> Personeli Kaydet
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
     </div>

@@ -22,22 +22,32 @@ export function Tabs({ tabs, value, defaultValue, onValueChange, className }: Ta
 
   return (
     <div className={cn('w-full', className)}>
-      <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => select(tab.value)}
-            className={cn(
-              'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none',
-              active === tab.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-6 border-b border-border/80 px-1 mb-5">
+        {tabs.map((tab) => {
+          const isActive = active === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => select(tab.value)}
+              className={cn(
+                'relative pb-3 text-sm font-medium transition-colors duration-150',
+                isActive
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {tab.label}
+              {isActive && (
+                <span className="absolute bottom-[-1px] left-0 h-0.5 w-full bg-primary rounded-t-full animate-fade-in" />
+              )}
+            </button>
+          );
+        })}
       </div>
-      {activeTab?.content ?? null}
+      <div className="animate-fade-in">
+        {activeTab?.content ?? null}
+      </div>
     </div>
   );
 }

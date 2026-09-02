@@ -52,56 +52,47 @@ export class ReportsService {
 
     const byEmployee = new Map<
       string,
-      { employee: (typeof records)[number]['employee']; dayIn: Map<string, string>; pc: Map<string, number>; in: number; out: number; worked: number }
+      {
+        employee: (typeof records)[number]['employee'];
+        byDay: Map<string, { in?: Date; out?: Date }>;
+        inCount: number;
+        outCount: number;
+      }
     >();
 
     for (const r of records) {
       let acc = byEmployee.get(r.employeeId);
       if (!acc) {
-        acc = {
-          employee: r.employee,
-          dayIn: new Map(),
-          pc: new Map(),
-          in: 0,
-          out: 0,
-          worked: 0,
-        };
+        acc = { employee: r.employee, byDay: new Map(), inCount: 0, outCount: 0 };
         byEmployee.set(r.employeeId, acc);
       }
       const day = r.timestamp.toISOString().slice(0, 10);
+      const bucket = acc.byDay.get(day) ?? {};
       if (r.type === PunchType.IN) {
-        acc.in += 1;
-        acc.dayIn.set(r.timestamp.getTime().toString(), day);
-        acc.pc.set(day, (acc.pc.get(day) ?? 0) + 0);
+        acc.inCount += 1;
+        if (!bucket.in) bucket.in = r.timestamp;
       } else {
-        acc.out += 1;
+        acc.outCount += 1;
+        if (!bucket.out) bucket.out = r.timestamp;
       }
+      acc.byDay.set(day, bucket);
     }
 
     const result = Array.from(byEmployee.values()).map((acc) => {
-      const punches = records.filter((r) => r.employeeId === acc.employee.id);
-      const byDay = new Map<string, { in?: Date; out?: Date }>();
-      for (const p of punches) {
-        const day = p.timestamp.toISOString().slice(0, 10);
-        const bucket = byDay.get(day) ?? {};
-        if (p.type === PunchType.IN && !bucket.in) bucket.in = p.timestamp;
-        else if (p.type === PunchType.OUT && !bucket.out) bucket.out = p.timestamp;
-        byDay.set(day, bucket);
-      }
       let workedMinutes = 0;
-      for (const bucket of byDay.values()) {
+      for (const bucket of acc.byDay.values()) {
         if (bucket.in && bucket.out && bucket.out > bucket.in) {
           workedMinutes += (bucket.out.getTime() - bucket.in.getTime()) / 60000;
         }
       }
       return {
         employee: acc.employee,
-        totalRecords: acc.in + acc.out,
-        totalIn: acc.in,
-        totalOut: acc.out,
+        totalRecords: acc.inCount + acc.outCount,
+        totalIn: acc.inCount,
+        totalOut: acc.outCount,
         workedMinutes,
         worked: hoursMin(workedMinutes),
-        days: byDay.size,
+        days: acc.byDay.size,
       };
     });
 
@@ -193,9 +184,22 @@ export class ReportsService {
     const today = startOfToday();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0);
 
-    const [employeesActive, employeesTotal, punchesToday, pendingLeaves, pendingOvertimes, monthOvertime] = await Promise.all([
+    const [
+      employeesActive,
+      employeesTotal,
+      departmentsTotal,
+      unitsTotal,
+      rolesTotal,
+      punchesToday,
+      pendingLeaves,
+      pendingOvertimes,
+      monthOvertime,
+    ] = await Promise.all([
       this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
       this.prisma.employee.count(),
+      this.prisma.department.count({ where: { isActive: true } }),
+      this.prisma.unit.count({ where: { isActive: true } }),
+      this.prisma.role.count({ where: { isActive: true } }),
       this.prisma.attendanceRecord.findMany({
         where: { timestamp: { gte: today } },
         select: { employeeId: true },
@@ -213,6 +217,9 @@ export class ReportsService {
       today,
       employeesActive,
       employeesTotal,
+      departmentsTotal,
+      unitsTotal,
+      rolesTotal,
       presentToday: punchesToday.length,
       pendingLeaves,
       pendingOvertimes,

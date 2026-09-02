@@ -1,28 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* --- Radius --- */
+  --radius: 0.5rem;
+
+  /* --- Core Surfaces --- */
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.09 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.09 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.09 0 0);
+
+  /* --- Primary: Electric Blue --- */
+  --primary: oklch(0.546 0.245 262);
+  --primary-foreground: oklch(1 0 0);
+
+  /* --- Secondary & Muted --- */
+  --secondary: oklch(0.96 0.004 264);
+  --secondary-foreground: oklch(0.3 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+
+  /* --- Accent --- */
+  --accent: oklch(0.96 0.006 262);
+  --accent-foreground: oklch(0.3 0.08 262);
+
+  /* --- Destructive --- */
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* --- Borders & Inputs --- */
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.94 0 0);
+  --ring: oklch(0.546 0.245 262);
+
+  /* --- Sidebar (Premium Navy) --- */
+  --sidebar: oklch(0.2 0.03 260); /* Deep navy slate #111827 / #0F172A style */
+  --sidebar-foreground: oklch(0.7 0.02 260);
+  --sidebar-foreground-active: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.25 0.03 260); /* Lighter hover block */
+  --sidebar-border: oklch(0.25 0.03 260);
+  --sidebar-ring: oklch(0.546 0.245 262);
+  --sidebar-muted: oklch(0.5 0.02 260);
+  --sidebar-indicator: oklch(0.65 0.15 200); /* Vibrant teal/cyan for active line */
+
+  /* --- Shadow System --- */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
 }
 
 @theme inline {
@@ -45,18 +76,125 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  /* Sidebar colors available to Tailwind */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-muted: var(--sidebar-muted);
 }
 
+/* ── Global resets ─────────────────────────────────── */
 * {
   border-color: var(--color-border);
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Premium Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.82 0 0);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.7 0 0);
+}
+
+/* Sidebar dark scrollbar */
+aside ::-webkit-scrollbar-thumb {
+  background: oklch(0.22 0 0);
+}
+aside ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.32 0 0);
+}
+
+/* ── Animations ────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInFromBottom {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in    { animation: fadeIn 0.2s ease-out both; }
+.animate-slide-up   { animation: slideInFromBottom 0.25s ease-out both; }
+.animate-scale-in   { animation: scaleIn 0.15s ease-out both; }
+
+/* ── Skeleton shimmer ──────────────────────────────── */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.94 0 0) 25%,
+    oklch(0.97 0 0) 50%,
+    oklch(0.94 0 0) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Active dot ────────────────────────────────────── */
+.status-dot-active {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+/* ── Focus ring override ───────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ── Typography helpers ────────────────────────────── */
+.font-display {
+  font-variation-settings: "wght" 650;
+  letter-spacing: -0.025em;
+}
+
+/* ── Glass ─────────────────────────────────────────── */
+.glass {
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
 }

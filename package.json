@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run start:dev --workspace apps/backend & npm run dev --workspace apps/frontend",
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" \"npm run start:dev --workspace apps/backend\" \"npm run dev --workspace apps/frontend\"",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
@@ -16,6 +16,7 @@
     "prisma:studio": "prisma studio"
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "prisma": "^6.19.3",
     "typescript": "~5.9.3"
   }
