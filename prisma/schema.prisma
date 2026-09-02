@@ -78,8 +78,57 @@ model WorkLocation {
   employers Employee[]
   qrCodes   QrCode[]
   attendanceRecords AttendanceRecord[]
+  shifts   Shift[]
 
   @@map("work_locations")
+}
+
+model Shift {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  code           String?   @unique
+  startTime      String
+  endTime        String
+  breakMinutes   Int       @default(0)
+  description    String?
+  workLocationId String?   @db.Uuid
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  workLocation WorkLocation? @relation(fields: [workLocationId], references: [id])
+  assignments  ShiftAssignment[]
+
+  @@index([workLocationId])
+  @@map("shifts")
+}
+
+enum ShiftDay {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+model ShiftAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  employeeId  String   @db.Uuid
+  shiftId     String   @db.Uuid
+  day         ShiftDay
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  shift    Shift    @relation(fields: [shiftId], references: [id])
+
+  @@unique([employeeId, shiftId, day])
+  @@index([employeeId])
+  @@index([shiftId])
+  @@map("shift_assignments")
 }
 
 model Title {
@@ -158,7 +207,9 @@ model Employee {
   user     User?
   history  EmployeeHistory[]
   leaves   LeaveRequest[]
+  overtimes Overtime[]
   punches  AttendanceRecord[]
+  shiftAssignments ShiftAssignment[]
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -298,6 +349,35 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+enum OvertimeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Overtime {
+  id             String         @id @default(uuid()) @db.Uuid
+  employeeId     String         @db.Uuid
+  date           DateTime
+  hours          Float
+  rate           Float          @default(1)
+  description    String?
+  status         OvertimeStatus @default(PENDING)
+  approvedById   String?        @db.Uuid
+  approvedAt     DateTime?
+  rejectionReason String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+  @@map("overtime_entries")
 }
 
 model LeaveRequest {

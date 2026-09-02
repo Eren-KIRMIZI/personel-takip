@@ -1,11 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Building2, ShieldCheck, Users } from 'lucide-react';
+import {
+  Building2,
+  CalendarClock,
+  ClipboardCheck,
+  Clock4,
+  Lightbulb,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/stores/auth';
 import { api } from '@/lib/api';
+import { reportsApi, type DashboardSummary } from '@/features/raporlar/api';
 
 interface CountRow {
   items: unknown[];
@@ -32,15 +41,24 @@ function useCounts() {
   });
 }
 
+function useCheckInSummary() {
+  return useQuery({
+    queryKey: ['raporlar', 'summary'],
+    queryFn: () => reportsApi.summary(),
+  });
+}
+
 export function DashboardPage() {
   const profile = useAuthStore((s) => s.profile);
-  const { data, isLoading } = useCounts();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const counts = useCounts();
+  const check = useCheckInSummary();
 
   const stats = [
-    { label: 'Personel', value: data?.personel, to: '/personel', icon: Users },
-    { label: 'Departman', value: data?.departman, to: '/organizasyon', icon: Building2 },
-    { label: 'Birim', value: data?.birim, to: '/organizasyon', icon: Building2 },
-    { label: 'Rol', value: data?.rol, to: '/roller', icon: ShieldCheck },
+    { label: 'Personel', value: counts.data?.personel, to: '/personel', icon: Users },
+    { label: 'Departman', value: counts.data?.departman, to: '/organizasyon', icon: Building2 },
+    { label: 'Birim', value: counts.data?.birim, to: '/organizasyon', icon: Building2 },
+    { label: 'Rol', value: counts.data?.rol, to: '/roller', icon: ShieldCheck },
   ];
 
   return (
@@ -62,12 +80,16 @@ export function DashboardPage() {
                 <stat.icon className="size-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-3xl font-semibold">{stat.value ?? 0}</div>}
+                {counts.isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-3xl font-semibold">{stat.value ?? 0}</div>}
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
+
+      {check.data && hasPermission('attendance:read') && (
+        <CheckInSummaryCard data={check.data} />
+      )}
 
       <Card>
         <CardHeader>
@@ -87,5 +109,62 @@ export function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function CheckInSummaryCard({ data }: { data: DashboardSummary }) {
+  const rows = [
+    {
+      icon: ClipboardCheck,
+      label: 'Bugün İçeride',
+      value: data.presentToday,
+      sub: `${data.employeesActive} aktif personel`,
+      to: '/giris-cikis',
+      show: true,
+    },
+    {
+      icon: CalendarClock,
+      label: 'Bekleyen İzin',
+      value: data.pendingLeaves,
+      sub: 'onay bekleyen',
+      to: '/izin',
+      show: true,
+    },
+    {
+      icon: Clock4,
+      label: 'Bekleyen Mesai',
+      value: data.pendingOvertimes,
+      sub: 'onay bekleyen',
+      to: '/mesai',
+      show: true,
+    },
+    {
+      icon: Lightbulb,
+      label: 'Ay Mesaisi (onaylı)',
+      value: data.approvedOvertimeHoursMonth,
+      sub: 'saat',
+      to: '/mesai',
+      show: true,
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">Bugünkü Genel Bakış</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {rows.map((row) => (
+          <Link key={row.label} to={row.to} className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-accent/50">
+            <row.icon className="mt-0.5 size-4 text-muted-foreground" />
+            <div>
+              <div className="text-2xl font-semibold">{row.value ?? 0}</div>
+              <div className="text-xs font-medium">{row.label}</div>
+              <div className="text-xs text-muted-foreground">{row.sub}</div>
+            </div>
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

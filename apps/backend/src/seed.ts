@@ -29,6 +29,7 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'izin', code: 'leave:create', name: 'İzin talebi oluşturma' },
   { module: 'izin', code: 'leave:approve', name: 'İzin onaylama' },
   { module: 'izin', code: 'leave:reject', name: 'İzin reddetme' },
+  { module: 'izin', code: 'leave:write', name: 'İzin tipi yönetimi' },
   // Mesai
   { module: 'mesai', code: 'overtime:read', name: 'Mesai görüntüleme' },
   { module: 'mesai', code: 'overtime:create', name: 'Mesai tanımlama' },
@@ -61,6 +62,9 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'qr', code: 'qr:read', name: 'QR görüntüleme' },
   { module: 'qr', code: 'qr:write', name: 'QR yönetimi' },
   { module: 'qr', code: 'qr:report', name: 'QR raporlama' },
+  // Vardiya
+  { module: 'vardiya', code: 'shift:read', name: 'Vardiya görüntüleme' },
+  { module: 'vardiya', code: 'shift:write', name: 'Vardiya ve atama düzenleme' },
   // Organizasyon
   { module: 'organizasyon', code: 'company:read', name: 'Kurum görüntüleme' },
   { module: 'organizasyon', code: 'company:write', name: 'Kurum düzenleme' },
@@ -148,6 +152,23 @@ async function seedOrganization() {
   console.log('✓ Örnek organizasyon verisi hazır.');
 }
 
+async function seedLeaveTypes() {
+  const types = [
+    { name: 'Yıllık İzin', code: 'annual', paid: true, color: '#16a34a', defaultDays: 14 },
+    { name: 'Mazeret İzni', code: 'personal', paid: true, color: '#2563eb', defaultDays: 3 },
+    { name: 'Hastalık Raporu', code: 'sick', paid: true, color: '#dc2626', defaultDays: 5 },
+    { name: 'Ücretsiz İzin', code: 'unpaid', paid: false, color: '#6b7280', defaultDays: null },
+  ];
+  for (const t of types) {
+    await prisma.leaveType.upsert({
+      where: { code: t.code },
+      update: { name: t.name, paid: t.paid, color: t.color, defaultDays: t.defaultDays },
+      create: t,
+    });
+  }
+  console.log('✓ Varsayılan izin tipleri hazır.');
+}
+
 async function seedAdminUser() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
@@ -200,6 +221,7 @@ async function main() {
   const all = await seedPermissions();
   await seedAdminRole(all);
   await seedOrganization();
+  await seedLeaveTypes();
   await seedAdminUser();
   console.log('Tohumlama tamamlandı.');
 }

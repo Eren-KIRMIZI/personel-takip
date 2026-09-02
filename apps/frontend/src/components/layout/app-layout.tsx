@@ -5,15 +5,21 @@ import {
   Briefcase,
   Building2,
   CalendarDays,
+  CalendarPlus,
   ChevronRight,
   Clock,
+  ClockPlus,
+  CalendarRange,
+  FileChartColumn,
   FileText,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Package,
+  QrCode,
   ScrollText,
   ShieldCheck,
+  Timer,
   UserCog,
   UserPlus,
   Users,
@@ -25,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 
 const NAV_SECTIONS: Array<{
   title: string;
-  items: Array<{ to?: string; label: string; icon: React.ReactNode; soon?: boolean }>;
+  items: Array<{ to?: string; label: string; icon: React.ReactNode; soon?: boolean; permission?: string }>;
 }> = [
   {
     title: 'Genel',
@@ -45,9 +51,12 @@ const NAV_SECTIONS: Array<{
   {
     title: 'İzin ve Puantaj',
     items: [
-      { label: 'İzin Yönetimi', icon: <CalendarDays />, soon: true },
-      { label: 'Puantaj', icon: <Clock />, soon: true },
-      { label: 'Giriş-Çıkış', icon: <Clock />, soon: true },
+      { to: '/izin', label: 'İzin Yönetimi', icon: <CalendarDays />, permission: 'leave:read' },
+      { to: '/izin/yeni', label: 'Yeni İzin Talebi', icon: <CalendarPlus />, permission: 'leave:create' },
+      { to: '/giris-cikis', label: 'Giriş-Çıkış', icon: <Clock />, permission: 'attendance:read' },
+      { to: '/giris-cikis/qr', label: 'QR Kodlar', icon: <QrCode />, permission: 'qr:read' },
+      { to: '/raporlar', label: 'Raporlar', icon: <FileChartColumn />, permission: 'attendance:read' },
+      { to: '/vardiya', label: 'Vardiyalar', icon: <CalendarRange />, permission: 'shift:read' },
       { label: 'Çalışma Planları', icon: <CalendarDays />, soon: true },
     ],
   },
@@ -58,7 +67,8 @@ const NAV_SECTIONS: Array<{
   {
     title: 'İş Süreçleri',
     items: [
-      { label: 'Mesai', icon: <Clock />, soon: true },
+      { to: '/mesai', label: 'Mesai', icon: <Timer />, permission: 'overtime:read' },
+      { to: '/mesai/yeni', label: 'Mesai Ekle', icon: <ClockPlus />, permission: 'overtime:create' },
       { label: 'Görev', icon: <Briefcase />, soon: true },
       { label: 'Zimmet', icon: <Package />, soon: true },
       { label: 'Evrak', icon: <FileText />, soon: true },
@@ -83,6 +93,7 @@ export function AppLayout() {
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const navigate = useNavigate();
 
   const fullName =
@@ -109,7 +120,9 @@ export function AppLayout() {
                 {section.title}
               </div>
               <div className="space-y-0.5">
-                {section.items.map((item) =>
+                {section.items
+                  .filter((item) => !item.permission || hasPermission(item.permission))
+                  .map((item) =>
                   item.soon ? (
                     <div
                       key={item.label}
