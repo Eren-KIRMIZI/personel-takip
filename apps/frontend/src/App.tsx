@@ -18,6 +18,7 @@ import { QrKodlarPage } from '@/pages/giris-cikis/qr-kodlar-page';
 import { RaporlarPage } from '@/pages/raporlar/raporlar-page';
 import { VardiyalarPage } from '@/pages/vardiya/vardiyalar-page';
 import { VardiyaAtamaPage } from '@/pages/vardiya/vardiya-atama-page';
+import { MaasPage } from '@/pages/maas/maas-page';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'raporlar', element: <RaporlarPage /> },
       { path: 'vardiya', element: <VardiyalarPage /> },
       { path: 'vardiya/atama/:shiftId', element: <VardiyaAtamaPage /> },
+      { path: 'maas', element: <MaasPage /> },
       { path: 'roller', element: <RollerPage /> },
       { path: 'kullanicilar', element: <KullanicilarPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

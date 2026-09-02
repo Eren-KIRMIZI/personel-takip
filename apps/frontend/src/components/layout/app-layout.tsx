@@ -62,7 +62,10 @@ const NAV_SECTIONS: Array<{
   },
   {
     title: 'Ödeme',
-    items: [{ label: 'Maaş / Prim / Avans', icon: <Banknote />, soon: true }],
+    items: [
+      { to: '/maas', label: 'Maaş / Bordro', icon: <Banknote />, permission: 'payroll:read' },
+      { label: 'Avans / Prim', icon: <Banknote />, soon: true },
+    ],
   },
   {
     title: 'İş Süreçleri',

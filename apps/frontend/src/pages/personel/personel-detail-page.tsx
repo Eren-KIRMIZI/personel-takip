@@ -12,6 +12,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { employeesApi } from '@/features/personel/api';
 import { formatDate, formatDateTime, formatError } from '@/lib/utils';
+import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab } from './personel-tabs';
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -51,13 +52,7 @@ export function PersonelDetailPage() {
   }
 
   const upcomingTabs = [
-    'İzinler',
-    'Puantaj',
-    'Maaş ve Prim',
     'Avanslar',
-    'Mesai',
-    'Çalışma Planı',
-    'Giriş-Çıkış',
     'Ceza/Ödül',
     'Yol Parası',
     'Zimmetler',
@@ -147,6 +142,31 @@ export function PersonelDetailPage() {
           </Table>
         </Card>
       ),
+    },
+    {
+      value: 'izinler',
+      label: 'İzinler',
+      content: <IzinlerTab employeeId={employee.id} />,
+    },
+    {
+      value: 'mesai',
+      label: 'Mesai',
+      content: <MesaiTab employeeId={employee.id} />,
+    },
+    {
+      value: 'giris-cikis',
+      label: 'Giriş-Çıkış',
+      content: <GirisCikisTab employeeId={employee.id} />,
+    },
+    {
+      value: 'calisma-plani',
+      label: 'Çalışma Planı',
+      content: <CalismaPlaniTab employeeId={employee.id} />,
+    },
+    {
+      value: 'maas-prim',
+      label: 'Maaş ve Prim',
+      content: <MaasBordroTab employeeId={employee.id} />,
     },
     ...upcomingTabs,
   ];
