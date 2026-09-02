@@ -22,6 +22,7 @@ import { TaskModule } from './modules/task/task.module';
 import { DocumentModule } from './modules/document/document.module';
 import { AnnouncementModule } from './modules/announcement/announcement.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { BonusModule } from './modules/bonus/bonus.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -52,6 +53,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     DocumentModule,
     AnnouncementModule,
     NotificationModule,
+    BonusModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

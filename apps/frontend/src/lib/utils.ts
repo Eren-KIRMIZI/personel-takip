@@ -25,3 +25,7 @@ export function formatError(error: unknown): string {
   }
   return String(error ?? 'Bilinmeyen hata');
 }
+
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value);
+}

@@ -60,7 +60,7 @@ const NAV_SECTIONS: Array<{
       { to: '/giris-cikis/qr', label: 'QR Kodlar', icon: <QrCode />, permission: 'qr:read' },
       { to: '/raporlar', label: 'Raporlar', icon: <FileChartColumn />, permission: 'attendance:read' },
       { to: '/vardiya', label: 'Vardiyalar', icon: <CalendarRange />, permission: 'shift:read' },
-      { label: 'Çalışma Planları', icon: <CalendarDays />, soon: true },
+      { to: '/calisma-planlari', label: 'Çalışma Planları', icon: <CalendarDays />, permission: 'shift:read' },
     ],
   },
   {
@@ -68,7 +68,7 @@ const NAV_SECTIONS: Array<{
     items: [
       { to: '/maas', label: 'Maaş / Bordro', icon: <Banknote />, permission: 'payroll:read' },
       { to: '/avans', label: 'Avanslar', icon: <CreditCard />, permission: 'advance:read' },
-      { label: 'Prim', icon: <Banknote />, soon: true },
+      { to: '/prim', label: 'Prim', icon: <Banknote />, permission: 'bonus:read' },
     ],
   },
   {
@@ -92,7 +92,7 @@ const NAV_SECTIONS: Array<{
     items: [
       { to: '/roller', label: 'Roller ve Yetkiler', icon: <ShieldCheck /> },
       { to: '/kullanicilar', label: 'Kullanıcılar', icon: <UserCog /> },
-      { label: 'İşlem Logları', icon: <ScrollText />, soon: true },
+      { to: '/islem-loglari', label: 'İşlem Logları', icon: <ScrollText />, permission: 'audit:read' },
     ],
   },
 ];

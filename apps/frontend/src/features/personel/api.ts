@@ -113,3 +113,6 @@ export const employeesApi = {
   setStatus: (id: string, status: EmploymentStatus) =>
     api<Employee>(`/api/employees/${id}/status`, { method: 'PATCH', body: { status } }),
 };
+
+export const FULL_NAME = (e: { firstName: string; lastName: string; employeeNo?: string | null }) =>
+  `${e.firstName} ${e.lastName}`;

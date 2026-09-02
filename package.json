@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace apps/backend & npm run dev --workspace apps/frontend",
+    "dev": "npm run start:dev --workspace apps/backend & npm run dev --workspace apps/frontend",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

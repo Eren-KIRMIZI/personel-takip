@@ -30,6 +30,9 @@ import { EvrakCreatePage } from '@/pages/evrak/evrak-create-page';
 import { DuyuruListPage } from '@/pages/duyurular/duyuru-list-page';
 import { DuyuruCreatePage } from '@/pages/duyurular/duyuru-create-page';
 import { SistemRaporlariPage } from '@/pages/raporlar/sistem-raporlari-page';
+import { IslemLoglariPage } from '@/pages/loglar/islem-loglari-page';
+import { PrimListPage } from '@/pages/prim/prim-list-page';
+import { CalismaPlanlariPage } from '@/pages/vardiya/calisma-planlari-page';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -54,9 +57,11 @@ export const router = createBrowserRouter([
       { path: 'giris-cikis/qr', element: <QrKodlarPage /> },
       { path: 'raporlar', element: <RaporlarPage /> },
       { path: 'vardiya', element: <VardiyalarPage /> },
-      { path: 'vardiya/atama/:shiftId', element: <VardiyaAtamaPage /> },
+      { path: 'vardiya/atama/:id', element: <VardiyaAtamaPage /> },
+      { path: 'calisma-planlari', element: <CalismaPlanlariPage /> },
       { path: 'maas', element: <MaasPage /> },
       { path: 'avans', element: <AvanslarPage /> },
+      { path: 'prim', element: <PrimListPage /> },
       { path: 'cza-odul', element: <CzaOdulPage /> },
       { path: 'zimmet', element: <ZimmetListPage /> },
       { path: 'zimmet/yeni', element: <ZimmetCreatePage /> },
@@ -69,6 +74,7 @@ export const router = createBrowserRouter([
       { path: 'sistem-raporlari', element: <SistemRaporlariPage /> },
       { path: 'roller', element: <RollerPage /> },
       { path: 'kullanicilar', element: <KullanicilarPage /> },
+      { path: 'islem-loglari', element: <IslemLoglariPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

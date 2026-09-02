@@ -212,6 +212,7 @@ model Employee {
   shiftAssignments ShiftAssignment[]
   payrollItems PayrollItem[]
   advances     Advance[]
+  bonuses      Bonus[]
   records      EmployeeRecord[]
   assets       Asset[]
   auditLogs AuditLog[]
@@ -277,6 +278,7 @@ model User {
   roles    UserRole[]
   auditLogs AuditLog[]
   approvedAdvances Advance[] @relation("AdvanceApprover")
+  approvedBonuses  Bonus[]   @relation("BonusApprover")
   issuedRecords EmployeeRecord[] @relation("RecordIssuer")
   notifications Notification[]
 
@@ -538,6 +540,42 @@ model Advance {
   @@index([status])
   @@index([periodYear, periodMonth])
   @@map("advances")
+}
+
+// ---------------------------------------------------------------------------
+// Prim (Bonus)
+// ---------------------------------------------------------------------------
+
+enum BonusStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+model Bonus {
+  id               String        @id @default(uuid()) @db.Uuid
+  employeeId       String        @db.Uuid
+  amount           Decimal       @db.Decimal(12, 2)
+  date             DateTime
+  description      String?       @db.Text
+  status           BonusStatus   @default(PENDING)
+  approvedById     String?       @db.Uuid
+  approvedAt       DateTime?
+  paymentDate      DateTime?
+  rejectionReason  String?
+  note             String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  approvedBy User?   @relation("BonusApprover", fields: [approvedById], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([date])
+  @@map("bonuses")
 }
 
 // ---------------------------------------------------------------------------

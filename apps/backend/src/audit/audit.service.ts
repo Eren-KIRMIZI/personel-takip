@@ -42,4 +42,28 @@ export class AuditService {
       this.logger.error(`Audit log yazılamadı: ${String(error)}`);
     }
   }
+
+  async list(query: { page?: number; pageSize?: number; action?: string; entityType?: string }) {
+    const page = Number(query.page) || 1;
+    const pageSize = Number(query.pageSize) || 50;
+
+    const where: any = {};
+    if (query.action) where.action = query.action;
+    if (query.entityType) where.entityType = query.entityType;
+
+    const [items, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        include: {
+          actor: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize };
+  }
 }
