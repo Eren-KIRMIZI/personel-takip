@@ -12,7 +12,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { employeesApi } from '@/features/personel/api';
 import { formatDate, formatDateTime, formatError } from '@/lib/utils';
-import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab } from './personel-tabs';
+import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab, AvanslarTab } from './personel-tabs';
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -52,7 +52,6 @@ export function PersonelDetailPage() {
   }
 
   const upcomingTabs = [
-    'Avanslar',
     'Ceza/Ödül',
     'Yol Parası',
     'Zimmetler',
@@ -167,6 +166,11 @@ export function PersonelDetailPage() {
       value: 'maas-prim',
       label: 'Maaş ve Prim',
       content: <MaasBordroTab employeeId={employee.id} />,
+    },
+    {
+      value: 'avanslar',
+      label: 'Avanslar',
+      content: <AvanslarTab employeeId={employee.id} />,
     },
     ...upcomingTabs,
   ];

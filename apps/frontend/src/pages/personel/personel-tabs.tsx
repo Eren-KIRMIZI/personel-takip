@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth';
 import { leaveApi } from '@/features/izin/api';
 import { overtimeApi, formatDate as otDate } from '@/features/mesai/api';
 import { attendanceApi, formatDateTime, PUNCH_TYPE_LABEL, PUNCH_SOURCE_LABEL } from '@/features/giris-cikis/api';
+import { advanceApi, ADVANCE_STATUS_META, formatMoney as advMoney, monthLabel as advMonth } from '@/features/avans/api';
 import { payrollApi, formatMoney, monthLabel } from '@/features/maas/api';
 import { SHIFT_DAY_LABEL, SHIFT_DAY_ORDER, shiftApi } from '@/features/vardiya/api';
 import { formatError } from '@/lib/utils';
@@ -333,5 +334,44 @@ export function MaasBordroTab({ employeeId }: { employeeId: string }) {
         </div>
       </Dialog>
     </div>
+  );
+}
+
+export function AvanslarTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-advances', employeeId],
+    queryFn: () => advanceApi.list({ employeeId, pageSize: 10 }),
+  });
+  return (
+    <SubCard title="Avans Talepleri">
+      {isLoading ? (
+        <TableSkeleton cols={5} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tarih</TableHead>
+              <TableHead className="text-right">Tutar</TableHead>
+              <TableHead>Dönem</TableHead>
+              <TableHead>Durum</TableHead>
+              <TableHead>Gerekçe</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell>{formatDateShorthand(a.createdAt)}</TableCell>
+                <TableCell className="text-right font-medium">{advMoney(a.amount)}</TableCell>
+                <TableCell>{advMonth(a.periodMonth)} {a.periodYear}</TableCell>
+                <TableCell><Badge variant={ADVANCE_STATUS_META[a.status].variant}>{ADVANCE_STATUS_META[a.status].label}</Badge></TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-48 truncate">{a.description ?? a.rejectionReason ?? '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Avans kaydı yok." />
+      )}
+    </SubCard>
   );
 }

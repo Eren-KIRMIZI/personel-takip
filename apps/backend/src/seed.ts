@@ -39,6 +39,10 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'maas', code: 'payroll:read', name: 'Maaş görüntüleme' },
   { module: 'maas', code: 'payroll:write', name: 'Maaş düzenleme' },
   { module: 'maas', code: 'payroll:approve', name: 'Bordro onaylama' },
+  // Avans
+  { module: 'avans', code: 'advance:read', name: 'Avans görüntüleme' },
+  { module: 'avans', code: 'advance:write', name: 'Avans talebi oluşturma' },
+  { module: 'avans', code: 'advance:approve', name: 'Avans onaylama' },
   // Görev
   { module: 'görev', code: 'task:read', name: 'Görev görüntüleme' },
   { module: 'görev', code: 'task:create', name: 'Görev oluşturma' },

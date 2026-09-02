@@ -211,6 +211,7 @@ model Employee {
   punches  AttendanceRecord[]
   shiftAssignments ShiftAssignment[]
   payrollItems PayrollItem[]
+  advances     Advance[]
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -269,6 +270,7 @@ model User {
   employee Employee? @relation(fields: [employeeId], references: [id])
   roles    UserRole[]
   auditLogs AuditLog[]
+  approvedAdvances Advance[] @relation("AdvanceApprover")
 
   @@index([status])
   @@map("users")
@@ -490,6 +492,44 @@ model PayrollItem {
   @@index([periodYear, periodMonth])
   @@index([status])
   @@map("payroll_items")
+}
+
+// ---------------------------------------------------------------------------
+// Avans
+// ---------------------------------------------------------------------------
+
+enum AdvanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+model Advance {
+  id               String        @id @default(uuid()) @db.Uuid
+  employeeId       String        @db.Uuid
+  amount           Decimal       @db.Decimal(12, 2)
+  installmentCount Int           @default(1)
+  periodYear       Int           @default(0)
+  periodMonth      Int           @default(0)
+  description      String?       @db.Text
+  status           AdvanceStatus @default(PENDING)
+  approvedById     String?       @db.Uuid
+  approvedAt       DateTime?
+  paymentDate      DateTime?
+  rejectionReason  String?
+  note             String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  approvedBy User?   @relation("AdvanceApprover", fields: [approvedById], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([periodYear, periodMonth])
+  @@map("advances")
 }
 
 // ---------------------------------------------------------------------------

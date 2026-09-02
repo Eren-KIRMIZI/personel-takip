@@ -10,6 +10,7 @@ import {
   Clock,
   ClockPlus,
   CalendarRange,
+  CreditCard,
   FileChartColumn,
   FileText,
   LayoutDashboard,
@@ -64,7 +65,8 @@ const NAV_SECTIONS: Array<{
     title: 'Ödeme',
     items: [
       { to: '/maas', label: 'Maaş / Bordro', icon: <Banknote />, permission: 'payroll:read' },
-      { label: 'Avans / Prim', icon: <Banknote />, soon: true },
+      { to: '/avans', label: 'Avanslar', icon: <CreditCard />, permission: 'advance:read' },
+      { label: 'Prim', icon: <Banknote />, soon: true },
     ],
   },
   {
