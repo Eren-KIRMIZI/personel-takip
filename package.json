@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" \"npm run start:dev --workspace apps/backend\" \"npm run dev --workspace apps/frontend\"",
     "build": "npm run build --workspaces",
-    "build:vercel": "npm run build --workspace apps/backend && npm run build --workspace apps/frontend",
+    "build:vercel": "npx prisma generate && npm run build --workspace apps/backend && npm run build --workspace apps/frontend",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "prisma:generate": "prisma generate",

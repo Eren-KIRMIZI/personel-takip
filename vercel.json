@@ -6,6 +6,7 @@
   "framework": null,
   "functions": {
     "api/index.js": {
+      "includeFiles": "apps/backend/dist/**",
       "maxDuration": 30
     }
   },
