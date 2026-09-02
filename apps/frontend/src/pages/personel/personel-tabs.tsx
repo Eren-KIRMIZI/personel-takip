@@ -13,6 +13,10 @@ import { leaveApi } from '@/features/izin/api';
 import { overtimeApi, formatDate as otDate } from '@/features/mesai/api';
 import { attendanceApi, formatDateTime, PUNCH_TYPE_LABEL, PUNCH_SOURCE_LABEL } from '@/features/giris-cikis/api';
 import { advanceApi, ADVANCE_STATUS_META, formatMoney as advMoney, monthLabel as advMonth } from '@/features/avans/api';
+import {
+  employeeRecordApi,
+  RECORD_TYPE_LABELS,
+} from '@/features/personel-kayitlari/api';
 import { payrollApi, formatMoney, monthLabel } from '@/features/maas/api';
 import { SHIFT_DAY_LABEL, SHIFT_DAY_ORDER, shiftApi } from '@/features/vardiya/api';
 import { formatError } from '@/lib/utils';
@@ -371,6 +375,80 @@ export function AvanslarTab({ employeeId }: { employeeId: string }) {
         </Table>
       ) : (
         <EmptyState label="Avans kaydı yok." />
+      )}
+    </SubCard>
+  );
+}
+
+export function CezaTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-records-DISC', employeeId],
+    queryFn: () => employeeRecordApi.list({ employeeId, category: 'DISCIPLINARY', pageSize: 10 }),
+  });
+  return (
+    <SubCard title="Disiplin Kayıtları">
+      {isLoading ? (
+        <TableSkeleton cols={4} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tür</TableHead>
+              <TableHead>Başlık</TableHead>
+              <TableHead>Tarih</TableHead>
+              <TableHead>Açıklama</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell><Badge variant="destructive">{RECORD_TYPE_LABELS[r.type]}</Badge></TableCell>
+                <TableCell className="font-medium">{r.title}</TableCell>
+                <TableCell>{formatDateShorthand(r.date)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-48 truncate">{r.description ?? '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Disiplin kaydı yok." />
+      )}
+    </SubCard>
+  );
+}
+
+export function OdulTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-records-REWARD', employeeId],
+    queryFn: () => employeeRecordApi.list({ employeeId, category: 'REWARD', pageSize: 10 }),
+  });
+  return (
+    <SubCard title="Ödül Kayıtları">
+      {isLoading ? (
+        <TableSkeleton cols={4} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tür</TableHead>
+              <TableHead>Başlık</TableHead>
+              <TableHead>Tarih</TableHead>
+              <TableHead>Açıklama</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell><Badge variant="success">{RECORD_TYPE_LABELS[r.type]}</Badge></TableCell>
+                <TableCell className="font-medium">{r.title}</TableCell>
+                <TableCell>{formatDateShorthand(r.date)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-48 truncate">{r.description ?? '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Ödül kaydı yok." />
       )}
     </SubCard>
   );

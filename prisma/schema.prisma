@@ -212,6 +212,7 @@ model Employee {
   shiftAssignments ShiftAssignment[]
   payrollItems PayrollItem[]
   advances     Advance[]
+  records      EmployeeRecord[]
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -271,6 +272,7 @@ model User {
   roles    UserRole[]
   auditLogs AuditLog[]
   approvedAdvances Advance[] @relation("AdvanceApprover")
+  issuedRecords EmployeeRecord[] @relation("RecordIssuer")
 
   @@index([status])
   @@map("users")
@@ -530,6 +532,49 @@ model Advance {
   @@index([status])
   @@index([periodYear, periodMonth])
   @@map("advances")
+}
+
+// ---------------------------------------------------------------------------
+// Ceza / Ödül
+// ---------------------------------------------------------------------------
+
+enum EmployeeRecordCategory {
+  DISCIPLINARY
+  REWARD
+}
+
+enum EmployeeRecordType {
+  WARNING
+  REPRIMAND
+  SUSPENSION
+  DEDUCTION
+  TERMINATION
+  PRAISE
+  AWARD
+  CERTIFICATE
+}
+
+model EmployeeRecord {
+  id          String                 @id @default(uuid()) @db.Uuid
+  employeeId  String                 @db.Uuid
+  category    EmployeeRecordCategory
+  type        EmployeeRecordType
+  title       String
+  description String?                @db.Text
+  date        DateTime
+  issuedById  String?                @db.Uuid
+  createdById String?                @db.Uuid
+  note        String?                @db.Text
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  issuedBy User?    @relation("RecordIssuer", fields: [issuedById], references: [id])
+
+  @@index([employeeId])
+  @@index([category])
+  @@index([date])
+  @@map("employee_records")
 }
 
 // ---------------------------------------------------------------------------

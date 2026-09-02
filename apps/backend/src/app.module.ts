@@ -15,6 +15,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { ShiftModule } from './modules/shift/shift.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { AdvanceModule } from './modules/advance/advance.module';
+import { EmployeeRecordModule } from './modules/employee-record/employee-record.module';
 import { AuditHttpModule } from './modules/audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -39,6 +40,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     ShiftModule,
     PayrollModule,
     AdvanceModule,
+    EmployeeRecordModule,
     AuditHttpModule,
   ],
   providers: [

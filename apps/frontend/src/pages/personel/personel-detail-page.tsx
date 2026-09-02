@@ -12,7 +12,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { employeesApi } from '@/features/personel/api';
 import { formatDate, formatDateTime, formatError } from '@/lib/utils';
-import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab, AvanslarTab } from './personel-tabs';
+import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab, AvanslarTab, CezaTab, OdulTab } from './personel-tabs';
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -52,7 +52,6 @@ export function PersonelDetailPage() {
   }
 
   const upcomingTabs = [
-    'Ceza/Ödül',
     'Yol Parası',
     'Zimmetler',
     'Evraklar',
@@ -171,6 +170,16 @@ export function PersonelDetailPage() {
       value: 'avanslar',
       label: 'Avanslar',
       content: <AvanslarTab employeeId={employee.id} />,
+    },
+    {
+      value: 'ceza',
+      label: 'Ceza',
+      content: <CezaTab employeeId={employee.id} />,
+    },
+    {
+      value: 'odul',
+      label: 'Ödül',
+      content: <OdulTab employeeId={employee.id} />,
     },
     ...upcomingTabs,
   ];

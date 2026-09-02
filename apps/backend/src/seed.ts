@@ -43,6 +43,10 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'avans', code: 'advance:read', name: 'Avans görüntüleme' },
   { module: 'avans', code: 'advance:write', name: 'Avans talebi oluşturma' },
   { module: 'avans', code: 'advance:approve', name: 'Avans onaylama' },
+  // Ceza / Ödül
+  { module: 'personel', code: 'employee-record:read', name: 'Ceza/Ödül görüntüleme' },
+  { module: 'personel', code: 'employee-record:write', name: 'Ceza/Ödül ekleme/düzenleme' },
+  { module: 'personel', code: 'employee-record:delete', name: 'Ceza/Ödül silme' },
   // Görev
   { module: 'görev', code: 'task:read', name: 'Görev görüntüleme' },
   { module: 'görev', code: 'task:create', name: 'Görev oluşturma' },
