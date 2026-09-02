@@ -21,7 +21,14 @@ import { VardiyaAtamaPage } from '@/pages/vardiya/vardiya-atama-page';
 import { MaasPage } from '@/pages/maas/maas-page';
 import { AvanslarPage } from '@/pages/avans/avanslar-page';
 import { CzaOdulPage } from '@/pages/cza-odul/cza-odul-page';
-
+import { ZimmetListPage } from '@/pages/zimmet/zimmet-list-page';
+import { ZimmetCreatePage } from '@/pages/zimmet/zimmet-create-page';
+import { GorevListPage } from '@/pages/gorevler/gorev-list-page';
+import { GorevCreatePage } from '@/pages/gorevler/gorev-create-page';
+import { EvrakListPage } from '@/pages/evrak/evrak-list-page';
+import { EvrakCreatePage } from '@/pages/evrak/evrak-create-page';
+import { DuyuruListPage } from '@/pages/duyurular/duyuru-list-page';
+import { DuyuruCreatePage } from '@/pages/duyurular/duyuru-create-page';
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {
@@ -49,6 +56,14 @@ export const router = createBrowserRouter([
       { path: 'maas', element: <MaasPage /> },
       { path: 'avans', element: <AvanslarPage /> },
       { path: 'cza-odul', element: <CzaOdulPage /> },
+      { path: 'zimmet', element: <ZimmetListPage /> },
+      { path: 'zimmet/yeni', element: <ZimmetCreatePage /> },
+      { path: 'gorevler', element: <GorevListPage /> },
+      { path: 'gorevler/yeni', element: <GorevCreatePage /> },
+      { path: 'evrak', element: <EvrakListPage /> },
+      { path: 'evrak/yeni', element: <EvrakCreatePage /> },
+      { path: 'duyurular', element: <DuyuruListPage /> },
+      { path: 'duyurular/yeni', element: <DuyuruCreatePage /> },
       { path: 'roller', element: <RollerPage /> },
       { path: 'kullanicilar', element: <KullanicilarPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

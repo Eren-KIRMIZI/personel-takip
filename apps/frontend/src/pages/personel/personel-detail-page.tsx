@@ -12,7 +12,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { employeesApi } from '@/features/personel/api';
 import { formatDate, formatDateTime, formatError } from '@/lib/utils';
-import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab, AvanslarTab, CezaTab, OdulTab } from './personel-tabs';
+import { IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab, MaasBordroTab, AvanslarTab, CezaTab, OdulTab, ZimmetTab, GorevTab, EvrakTab } from './personel-tabs';
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -53,9 +53,6 @@ export function PersonelDetailPage() {
 
   const upcomingTabs = [
     'Yol Parası',
-    'Zimmetler',
-    'Evraklar',
-    'Görevler',
     'Raporlar',
   ].map((label) => ({ value: label, label, content: <ComingSoon /> }));
 
@@ -180,6 +177,21 @@ export function PersonelDetailPage() {
       value: 'odul',
       label: 'Ödül',
       content: <OdulTab employeeId={employee.id} />,
+    },
+    {
+      value: 'zimmetler',
+      label: 'Zimmetler',
+      content: <ZimmetTab employeeId={employee.id} />,
+    },
+    {
+      value: 'gorevler',
+      label: 'Görevler',
+      content: <GorevTab employeeId={employee.id} />,
+    },
+    {
+      value: 'evraklar',
+      label: 'Evraklar',
+      content: <EvrakTab employeeId={employee.id} />,
     },
     ...upcomingTabs,
   ];

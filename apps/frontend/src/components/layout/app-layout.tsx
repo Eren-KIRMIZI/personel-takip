@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { useAuthStore } from '@/stores/auth';
 import { Badge } from '@/components/ui/badge';
+import { NotificationDropdown } from './notification-dropdown';
 
 const NAV_SECTIONS: Array<{
   title: string;
@@ -75,11 +76,11 @@ const NAV_SECTIONS: Array<{
     items: [
       { to: '/mesai', label: 'Mesai', icon: <Timer />, permission: 'overtime:read' },
       { to: '/mesai/yeni', label: 'Mesai Ekle', icon: <ClockPlus />, permission: 'overtime:create' },
-      { label: 'Görev', icon: <Briefcase />, soon: true },
-      { label: 'Zimmet', icon: <Package />, soon: true },
-      { label: 'Evrak', icon: <FileText />, soon: true },
+      { to: '/gorevler', label: 'Görev', icon: <Briefcase />, permission: 'task:read' },
+      { to: '/zimmet', label: 'Zimmet', icon: <Package />, permission: 'asset:read' },
+      { to: '/evrak', label: 'Evrak', icon: <FileText />, permission: 'document:read' },
       { to: '/cza-odul', label: 'Ceza / Ödül', icon: <Scale />, permission: 'employee-record:read' },
-      { label: 'Duyurular', icon: <Megaphone />, soon: true },
+      { to: '/duyurular', label: 'Duyurular', icon: <Megaphone />, permission: 'announcement:read' },
     ],
   },
   {
@@ -188,9 +189,14 @@ export function AppLayout() {
       </aside>
 
       <main className="ml-64 flex-1">
-        <header className="flex h-14 items-center gap-2 border-b bg-card px-6">
-          <ChevronRight className="size-4 text-muted-foreground" />
-          <span className="text-sm">Personel ve İnsan Kaynakları Modülü</span>
+        <header className="flex h-14 items-center justify-between border-b bg-card px-6">
+          <div className="flex items-center gap-2">
+            <ChevronRight className="size-4 text-muted-foreground" />
+            <span className="text-sm">Personel ve İnsan Kaynakları Modülü</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <NotificationDropdown />
+          </div>
         </header>
         <div className="p-6">
           <Outlet />

@@ -16,7 +16,12 @@ import { ShiftModule } from './modules/shift/shift.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { AdvanceModule } from './modules/advance/advance.module';
 import { EmployeeRecordModule } from './modules/employee-record/employee-record.module';
+import { AssetModule } from './modules/asset/asset.module';
 import { AuditHttpModule } from './modules/audit/audit.module';
+import { TaskModule } from './modules/task/task.module';
+import { DocumentModule } from './modules/document/document.module';
+import { AnnouncementModule } from './modules/announcement/announcement.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -41,7 +46,12 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     PayrollModule,
     AdvanceModule,
     EmployeeRecordModule,
+    AssetModule,
     AuditHttpModule,
+    TaskModule,
+    DocumentModule,
+    AnnouncementModule,
+    NotificationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

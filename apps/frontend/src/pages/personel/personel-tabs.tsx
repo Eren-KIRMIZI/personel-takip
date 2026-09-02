@@ -19,6 +19,9 @@ import {
 } from '@/features/personel-kayitlari/api';
 import { payrollApi, formatMoney, monthLabel } from '@/features/maas/api';
 import { SHIFT_DAY_LABEL, SHIFT_DAY_ORDER, shiftApi } from '@/features/vardiya/api';
+import { assetApi, ASSET_STATUS_META } from '@/features/zimmet/api';
+import { taskApi, TASK_STATUS_META, TASK_PRIORITY_META } from '@/features/gorev/api';
+import { documentApi, DOCUMENT_STATUS_META, DOCUMENT_PRIORITY_META } from '@/features/evrak/api';
 import { formatError } from '@/lib/utils';
 
 function SubCard({
@@ -449,6 +452,151 @@ export function OdulTab({ employeeId }: { employeeId: string }) {
         </Table>
       ) : (
         <EmptyState label="Ödül kaydı yok." />
+      )}
+    </SubCard>
+  );
+}
+
+export function ZimmetTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-assets', employeeId],
+    queryFn: () => assetApi.list({ employeeId, pageSize: 10 }),
+  });
+  return (
+    <SubCard title="Zimmet Kayıtları">
+      {isLoading ? (
+        <TableSkeleton cols={5} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Malzeme</TableHead>
+              <TableHead>Seri No</TableHead>
+              <TableHead>Kategori</TableHead>
+              <TableHead>Teslim</TableHead>
+              <TableHead>Durum</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="font-medium">{a.name}</TableCell>
+                <TableCell className="text-muted-foreground">{a.serialNo ?? '-'}</TableCell>
+                <TableCell>{a.category ?? '-'}</TableCell>
+                <TableCell>{formatDateShorthand(a.assignedDate)}</TableCell>
+                <TableCell>
+                  <StatusBadge 
+                    status={a.status} 
+                    label={ASSET_STATUS_META[a.status].label} 
+                    variant={ASSET_STATUS_META[a.status].variant} 
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Personele ait zimmet kaydı yok." />
+      )}
+    </SubCard>
+  );
+}
+
+export function GorevTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-tasks', employeeId],
+    queryFn: () => taskApi.list({ employeeId, pageSize: 10 }),
+  });
+  return (
+    <SubCard title="Görevler">
+      {isLoading ? (
+        <TableSkeleton cols={4} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Görev</TableHead>
+              <TableHead>Bitiş Tarihi</TableHead>
+              <TableHead>Öncelik</TableHead>
+              <TableHead>Durum</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((t) => (
+              <TableRow key={t.id}>
+                <TableCell className="font-medium">{t.title}</TableCell>
+                <TableCell>{formatDateShorthand(t.dueDate)}</TableCell>
+                <TableCell>
+                  <StatusBadge 
+                    status={t.priority} 
+                    label={TASK_PRIORITY_META[t.priority].label} 
+                    variant={TASK_PRIORITY_META[t.priority].variant} 
+                  />
+                </TableCell>
+                <TableCell>
+                  <StatusBadge 
+                    status={t.status} 
+                    label={TASK_STATUS_META[t.status].label} 
+                    variant={TASK_STATUS_META[t.status].variant} 
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Personele atanmış görev yok." />
+      )}
+    </SubCard>
+  );
+}
+
+export function EvrakTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-documents', employeeId],
+    queryFn: () => documentApi.list({ employeeId, pageSize: 10 }),
+  });
+  return (
+    <SubCard title="İlgili Evraklar">
+      {isLoading ? (
+        <TableSkeleton cols={5} />
+      ) : data && data.items.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Evrak No</TableHead>
+              <TableHead>Konu</TableHead>
+              <TableHead>Geliş Tarihi</TableHead>
+              <TableHead>Öncelik</TableHead>
+              <TableHead>Durum</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((d) => (
+              <TableRow key={d.id}>
+                <TableCell className="font-mono text-sm">{d.documentNo ?? '-'}</TableCell>
+                <TableCell className="font-medium">{d.subject}</TableCell>
+                <TableCell>{formatDateShorthand(d.receivedAt)}</TableCell>
+                <TableCell>
+                  <StatusBadge 
+                    status={d.priority} 
+                    label={DOCUMENT_PRIORITY_META[d.priority].label} 
+                    variant={DOCUMENT_PRIORITY_META[d.priority].variant} 
+                  />
+                </TableCell>
+                <TableCell>
+                  <StatusBadge 
+                    status={d.status} 
+                    label={DOCUMENT_STATUS_META[d.status].label} 
+                    variant={DOCUMENT_STATUS_META[d.status].variant} 
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Personelle ilişkilendirilmiş evrak yok." />
       )}
     </SubCard>
   );

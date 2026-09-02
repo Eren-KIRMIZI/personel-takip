@@ -213,7 +213,12 @@ model Employee {
   payrollItems PayrollItem[]
   advances     Advance[]
   records      EmployeeRecord[]
+  assets       Asset[]
   auditLogs AuditLog[]
+  tasks        Task[]
+  documents    Document[]
+  announcementEmployees AnnouncementEmployee[]
+  announcementReads     AnnouncementRead[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -273,6 +278,7 @@ model User {
   auditLogs AuditLog[]
   approvedAdvances Advance[] @relation("AdvanceApprover")
   issuedRecords EmployeeRecord[] @relation("RecordIssuer")
+  notifications Notification[]
 
   @@index([status])
   @@map("users")
@@ -578,6 +584,42 @@ model EmployeeRecord {
 }
 
 // ---------------------------------------------------------------------------
+// Zimmet
+// ---------------------------------------------------------------------------
+
+enum AssetStatus {
+  ASSIGNED
+  RETURNED
+  LOST
+  DAMAGED
+  SERVICING
+}
+
+model Asset {
+  id           String      @id @default(uuid()) @db.Uuid
+  employeeId   String      @db.Uuid
+  name         String
+  code         String?
+  serialNo     String?
+  category     String?
+  description  String?     @db.Text
+  condition    String?
+  assignedDate DateTime?
+  returnedDate DateTime?
+  status       AssetStatus @default(ASSIGNED)
+  note         String?     @db.Text
+  issuedById   String?     @db.Uuid
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("assets")
+}
+
+// ---------------------------------------------------------------------------
 // Denetim İzleri
 // ---------------------------------------------------------------------------
 
@@ -608,4 +650,203 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Görev Yönetimi
+// ---------------------------------------------------------------------------
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Task {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String
+  description String?      @db.Text
+  employeeId  String       @db.Uuid
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  assignedAt  DateTime     @default(now())
+  dueDate     DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  note        String?      @db.Text
+  createdById String?      @db.Uuid
+  updatedById String?      @db.Uuid
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// ---------------------------------------------------------------------------
+// Evrak Yönetimi
+// ---------------------------------------------------------------------------
+
+enum DocumentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DocumentStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Document {
+  id              String           @id @default(uuid()) @db.Uuid
+  documentNo      String?
+  subject         String
+  content         String?          @db.Text
+  employeeId      String?          @db.Uuid
+  unitId          String?          @db.Uuid
+  priority        DocumentPriority @default(NORMAL)
+  status          DocumentStatus   @default(PENDING)
+  processType     String?
+  receivedAt      DateTime?
+  lastActionAt    DateTime?
+  attachmentUrl   String?
+  note            String?          @db.Text
+  createdById     String?          @db.Uuid
+  updatedById     String?          @db.Uuid
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  employee Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([priority])
+  @@index([receivedAt])
+  @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// Duyuru Yönetimi
+// ---------------------------------------------------------------------------
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  EXPIRED
+}
+
+enum AnnouncementTargetType {
+  ALL
+  DEPARTMENT
+  UNIT
+  SPECIFIC
+}
+
+model Announcement {
+  id           String                 @id @default(uuid()) @db.Uuid
+  title        String
+  content      String                 @db.Text
+  status       AnnouncementStatus     @default(DRAFT)
+  targetType   AnnouncementTargetType @default(ALL)
+  targetId     String?                @db.Uuid // departmentId, unitId, or null
+  publishAt    DateTime?
+  expireAt     DateTime?
+  createdById  String?                @db.Uuid
+  updatedById  String?                @db.Uuid
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  targetEmployees AnnouncementEmployee[]
+  reads           AnnouncementRead[]
+  notifications   Notification[]
+
+  @@index([status])
+  @@index([targetType])
+  @@index([publishAt])
+  @@map("announcements")
+}
+
+// Belirli personellere gönderilen duyurularda hedef liste
+model AnnouncementEmployee {
+  announcementId String @db.Uuid
+  employeeId     String @db.Uuid
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, employeeId])
+  @@map("announcement_employees")
+}
+
+// Duyuru okundu takibi
+model AnnouncementRead {
+  id             String   @id @default(uuid()) @db.Uuid
+  announcementId String   @db.Uuid
+  employeeId     String   @db.Uuid
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, employeeId])
+  @@index([employeeId])
+  @@map("announcement_reads")
+}
+
+// ---------------------------------------------------------------------------
+// Bildirim
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  LEAVE_REQUEST
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  OVERTIME_REQUEST
+  OVERTIME_APPROVED
+  OVERTIME_REJECTED
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  DOCUMENT_CREATED
+  DOCUMENT_UPDATED
+  ANNOUNCEMENT
+  ASSET_ASSIGNED
+  ASSET_RETURNED
+  GENERAL
+}
+
+model Notification {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @db.Uuid
+  type           NotificationType
+  title          String
+  body           String?
+  entityType     String?          // 'leave', 'overtime', 'task', etc.
+  entityId       String?          @db.Uuid
+  announcementId String?          @db.Uuid
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }

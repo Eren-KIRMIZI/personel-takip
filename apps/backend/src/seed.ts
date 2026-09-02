@@ -47,20 +47,27 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'personel', code: 'employee-record:read', name: 'Ceza/Ödül görüntüleme' },
   { module: 'personel', code: 'employee-record:write', name: 'Ceza/Ödül ekleme/düzenleme' },
   { module: 'personel', code: 'employee-record:delete', name: 'Ceza/Ödül silme' },
-  // Görev
-  { module: 'görev', code: 'task:read', name: 'Görev görüntüleme' },
-  { module: 'görev', code: 'task:create', name: 'Görev oluşturma' },
-  { module: 'görev', code: 'task:assign', name: 'Görev atama' },
   // Zimmet
   { module: 'zimmet', code: 'asset:read', name: 'Zimmet görüntüleme' },
-  { module: 'zimmet', code: 'asset:write', name: 'Zimmet ekleme' },
+  { module: 'zimmet', code: 'asset:write', name: 'Zimmet ekleme/düzenleme' },
   { module: 'zimmet', code: 'asset:return', name: 'Zimmet iade alma' },
+  { module: 'zimmet', code: 'asset:delete', name: 'Zimmet silme' },
+  // Görev
+  { module: 'görev', code: 'task:read', name: 'Görev görüntüleme' },
+  { module: 'görev', code: 'task:write', name: 'Görev oluşturma/düzenleme' },
+  { module: 'görev', code: 'task:create', name: 'Görev oluşturma' },
+  { module: 'görev', code: 'task:assign', name: 'Görev atama' },
   // Evrak
   { module: 'evrak', code: 'document:read', name: 'Evrak görüntüleme' },
+  { module: 'evrak', code: 'document:write', name: 'Evrak oluşturma/düzenleme' },
   { module: 'evrak', code: 'document:create', name: 'Evrak oluşturma' },
   // Duyuru
+  { module: 'duyuru', code: 'announcement:read', name: 'Duyuru görüntüleme' },
+  { module: 'duyuru', code: 'announcement:write', name: 'Duyuru oluşturma/düzenleme' },
   { module: 'duyuru', code: 'announcement:create', name: 'Duyuru oluşturma' },
   { module: 'duyuru', code: 'announcement:publish', name: 'Duyuru yayınlama' },
+  // Bildirim
+  { module: 'bildirim', code: 'notification:read', name: 'Bildirim görüntüleme' },
   // Rapor
   { module: 'rapor', code: 'report:view', name: 'Rapor görüntüleme' },
   { module: 'rapor', code: 'report:create', name: 'Rapor oluşturma' },
