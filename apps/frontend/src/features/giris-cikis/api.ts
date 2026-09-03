@@ -85,7 +85,7 @@ export const attendanceApi = {
   scan: (content: string, employeeId: string) =>
     api<PunchResult>('/api/attendance/scan', { method: 'POST', body: { content, employeeId } }),
   scanSelf: (content: string) =>
-    api<PunchResult>('/api/attendance/scan', { method: 'POST', body: { content } }),
+    api<PunchResult>('/api/attendance/scan/self', { method: 'POST', body: { content } }),
 };
 
 export function formatDateTime(iso: string): string {

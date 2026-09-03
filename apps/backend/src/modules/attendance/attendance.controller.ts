@@ -68,4 +68,11 @@ export class AttendanceController {
   scan(@Body() dto: ScanAttendanceDto, @CurrentUser() user: AuthenticatedUser) {
     return this.attendance.scan(dto, { userId: user.userId, employeeId: user.employeeId });
   }
+
+  @Post('scan/self')
+  scanSelf(@Body() dto: ScanAttendanceDto, @CurrentUser() user: AuthenticatedUser) {
+    // Kendisi için okutuyorsa dto'daki employeeId'yi yok sayıp sadece kendi employeeId'sini kullanmasını garanti ediyoruz
+    dto.employeeId = undefined;
+    return this.attendance.scan(dto, { userId: user.userId, employeeId: user.employeeId });
+  }
 }
