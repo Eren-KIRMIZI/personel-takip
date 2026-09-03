@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Users, Lock, Mail } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,14 @@ export function LoginPage() {
   const initialized = useAuthStore((s) => s.initialized);
   const signIn      = useAuthStore((s) => s.signIn);
   const navigate    = useNavigate();
+
+  // Supabase warm-up: login ekranı açılır açılmaz DB bağlantısı başlatılır.
+  // Kullanıcı şifresini yazarken DB zaten uyanmış olur.
+  useEffect(() => {
+    supabase.from('departments').select('id').limit(1).then(() => {
+      // sonucu umursamıyoruz — amaç yalnızca bağlantı kurmak
+    });
+  }, []);
 
   if (initialized && session) {
     return <Navigate to="/" replace />;

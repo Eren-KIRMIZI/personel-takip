@@ -7,6 +7,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { ListQueryDto } from './dto/organization.dto';
 
+// Basit in-memory cache — dış bağımlılık gerektirmez
+interface CacheEntry {
+  data: unknown;
+  expiresAt: number;
+}
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 dakika
+
 export type OrgModel =
   | 'company'
   | 'department'
@@ -26,10 +34,36 @@ const ROUTE_TO_MODEL: Record<string, OrgModel> = {
 
 @Injectable()
 export class OrganizationService {
+  // Cache: key → {data, expiresAt}
+  private readonly cache = new Map<string, CacheEntry>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  /** Cache'den oku; süresi dolmuşsa undefined döner */
+  private cacheGet<T>(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return entry.data as T;
+  }
+
+  /** Cache'e yaz */
+  private cacheSet(key: string, data: unknown): void {
+    this.cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  }
+
+  /** Belirtilen model prefix'ine sahip tüm cache kayıtlarını temizle */
+  private cacheInvalidate(model: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(`${model}:`)) this.cache.delete(key);
+    }
+  }
 
   delegate(model: OrgModel): any {
     const delegates: Record<OrgModel, any> = {
@@ -65,6 +99,11 @@ export class OrganizationService {
       ];
     }
 
+    // Cache key: model + tüm query parametreleri
+    const cacheKey = `${model}:${JSON.stringify({ ...query, page, pageSize, where })}`;
+    const cached = this.cacheGet<{ items: unknown[]; total: number; page: number; pageSize: number }>(cacheKey);
+    if (cached) return cached;
+
     const delegate = this.delegate(model);
     const [items, total] = await Promise.all([
       delegate.findMany({
@@ -76,7 +115,12 @@ export class OrganizationService {
       delegate.count({ where }),
     ]);
 
-    return { items, total, page, pageSize };
+    const result = { items, total, page, pageSize };
+    // Yalnızca arama yok ve isActive filtresi standartsa cache'le
+    if (!query.search) {
+      this.cacheSet(cacheKey, result);
+    }
+    return result;
   }
 
   async create(model: OrgModel, data: Record<string, unknown>, actor: { userId: string; ip?: string; userAgent?: string }) {
@@ -91,6 +135,7 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
+    this.cacheInvalidate(model); // cache temizle
     return created;
   }
 
@@ -120,6 +165,7 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
+    this.cacheInvalidate(model); // cache temizle
     return updated;
   }
 
@@ -144,6 +190,7 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
+    this.cacheInvalidate(model); // cache temizle
     return { id };
   }
 

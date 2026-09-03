@@ -68,6 +68,7 @@ export function IzinlerTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-leaves', employeeId],
     queryFn: () => leaveApi.list({ employeeId, pageSize: 15 }),
+    staleTime: 2 * 60 * 1000,
   });
   return (
     <SubCard title="İzinler">
@@ -107,6 +108,7 @@ export function MesaiTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-ot', employeeId],
     queryFn: () => overtimeApi.list({ employeeId, pageSize: 15 }),
+    staleTime: 2 * 60 * 1000,
   });
   return (
     <SubCard title="Mesai Kayıtları">
@@ -146,6 +148,7 @@ export function GirisCikisTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-attendance', employeeId],
     queryFn: () => attendanceApi.list({ employeeId, pageSize: 15 }),
+    staleTime: 60 * 1000,
   });
   return (
     <SubCard title="Giriş-Çıkış Hareketleri">
@@ -185,6 +188,7 @@ export function CalismaPlaniTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-shifts', employeeId],
     queryFn: () => shiftApi.assignments({ employeeId }),
+    staleTime: 5 * 60 * 1000,
   });
   const hasWrite = useAuthStore((s) => s.hasPermission('shift:write'));
 
@@ -236,10 +240,12 @@ export function MaasBordroTab({ employeeId }: { employeeId: string }) {
   const { data: salary } = useQuery({
     queryKey: ['mid-salary', employeeId],
     queryFn: () => payrollApi.getEmployeeSalary(employeeId),
+    staleTime: 5 * 60 * 1000,
   });
   const { data: items, isLoading } = useQuery({
     queryKey: ['mid-payroll', employeeId],
     queryFn: () => payrollApi.list({ employeeId, pageSize: 12 }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const [salaryOpen, setSalaryOpen] = useState(false);
@@ -348,6 +354,7 @@ export function AvanslarTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-advances', employeeId],
     queryFn: () => advanceApi.list({ employeeId, pageSize: 10 }),
+    staleTime: 2 * 60 * 1000,
   });
   return (
     <SubCard title="Avans Talepleri">
@@ -387,6 +394,7 @@ export function CezaTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-records-DISC', employeeId],
     queryFn: () => employeeRecordApi.list({ employeeId, category: 'DISCIPLINARY', pageSize: 10 }),
+    staleTime: 5 * 60 * 1000,
   });
   return (
     <SubCard title="Disiplin Kayıtları">
@@ -424,6 +432,7 @@ export function OdulTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-records-REWARD', employeeId],
     queryFn: () => employeeRecordApi.list({ employeeId, category: 'REWARD', pageSize: 10 }),
+    staleTime: 5 * 60 * 1000,
   });
   return (
     <SubCard title="Ödül Kayıtları">
@@ -461,6 +470,7 @@ export function ZimmetTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-assets', employeeId],
     queryFn: () => assetApi.list({ employeeId, pageSize: 10 }),
+    staleTime: 5 * 60 * 1000,
   });
   return (
     <SubCard title="Zimmet Kayıtları">
@@ -506,6 +516,7 @@ export function GorevTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-tasks', employeeId],
     queryFn: () => taskApi.list({ employeeId, pageSize: 10 }),
+    staleTime: 2 * 60 * 1000,
   });
   return (
     <SubCard title="Görevler">
@@ -555,6 +566,7 @@ export function EvrakTab({ employeeId }: { employeeId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['personal-documents', employeeId],
     queryFn: () => documentApi.list({ employeeId, pageSize: 10 }),
+    staleTime: 5 * 60 * 1000,
   });
   return (
     <SubCard title="İlgili Evraklar">

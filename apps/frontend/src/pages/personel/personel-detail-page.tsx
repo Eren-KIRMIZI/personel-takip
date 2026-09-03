@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -43,11 +43,21 @@ export function PersonelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  // Aktif sekme state'i
+  const [activeTab, setActiveTab] = useState('genel');
+  // Hangi sekmelerin en az bir kez açıldığını takip eder → lazy mount
+  const visitedTabsRef = useRef<Set<string>>(new Set(['genel']));
+
+  const handleTabChange = (value: string) => {
+    visitedTabsRef.current.add(value);
+    setActiveTab(value);
+  };
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', id],
     queryFn: () => employeesApi.get(id!),
     enabled: !!id,
+    staleTime: 2 * 60 * 1000, // 2 dakika
   });
 
   const statusMutation = useMutation({
@@ -85,110 +95,128 @@ export function PersonelDetailPage() {
   const upcomingTabs = ['Yol Parası', 'Raporlar'].map((label) => ({
     value: label,
     label,
-    content: <ComingSoon />,
   }));
 
-  const tabs = [
-    {
-      value: 'genel',
-      label: 'Genel Bilgiler',
-      content: (
-        <Card className="animate-fade-in">
-          <CardHeader className="border-b border-border/50 pb-4">
-            <CardTitle className="text-lg">Kurumsal İletişim & Görev</CardTitle>
-            <CardDescription>Personelin kurum içi yerleşimi ve iletişim detayları.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-8 pt-6 sm:grid-cols-2 lg:grid-cols-4">
-            <InfoField icon={Mail} label="E-posta" value={employee.email} />
-            <InfoField icon={Phone} label="Kişisel Telefon" value={employee.phone} />
-            <InfoField icon={Phone} label="Dahili / Dış" value={`${employee.internalPhone || '-'} / ${employee.externalLine || '-'}`} />
-            <InfoField icon={Building2} label="Departman" value={employee.department?.name} />
-            <InfoField icon={Building2} label="Birim" value={employee.unit?.name} />
-            <InfoField icon={Hash} label="Görev Yeri" value={employee.workLocation?.name} />
-            <InfoField icon={Hash} label="Unvan" value={employee.title?.name} />
-            <InfoField icon={Hash} label="Pozisyon" value={employee.position?.name} />
-            <InfoField icon={CalendarDays} label="İşe Başlama" value={formatDate(employee.workStartDate)} />
-            <InfoField icon={CalendarDays} label="İşten Ayrılma" value={formatDate(employee.workEndDate)} />
-            <InfoField icon={ShieldCheck} label="Kullanıcı Hesabı" value={employee.user?.username} />
-          </CardContent>
-        </Card>
-      ),
-    },
-    {
-      value: 'ozluk',
-      label: 'Özlük',
-      content: (
-        <Card className="animate-fade-in">
-           <CardHeader className="border-b border-border/50 pb-4">
-            <CardTitle className="text-lg">Kişisel Bilgiler</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-8 pt-6 sm:grid-cols-2 lg:grid-cols-4">
-            <InfoField label="TC Kimlik No" value={employee.identityNo} />
-            <InfoField label="Doğum Tarihi" value={formatDate(employee.birthDate)} />
-            <InfoField label="Cinsiyet" value={employee.gender} />
-            <InfoField label="Medeni Durum" value={employee.maritalStatus} />
-            <InfoField label="Kan Grubu" value={employee.bloodType} />
-            <InfoField label="Öğrenim Durumu" value={employee.educationLevel} />
-            <div className="col-span-full">
-              <InfoField label="Not" value={employee.note} />
-            </div>
-          </CardContent>
-        </Card>
-      ),
-    },
-    {
-      value: 'gorev-gecmisi',
-      label: 'Görev Geçmişi',
-      content: (
-        <Card className="animate-fade-in">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Değişiklik</TableHead>
-                <TableHead>Departman</TableHead>
-                <TableHead>Birim</TableHead>
-                <TableHead>Görev Yeri</TableHead>
-                <TableHead>Unvan</TableHead>
-                <TableHead>Not</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employee.history?.length ? (
-                employee.history.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell>{formatDateTime(h.effectiveDate)}</TableCell>
-                    <TableCell><Badge variant="secondary" className="font-mono">{h.changeType}</Badge></TableCell>
-                    <TableCell>{h.department?.name ?? '-'}</TableCell>
-                    <TableCell>{h.unit?.name ?? '-'}</TableCell>
-                    <TableCell>{h.workLocation?.name ?? '-'}</TableCell>
-                    <TableCell>{h.title?.name ?? '-'}</TableCell>
-                    <TableCell>{h.note ?? '-'}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Görev geçmişi kaydı bulunamadı.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      ),
-    },
-    { value: 'izinler', label: 'İzinler', content: <IzinlerTab employeeId={employee.id} /> },
-    { value: 'mesai', label: 'Mesai', content: <MesaiTab employeeId={employee.id} /> },
-    { value: 'giris-cikis', label: 'Giriş-Çıkış', content: <GirisCikisTab employeeId={employee.id} /> },
-    { value: 'calisma-plani', label: 'Çalışma Planı', content: <CalismaPlaniTab employeeId={employee.id} /> },
-    { value: 'maas-prim', label: 'Maaş ve Prim', content: <MaasBordroTab employeeId={employee.id} /> },
-    { value: 'avanslar', label: 'Avanslar', content: <AvanslarTab employeeId={employee.id} /> },
-    { value: 'ceza', label: 'Ceza', content: <CezaTab employeeId={employee.id} /> },
-    { value: 'odul', label: 'Ödül', content: <OdulTab employeeId={employee.id} /> },
-    { value: 'zimmetler', label: 'Zimmetler', content: <ZimmetTab employeeId={employee.id} /> },
-    { value: 'gorevler', label: 'Görevler', content: <GorevTab employeeId={employee.id} /> },
-    { value: 'evraklar', label: 'Evraklar', content: <EvrakTab employeeId={employee.id} /> },
+  // Sekme tanımları — içerik tanımlanmıyor, aşağıda lazy render yapılıyor
+  const tabDefs = [
+    { value: 'genel', label: 'Genel Bilgiler' },
+    { value: 'ozluk', label: 'Özlük' },
+    { value: 'gorev-gecmisi', label: 'Görev Geçmişi' },
+    { value: 'izinler', label: 'İzinler' },
+    { value: 'mesai', label: 'Mesai' },
+    { value: 'giris-cikis', label: 'Giriş-Çıkış' },
+    { value: 'calisma-plani', label: 'Çalışma Planı' },
+    { value: 'maas-prim', label: 'Maaş ve Prim' },
+    { value: 'avanslar', label: 'Avanslar' },
+    { value: 'ceza', label: 'Ceza' },
+    { value: 'odul', label: 'Ödül' },
+    { value: 'zimmetler', label: 'Zimmetler' },
+    { value: 'gorevler', label: 'Görevler' },
+    { value: 'evraklar', label: 'Evraklar' },
     ...upcomingTabs,
   ];
+
+  // Lazy içerik renderer: sekme daha önce hiç açılmadıysa null döner
+  const renderTabContent = (value: string) => {
+    if (!visitedTabsRef.current.has(value)) return null;
+    switch (value) {
+      case 'genel':
+        return (
+          <Card className="animate-fade-in">
+            <CardHeader className="border-b border-border/50 pb-4">
+              <CardTitle className="text-lg">Kurumsal İletişim & Görev</CardTitle>
+              <CardDescription>Personelin kurum içi yerleşimi ve iletişim detayları.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-8 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+              <InfoField icon={Mail} label="E-posta" value={employee.email} />
+              <InfoField icon={Phone} label="Kişisel Telefon" value={employee.phone} />
+              <InfoField icon={Phone} label="Dahili / Dış" value={`${employee.internalPhone || '-'} / ${employee.externalLine || '-'}`} />
+              <InfoField icon={Building2} label="Departman" value={employee.department?.name} />
+              <InfoField icon={Building2} label="Birim" value={employee.unit?.name} />
+              <InfoField icon={Hash} label="Görev Yeri" value={employee.workLocation?.name} />
+              <InfoField icon={Hash} label="Unvan" value={employee.title?.name} />
+              <InfoField icon={Hash} label="Pozisyon" value={employee.position?.name} />
+              <InfoField icon={CalendarDays} label="İşe Başlama" value={formatDate(employee.workStartDate)} />
+              <InfoField icon={CalendarDays} label="İşten Ayrılma" value={formatDate(employee.workEndDate)} />
+              <InfoField icon={ShieldCheck} label="Kullanıcı Hesabı" value={employee.user?.username} />
+            </CardContent>
+          </Card>
+        );
+      case 'ozluk':
+        return (
+          <Card className="animate-fade-in">
+            <CardHeader className="border-b border-border/50 pb-4">
+              <CardTitle className="text-lg">Kişisel Bilgiler</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-8 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+              <InfoField label="TC Kimlik No" value={employee.identityNo} />
+              <InfoField label="Doğum Tarihi" value={formatDate(employee.birthDate)} />
+              <InfoField label="Cinsiyet" value={employee.gender} />
+              <InfoField label="Medeni Durum" value={employee.maritalStatus} />
+              <InfoField label="Kan Grubu" value={employee.bloodType} />
+              <InfoField label="Öğrenim Durumu" value={employee.educationLevel} />
+              <div className="col-span-full">
+                <InfoField label="Not" value={employee.note} />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      case 'gorev-gecmisi':
+        return (
+          <Card className="animate-fade-in">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarih</TableHead>
+                  <TableHead>Değişiklik</TableHead>
+                  <TableHead>Departman</TableHead>
+                  <TableHead>Birim</TableHead>
+                  <TableHead>Görev Yeri</TableHead>
+                  <TableHead>Unvan</TableHead>
+                  <TableHead>Not</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employee.history?.length ? (
+                  employee.history.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell>{formatDateTime(h.effectiveDate)}</TableCell>
+                      <TableCell><Badge variant="secondary" className="font-mono">{h.changeType}</Badge></TableCell>
+                      <TableCell>{h.department?.name ?? '-'}</TableCell>
+                      <TableCell>{h.unit?.name ?? '-'}</TableCell>
+                      <TableCell>{h.workLocation?.name ?? '-'}</TableCell>
+                      <TableCell>{h.title?.name ?? '-'}</TableCell>
+                      <TableCell>{h.note ?? '-'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Görev geçmişi kaydı bulunamadı.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        );
+      case 'izinler':      return <IzinlerTab employeeId={employee.id} />;
+      case 'mesai':        return <MesaiTab employeeId={employee.id} />;
+      case 'giris-cikis': return <GirisCikisTab employeeId={employee.id} />;
+      case 'calisma-plani': return <CalismaPlaniTab employeeId={employee.id} />;
+      case 'maas-prim':   return <MaasBordroTab employeeId={employee.id} />;
+      case 'avanslar':    return <AvanslarTab employeeId={employee.id} />;
+      case 'ceza':        return <CezaTab employeeId={employee.id} />;
+      case 'odul':        return <OdulTab employeeId={employee.id} />;
+      case 'zimmetler':   return <ZimmetTab employeeId={employee.id} />;
+      case 'gorevler':    return <GorevTab employeeId={employee.id} />;
+      case 'evraklar':    return <EvrakTab employeeId={employee.id} />;
+      default: return <ComingSoon />;
+    }
+  };
+
+  const tabs = tabDefs.map((t) => ({
+    ...t,
+    content: renderTabContent(t.value),
+  }));
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
@@ -274,7 +302,7 @@ export function PersonelDetailPage() {
       </div>
 
       {/* ── Tabs Content ──────────────────────────── */}
-      <Tabs tabs={tabs} />
+      <Tabs tabs={tabs} value={activeTab} onValueChange={handleTabChange} />
     </div>
   );
 }

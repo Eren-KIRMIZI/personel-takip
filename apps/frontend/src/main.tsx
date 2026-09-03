@@ -11,10 +11,10 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      // Veri 60 saniye boyunca "taze" sayılır → sayfa değiştirince tekrar istek atılmaz
+      // Veri 1 dakika boyunca "taze" sayılır → sayfa değiştirince tekrar istek atılmaz
       staleTime: 60 * 1000,
-      // Cache 5 dakika bellekte tutulur → geri döndüğünde anlık gösterilir
-      gcTime: 5 * 60 * 1000,
+      // Cache 10 dakika bellekte tutulur → geri döndüğünde anlık gösterilir
+      gcTime: 10 * 60 * 1000,
     },
   },
 });

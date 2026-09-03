@@ -228,6 +228,9 @@ model Employee {
   @@index([departmentId])
   @@index([unitId])
   @@index([workLocationId])
+  @@index([titleId])       // FK index — Supabase Linter
+  @@index([positionId])    // FK index — Supabase Linter
+  @@index([managerId])     // FK index — Supabase Linter
   @@map("employees")
 }
 
@@ -324,6 +327,7 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
+  @@index([permissionId])  // FK index — Supabase Linter
   @@map("role_permissions")
 }
 
@@ -335,6 +339,7 @@ model UserRole {
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
+  @@index([roleId])        // FK index — Supabase Linter
   @@map("user_roles")
 }
 
@@ -413,6 +418,7 @@ model LeaveRequest {
   leaveType  LeaveType @relation(fields: [leaveTypeId], references: [id])
 
   @@index([employeeId])
+  @@index([leaveTypeId])   // FK index — Supabase Linter
   @@index([status])
   @@index([startDate, endDate])
   @@map("leave_requests")
@@ -447,6 +453,7 @@ model AttendanceRecord {
 
   @@index([employeeId, timestamp])
   @@index([timestamp])
+  @@index([locationId])    // FK index — Supabase Linter
   @@map("attendance_records")
 }
 
@@ -537,6 +544,7 @@ model Advance {
   approvedBy User?   @relation("AdvanceApprover", fields: [approvedById], references: [id])
 
   @@index([employeeId])
+  @@index([approvedById])  // FK index — Supabase Linter
   @@index([status])
   @@index([periodYear, periodMonth])
   @@map("advances")
@@ -573,6 +581,7 @@ model Bonus {
   approvedBy User?   @relation("BonusApprover", fields: [approvedById], references: [id])
 
   @@index([employeeId])
+  @@index([approvedById])  // FK index — Supabase Linter
   @@index([status])
   @@index([date])
   @@map("bonuses")
@@ -616,6 +625,7 @@ model EmployeeRecord {
   issuedBy User?    @relation("RecordIssuer", fields: [issuedById], references: [id])
 
   @@index([employeeId])
+  @@index([issuedById])    // FK index — Supabase Linter
   @@index([category])
   @@index([date])
   @@map("employee_records")
@@ -829,6 +839,7 @@ model AnnouncementEmployee {
   employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@id([announcementId, employeeId])
+  @@index([employeeId])    // FK index — Supabase Linter
   @@map("announcement_employees")
 }
 
@@ -885,6 +896,7 @@ model Notification {
   announcement Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
 
   @@index([userId, isRead])
+  @@index([announcementId]) // FK index — Supabase Linter
   @@index([createdAt])
   @@map("notifications")
 }
