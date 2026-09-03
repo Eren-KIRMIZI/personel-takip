@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, Lock, Mail } from 'lucide-react';
+import { Users, Lock, Mail, Sparkles, Database } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
-import { prefetchWarmupChunks, prefetchCriticalData } from '@/lib/prefetch';
+import { prefetchWarmupChunks, prefetchEverything, type ProgressState } from '@/lib/prefetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState<'Giriş yapılıyor…' | 'Hazırlanıyor…'>('Giriş yapılıyor…');
+  const [progress, setProgress] = useState<ProgressState | null>(null);
   const session     = useAuthStore((s) => s.session);
   const initialized = useAuthStore((s) => s.initialized);
   const signIn      = useAuthStore((s) => s.signIn);
@@ -31,7 +31,7 @@ export function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (initialized && session) {
+  if (initialized && session && !progress) {
     return <Navigate to="/" replace />;
   }
 
@@ -39,19 +39,19 @@ export function LoginPage() {
     event.preventDefault();
     setError(null);
     setLoading(true);
-    setLoadingText('Giriş yapılıyor…');
     try {
       await signIn(email.trim(), password);
 
-      // Başarılı girişten hemen sonra arka planda Dashboard verilerini çek
-      // Maksimum 900ms sınır (veri erken gelirse beklemeden anında geçer!)
-      setLoadingText('Hazırlanıyor…');
-      await prefetchCriticalData(900);
+      // Başarılı girişten sonra 15 saniyelik derinlemesine ön yükleme ve ısınma motorunu çalıştır
+      await prefetchEverything((state) => {
+        setProgress(state);
+      }, 15000); // 15 saniyelik tam ısıtma ve önbellekleme süresi
 
       navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Giriş başarısız.');
       setLoading(false);
+      setProgress(null);
     }
   };
 
@@ -71,62 +71,99 @@ export function LoginPage() {
           </p>
         </div>
 
-        {/* Form Container */}
+        {/* Form Container or Progress Screen */}
         <div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-[var(--shadow-md)]">
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">E-posta</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="ornek@kurum.gov.tr"
-                  autoComplete="username"
-                  className="pl-9"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+          {progress ? (
+            <div className="space-y-6 py-2 animate-fade-in text-center">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary animate-pulse">
+                <Sparkles className="size-7" />
               </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-base font-semibold text-foreground font-display">
+                  Çalışma Alanınız Hazırlanıyor
+                </h3>
+                <p className="text-sm text-muted-foreground min-h-[40px] flex items-center justify-center transition-all duration-200">
+                  {progress.message}
+                </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="space-y-2">
+                <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500 ease-out shadow-sm"
+                    style={{ width: `${progress.percent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                  <span className="flex items-center gap-1">
+                    <Database className="size-3 text-primary" /> Sistem Isıtılıyor
+                  </span>
+                  <span>%{progress.percent}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground/80">
+                Giriş sonrası maksimum hız için veritabanı ve sayfalar önbelleğe alınıyor.
+              </p>
             </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium">E-posta</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="ornek@kurum.gov.tr"
+                    autoComplete="username"
+                    className="pl-9"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="pl-9"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
 
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 animate-fade-in">
-                {error}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="pl-9"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  {loadingText}
-                </span>
-              ) : (
-                'Giriş Yap'
+              {error && (
+                <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 animate-fade-in">
+                  {error}
+                </div>
               )}
-            </Button>
-          </form>
+
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Kimlik Doğrulanıyor…
+                  </span>
+                ) : (
+                  'Giriş Yap'
+                )}
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, ShiftDay } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import { AssignShiftDto, BulkAssignShiftDto, CreateShiftDto, ShiftAssignmentListDto } from './dto/shift.dto';
 
 @Injectable()
@@ -9,6 +11,7 @@ export class ShiftService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly cache: CacheService,
   ) {}
 
   async listShifts(query: { workLocationId?: string; includeInactive?: boolean }) {
@@ -16,7 +19,11 @@ export class ShiftService {
     if (query.workLocationId) where.workLocationId = query.workLocationId;
     if (!query.includeInactive) where.isActive = true;
 
-    return this.prisma.shift.findMany({
+    const cacheKey = CacheKeys.shiftList(query);
+    const cached = await this.cache.get<unknown[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.shift.findMany({
       where,
       include: {
         workLocation: { select: { id: true, name: true } },
@@ -24,6 +31,8 @@ export class ShiftService {
       },
       orderBy: { name: 'asc' },
     });
+    await this.cache.set(cacheKey, result, CacheTTL.SHIFT);
+    return result;
   }
 
   async createShift(dto: CreateShiftDto, actorUserId: string) {
@@ -46,6 +55,7 @@ export class ShiftService {
       entityId: shift.id,
       after: shift,
     });
+    await this.cache.delByPrefix(CacheKeys.shiftPrefix());
     return shift;
   }
 
@@ -153,6 +163,7 @@ export class ShiftService {
       entityId: id,
       before: existing,
     });
+    await this.cache.delByPrefix(CacheKeys.shiftPrefix());
     return { id, deleted: true };
   }
 }

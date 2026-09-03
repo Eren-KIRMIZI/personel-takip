@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { SupabaseService } from '../../supabase/supabase.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import { CreateEmployeeDto, EmployeeListQueryDto, UpdateEmployeeDto } from './dto/employees.dto';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { employeeEntityScopedWhere } from '../../common/scope';
@@ -49,6 +51,7 @@ export class EmployeesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly supabase: SupabaseService,
+    private readonly cache: CacheService,
   ) {}
 
   async list(query: EmployeeListQueryDto, actor: AuthenticatedUser) {
@@ -74,6 +77,13 @@ export class EmployeesService {
 
     const where = employeeEntityScopedWhere(actor, base);
 
+    // Arama sorgularını cache'leme — sadece filtresiz listeler
+    const cacheKey = CacheKeys.employeeList({ ...query, page, pageSize, actorId: actor.userId });
+    if (!query.search) {
+      const cached = await this.cache.get<{ items: unknown[]; total: number; page: number; pageSize: number }>(cacheKey);
+      if (cached) return cached;
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({
         where,
@@ -85,10 +95,18 @@ export class EmployeesService {
       this.prisma.employee.count({ where }),
     ]);
 
-    return { items, total, page, pageSize };
+    const result = { items, total, page, pageSize };
+    if (!query.search) {
+      await this.cache.set(cacheKey, result, CacheTTL.EMPLOYEE_LIST);
+    }
+    return result;
   }
 
   async find(id: string) {
+    const cacheKey = CacheKeys.employeeDetail(id);
+    const cached = await this.cache.get<unknown>(cacheKey);
+    if (cached) return cached;
+
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -102,19 +120,26 @@ export class EmployeesService {
     if (!employee) {
       throw new NotFoundException('Personel bulunamadı.');
     }
+    await this.cache.set(cacheKey, employee, CacheTTL.EMPLOYEE_DETAIL);
     return employee;
   }
 
   async history(id: string) {
+    const cacheKey = CacheKeys.employeeHistory(id);
+    const cached = await this.cache.get<unknown[]>(cacheKey);
+    if (cached) return cached;
+
     const employee = await this.prisma.employee.findUnique({ where: { id }, select: { id: true } });
     if (!employee) {
       throw new NotFoundException('Personel bulunamadı.');
     }
-    return this.prisma.employeeHistory.findMany({
+    const result = await this.prisma.employeeHistory.findMany({
       where: { employeeId: id },
       orderBy: { effectiveDate: 'desc' },
       take: 50,
     });
+    await this.cache.set(cacheKey, result, CacheTTL.EMPLOYEE_DETAIL);
+    return result;
   }
 
   async create(dto: CreateEmployeeDto, actor: { userId: string; ip?: string; userAgent?: string }) {
@@ -165,6 +190,9 @@ export class EmployeesService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
+
+    // Personel listesi cache'ini temizle (yeni personel eklendi)
+    await this.cache.delByPrefix(CacheKeys.employeeListPrefix());
 
     return createdEmployee;
   }
@@ -225,6 +253,12 @@ export class EmployeesService {
       userAgent: actor.userAgent ?? null,
     });
 
+    // Hem detay hem de liste cache'ini temizle
+    await Promise.all([
+      this.cache.del(CacheKeys.employeeDetail(id), CacheKeys.employeeHistory(id)),
+      this.cache.delByPrefix(CacheKeys.employeeListPrefix()),
+    ]);
+
     return updated;
   }
 
@@ -252,6 +286,13 @@ export class EmployeesService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
+
+    // Durum değişince detay + liste cache'ini temizle
+    await Promise.all([
+      this.cache.del(CacheKeys.employeeDetail(id)),
+      this.cache.delByPrefix(CacheKeys.employeeListPrefix()),
+    ]);
+
     return updated;
   }
 

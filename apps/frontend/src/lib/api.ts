@@ -21,10 +21,12 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
+  /** Sayfa değişiminde in-flight fetch'leri iptal etmek için */
+  signal?: AbortSignal;
 }
 
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, query } = options;
+  const { method = 'GET', body, query, signal } = options;
 
   const url = new URL(`${BASE_URL}${path}`);
   if (query) {
@@ -53,8 +55,13 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
     });
-  } catch {
+  } catch (err) {
+    // AbortError: sayfa değişiminden kaynaklanıyor — sessizce yoksay
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err; // TanStack Query bunu zaten yakalar
+    }
     throw new ApiError(0, 'Sunucuya ulaşılamadı.');
   }
 

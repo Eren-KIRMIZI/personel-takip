@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
+import { CacheModule } from './common/cache/cache.module';
 import { AuditModule } from './audit/audit.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
@@ -32,6 +33,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    CacheModule,
     PrismaModule,
     AuditModule,
     SupabaseModule,

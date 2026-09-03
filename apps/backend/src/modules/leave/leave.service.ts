@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { LeaveStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { employeeScopedWhere } from '../../common/scope';
 import {
@@ -21,6 +23,7 @@ export class LeaveService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly cache: CacheService,
   ) {}
 
   // ------------------------------------------------------------
@@ -28,7 +31,13 @@ export class LeaveService {
   // ------------------------------------------------------------
 
   async listLeaveTypes() {
-    return this.prisma.leaveType.findMany({ orderBy: { name: 'asc' } });
+    const cacheKey = CacheKeys.leaveTypes();
+    const cached = await this.cache.get<unknown[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.leaveType.findMany({ orderBy: { name: 'asc' } });
+    await this.cache.set(cacheKey, result, CacheTTL.LEAVE_TYPES);
+    return result;
   }
 
   async createLeaveType(dto: CreateLeaveTypeDto, actorUserId: string) {
@@ -40,6 +49,7 @@ export class LeaveService {
       entityId: leaveType.id,
       after: dto,
     });
+    await this.cache.del(CacheKeys.leaveTypes());
     return leaveType;
   }
 
@@ -54,6 +64,7 @@ export class LeaveService {
       before: updated,
       after: updated,
     });
+    await this.cache.del(CacheKeys.leaveTypes());
     return updated;
   }
 
@@ -84,6 +95,7 @@ export class LeaveService {
       entityId: id,
       before,
     });
+    await this.cache.del(CacheKeys.leaveTypes());
     return { id };
   }
 
@@ -102,6 +114,11 @@ export class LeaveService {
 
     const where = employeeScopedWhere(actor, base);
 
+    // İzin listesi kısa TTL ile cache'lenir
+    const cacheKey = CacheKeys.leaveList({ ...query, page, pageSize, actorId: actor.userId });
+    const cached = await this.cache.get<{ items: unknown[]; total: number; page: number; pageSize: number }>(cacheKey);
+    if (cached) return cached;
+
     const [items, total] = await Promise.all([
       this.prisma.leaveRequest.findMany({
         where,
@@ -112,7 +129,9 @@ export class LeaveService {
       }),
       this.prisma.leaveRequest.count({ where }),
     ]);
-    return { items, total, page, pageSize };
+    const result = { items, total, page, pageSize };
+    await this.cache.set(cacheKey, result, CacheTTL.LEAVE_LIST);
+    return result;
   }
 
   async findRequest(id: string) {
@@ -153,6 +172,7 @@ export class LeaveService {
       entityId: request.id,
       after: request,
     });
+    await this.cache.delByPrefix(CacheKeys.leaveListPrefix());
     return request;
   }
 

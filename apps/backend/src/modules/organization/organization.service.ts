@@ -5,15 +5,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import { ListQueryDto } from './dto/organization.dto';
-
-// Basit in-memory cache — dış bağımlılık gerektirmez
-interface CacheEntry {
-  data: unknown;
-  expiresAt: number;
-}
-
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 dakika
 
 export type OrgModel =
   | 'company'
@@ -34,36 +28,11 @@ const ROUTE_TO_MODEL: Record<string, OrgModel> = {
 
 @Injectable()
 export class OrganizationService {
-  // Cache: key → {data, expiresAt}
-  private readonly cache = new Map<string, CacheEntry>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly cache: CacheService,
   ) {}
-
-  /** Cache'den oku; süresi dolmuşsa undefined döner */
-  private cacheGet<T>(key: string): T | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return undefined;
-    }
-    return entry.data as T;
-  }
-
-  /** Cache'e yaz */
-  private cacheSet(key: string, data: unknown): void {
-    this.cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
-  }
-
-  /** Belirtilen model prefix'ine sahip tüm cache kayıtlarını temizle */
-  private cacheInvalidate(model: string): void {
-    for (const key of this.cache.keys()) {
-      if (key.startsWith(`${model}:`)) this.cache.delete(key);
-    }
-  }
 
   delegate(model: OrgModel): any {
     const delegates: Record<OrgModel, any> = {
@@ -99,10 +68,12 @@ export class OrganizationService {
       ];
     }
 
-    // Cache key: model + tüm query parametreleri
-    const cacheKey = `${model}:${JSON.stringify({ ...query, page, pageSize, where })}`;
-    const cached = this.cacheGet<{ items: unknown[]; total: number; page: number; pageSize: number }>(cacheKey);
-    if (cached) return cached;
+    // Arama sorgularını cache'leme — sadece filtresiz ve standart istekleri cache'le
+    const cacheKey = CacheKeys.orgList(model, { ...query, page, pageSize });
+    if (!query.search) {
+      const cached = await this.cache.get<{ items: unknown[]; total: number; page: number; pageSize: number }>(cacheKey);
+      if (cached) return cached;
+    }
 
     const delegate = this.delegate(model);
     const [items, total] = await Promise.all([
@@ -116,9 +87,9 @@ export class OrganizationService {
     ]);
 
     const result = { items, total, page, pageSize };
-    // Yalnızca arama yok ve isActive filtresi standartsa cache'le
+
     if (!query.search) {
-      this.cacheSet(cacheKey, result);
+      await this.cache.set(cacheKey, result, CacheTTL.ORG);
     }
     return result;
   }
@@ -135,16 +106,21 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
-    this.cacheInvalidate(model); // cache temizle
+    await this.cache.delByPrefix(CacheKeys.orgPrefix(model));
     return created;
   }
 
   async find(model: OrgModel, id: string) {
+    const cacheKey = CacheKeys.orgItem(model, id);
+    const cached = await this.cache.get<unknown>(cacheKey);
+    if (cached) return cached;
+
     const delegate = this.delegate(model);
     const record = await delegate.findUnique({ where: { id } });
     if (!record) {
       throw new NotFoundException(`${model} bulunamadı.`);
     }
+    await this.cache.set(cacheKey, record, CacheTTL.ORG);
     return record;
   }
 
@@ -165,7 +141,7 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
-    this.cacheInvalidate(model); // cache temizle
+    await this.cache.delByPrefix(CacheKeys.orgPrefix(model));
     return updated;
   }
 
@@ -177,7 +153,7 @@ export class OrganizationService {
     }
     try {
       await delegate.delete({ where: { id } });
-    } catch (error) {
+    } catch {
       throw new BadRequestException(`${model} üzerinde bağlı kayıtlar var, silinemiyor.`);
     }
     await this.audit.log({
@@ -190,7 +166,7 @@ export class OrganizationService {
       ip: actor.ip ?? null,
       userAgent: actor.userAgent ?? null,
     });
-    this.cacheInvalidate(model); // cache temizle
+    await this.cache.delByPrefix(CacheKeys.orgPrefix(model));
     return { id };
   }
 
