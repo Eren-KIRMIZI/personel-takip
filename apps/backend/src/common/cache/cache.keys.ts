@@ -53,6 +53,16 @@ export const CacheKeys = {
     `work-plans:list:${stableHash(query)}`,
 
   workPlanPrefix: (): string => 'work-plans:',
+
+  // ── Auth & Session (3 dk TTL — sayfa geçişlerini hızlandırır) ────
+  authToken: (tokenHash: string): string => `auth:token:${tokenHash}`,
+
+  authUser: (authId: string): string => `auth:user:${authId}`,
+
+  authPrefix: (): string => 'auth:',
+
+  // ── Dashboard Özet (90 sn TTL) ───────────────────────────
+  dashboardSummary: (): string => 'reports:dashboard-summary',
 } as const;
 
 /**
@@ -76,4 +86,12 @@ export const CacheTTL = {
 
   /** Vardiya tanımları: nadiren değişir */
   SHIFT: 60 * 60, // 1 saat
+
+  /** Token & Session önbelleği: her istekte Supabase'e gitmeyi önler */
+  AUTH_TOKEN: 3 * 60, // 3 dakika
+
+  AUTH_USER: 3 * 60, // 3 dakika
+
+  /** Dashboard özeti */
+  DASHBOARD_SUMMARY: 90, // 1.5 dakika
 } as const;

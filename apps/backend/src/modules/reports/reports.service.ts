@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PunchType } from '@prisma/client';
 import ExcelJS from 'exceljs';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import { ReportQueryDto } from './dto/report.dto';
 
 const employeeSelect = { id: true, firstName: true, lastName: true, employeeNo: true };
@@ -32,7 +34,10 @@ function hoursMin(minutes: number) {
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async attendanceSummary(query: ReportQueryDto) {
     const { from, to } = dateRange(query);
@@ -181,6 +186,12 @@ export class ReportsService {
   }
 
   async dashboardSummary() {
+    const cacheKey = CacheKeys.dashboardSummary();
+    const cached = await this.cache.get<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const today = startOfToday();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0);
 
@@ -213,7 +224,7 @@ export class ReportsService {
       }),
     ]);
 
-    return {
+    const result = {
       today,
       employeesActive,
       employeesTotal,
@@ -225,6 +236,9 @@ export class ReportsService {
       pendingOvertimes,
       approvedOvertimeHoursMonth: Math.round((monthOvertime._sum.hours ?? 0) * 100) / 100,
     };
+
+    await this.cache.set(cacheKey, result, CacheTTL.DASHBOARD_SUMMARY);
+    return result;
   }
 
   async attendanceExcel(query: ReportQueryDto) {

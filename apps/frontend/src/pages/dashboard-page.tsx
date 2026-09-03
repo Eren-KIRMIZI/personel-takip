@@ -126,7 +126,7 @@ export function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground font-display">
-            {greeting}, <span className="text-primary">{displayName.split(' ')[0]}</span> 👋
+            {greeting}, <span className="text-primary">{displayName.split(' ')[0]}</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {now.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}

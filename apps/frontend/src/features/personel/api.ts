@@ -112,6 +112,8 @@ export const employeesApi = {
     api<Employee>(`/api/employees/${id}`, { method: 'PATCH', body: payload }),
   setStatus: (id: string, status: EmploymentStatus) =>
     api<Employee>(`/api/employees/${id}/status`, { method: 'PATCH', body: { status } }),
+  delete: (id: string) =>
+    api<{ success: boolean }>(`/api/employees/${id}`, { method: 'DELETE' }),
 };
 
 export const FULL_NAME = (e: { firstName: string; lastName: string; employeeNo?: string | null }) =>

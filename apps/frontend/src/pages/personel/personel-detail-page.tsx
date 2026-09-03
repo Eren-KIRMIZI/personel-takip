@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Mail,
@@ -12,11 +12,13 @@ import {
   PowerOff,
   RefreshCw,
   Hash,
+  Trash2,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { StatusBadge, Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,7 +44,9 @@ function InfoField({ label, value, icon: Icon }: { label: string; value?: React.
 export function PersonelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   // Aktif sekme state'i
   const [activeTab, setActiveTab] = useState('genel');
   // Hangi sekmelerin en az bir kez açıldığını takip eder → lazy mount
@@ -68,6 +72,18 @@ export function PersonelDetailPage() {
       setTimeout(() => setStatusMessage(null), 3000);
     },
     onError: (error) => setStatusMessage(`Hata: ${formatError(error)}`),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => employeesApi.delete(id!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
+      navigate('/personel');
+    },
+    onError: (error) => {
+      setDeleteOpen(false);
+      setStatusMessage(`Silme hatası: ${formatError(error)}`);
+    },
   });
 
   if (isLoading) {
@@ -297,12 +313,46 @@ export function PersonelDetailPage() {
                 <PowerOff className="mr-2" /> Pasif Yap
               </Button>
             )}
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => setDeleteOpen(true)}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="mr-2" /> Sil
+            </Button>
           </div>
         </div>
       </div>
 
       {/* ── Tabs Content ──────────────────────────── */}
       <Tabs tabs={tabs} value={activeTab} onValueChange={handleTabChange} />
+
+      {/* ── Delete confirm dialog ──────────────────── */}
+      <Dialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Personeli Sil"
+        description={`"${employee.firstName} ${employee.lastName}" isimli personel kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Vazgeç
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              {deleteMutation.isPending ? 'Siliniyor…' : 'Evet, Sil'}
+            </Button>
+          </>
+        }
+      >
+        <div className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700">
+          ⚠️ Personelin tüm kayıtları (izin, mesai, evrak vb.) ve kullanıcı hesabı da silinecektir.
+        </div>
+      </Dialog>
     </div>
   );
 }

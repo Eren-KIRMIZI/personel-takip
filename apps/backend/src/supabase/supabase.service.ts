@@ -45,4 +45,12 @@ export class SupabaseService implements OnModuleInit, OnModuleDestroy {
     }
     return { authId: data.user.id, email: data.user.email ?? email };
   }
+
+  /** Kullanıcıyı Supabase Auth'dan siler (rollback veya personel silme işlemlerinde kullanılır). */
+  async deleteAuthUser(authId: string): Promise<void> {
+    const { error } = await this.adminClient.auth.admin.deleteUser(authId);
+    if (error) {
+      throw new BadRequestException(`Supabase Auth kullanıcısı silinemedi: ${error.message}`);
+    }
+  }
 }

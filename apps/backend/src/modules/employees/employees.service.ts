@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -155,24 +155,37 @@ export class EmployeesService {
       const fullName = `${profile.firstName} ${profile.lastName}`;
       const { authId } = await this.supabase.createAuthUser(email, account.password, fullName);
 
-      createdEmployee = await this.prisma.employee.create({
-        data: {
-          ...profile,
-          user: {
-            create: {
-              authId,
-              username,
-              email,
-              status: 'ACTIVE',
-              roles: account.roleIds?.length
-                ? { create: account.roleIds.map((roleId) => ({ roleId })) }
-                : undefined,
+      try {
+        createdEmployee = await this.prisma.employee.create({
+          data: {
+            ...profile,
+            user: {
+              create: {
+                authId,
+                username,
+                email,
+                status: 'ACTIVE',
+                roles: account.roleIds?.length
+                  ? { create: account.roleIds.map((roleId) => ({ roleId })) }
+                  : undefined,
+              },
             },
           },
-        },
-        include: employeeInclude,
-      });
-      await this.createInitialHistory(this.prisma, createdEmployee.id, profile);
+          include: employeeInclude,
+        });
+        await this.createInitialHistory(this.prisma, createdEmployee.id, profile);
+      } catch (prismaError) {
+        // Prisma işlemi başarısız olduysa Supabase auth kullanıcısını geri al
+        try {
+          await this.supabase.deleteAuthUser(authId);
+        } catch (supabaseRollbackError) {
+          // Rollback başarısız olsa bile orijinal hatayı fırlat
+          console.error('Supabase auth rollback başarısız:', supabaseRollbackError);
+        }
+        throw new InternalServerErrorException(
+          `Personel oluşturma başarısız: ${(prismaError as Error).message}`,
+        );
+      }
     } else {
       createdEmployee = await this.prisma.employee.create({
         data: { ...profile },
@@ -260,6 +273,49 @@ export class EmployeesService {
     ]);
 
     return updated;
+  }
+
+  async delete(
+    id: string,
+    actor: { userId: string; ip?: string; userAgent?: string },
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    if (!employee) {
+      throw new NotFoundException('Personel bulunamadı.');
+    }
+
+    // Supabase Auth kullanıcısını sil
+    if (employee.user?.authId) {
+      try {
+        await this.supabase.deleteAuthUser(employee.user.authId);
+      } catch (err) {
+        console.error('Supabase auth kullanıcısı silinemedi:', err);
+      }
+    }
+
+    // Prisma kaydını sil (cascade ile ilişkili kayıtlar da silinir)
+    await this.prisma.employee.delete({ where: { id } });
+
+    await this.audit.log({
+      actorUserId: actor.userId,
+      action: 'employee.delete',
+      entityType: 'employee',
+      entityId: id,
+      before: employee,
+      ip: actor.ip ?? null,
+      userAgent: actor.userAgent ?? null,
+    });
+
+    // Cache'i temizle
+    await Promise.all([
+      this.cache.del(CacheKeys.employeeDetail(id), CacheKeys.employeeHistory(id)),
+      this.cache.delByPrefix(CacheKeys.employeeListPrefix()),
+    ]);
+
+    return { success: true };
   }
 
   async setStatus(
