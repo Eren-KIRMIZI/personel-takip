@@ -107,9 +107,10 @@ export class TaskService {
       data: {
         title: dto.title,
         description: dto.description,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        status: dto.status as any,
         employeeId: dto.employeeId,
         priority: dto.priority,
-        status: dto.status,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         note: dto.note,
         updatedById,
@@ -127,7 +128,8 @@ export class TaskService {
     return this.prisma.task.update({
       where: { id },
       data: {
-        status: dto.status,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        status: dto.status as any,
         ...(dto.note ? { note: dto.note } : {}),
         ...extra,
         updatedById,
@@ -163,7 +165,9 @@ export class TaskService {
 
   async createComment(taskId: string, dto: { content: string }, createdById?: string) {
     await this.find(taskId);
-    return this.prisma.taskComment.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = this.prisma as any;
+    return db.taskComment.create({
       data: {
         taskId,
         content: dto.content,

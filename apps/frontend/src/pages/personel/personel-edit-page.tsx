@@ -179,10 +179,6 @@ export function PersonelEditPage() {
     },
   });
 
-      navigate(`/personel/${employee.id}`);
-    },
-  });
-
   const [serverError, setServerError] = useState<string | null>(null);
 
   const onSubmit = (values: FormValues) => {
