@@ -81,8 +81,11 @@ export const attendanceApi = {
   createQr: (payload: CreateQrPayload) =>
     api<QrCodeItem>('/api/attendance/qr-codes', { method: 'POST', body: payload }),
   qrImage: (id: string) => api<QrCodeImage>(`/api/attendance/qr-codes/${id}/qr`),
+  rotateQr: (id: string) => api<QrCodeItem>(`/api/attendance/qr-codes/${id}/rotate`, { method: 'PATCH' }),
   scan: (content: string, employeeId: string) =>
     api<PunchResult>('/api/attendance/scan', { method: 'POST', body: { content, employeeId } }),
+  scanSelf: (content: string) =>
+    api<PunchResult>('/api/attendance/scan', { method: 'POST', body: { content } }),
 };
 
 export function formatDateTime(iso: string): string {

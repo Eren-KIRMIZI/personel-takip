@@ -57,6 +57,9 @@ const GirisCikisPage = lazy(() =>
 const QrKodlarPage = lazy(() =>
   import('@/pages/giris-cikis/qr-kodlar-page').then((m) => ({ default: m.QrKodlarPage })),
 );
+const QrOkutPage = lazy(() =>
+  import('@/pages/giris-cikis/qr-okut-page').then((m) => ({ default: m.QrOkutPage })),
+);
 
 // Raporlar
 const RaporlarPage = lazy(() =>
@@ -212,6 +215,10 @@ export const router = createBrowserRouter([
       {
         path: 'giris-cikis/qr',
         element: <SuspenseWrap><QrKodlarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'qr-okut',
+        element: <SuspenseWrap><QrOkutPage /></SuspenseWrap>,
       },
       {
         path: 'raporlar',

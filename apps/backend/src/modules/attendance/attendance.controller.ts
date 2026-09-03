@@ -6,6 +6,7 @@ import {
   AttendanceListQueryDto,
   CreateAttendanceDto,
   CreateQrCodeDto,
+  RotateQrCodeDto,
   ScanAttendanceDto,
   UpdateAttendanceDto,
 } from './dto/attendance.dto';
@@ -54,6 +55,12 @@ export class AttendanceController {
   @RequirePermissions('qr:read')
   qrImage(@Param('id') id: string) {
     return this.attendance.qrImage(id);
+  }
+
+  @Patch('qr-codes/:id/rotate')
+  @RequirePermissions('qr:write')
+  rotateQrCode(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.attendance.rotateQrCode(id, user.userId);
   }
 
   @Post('scan')

@@ -9,6 +9,7 @@ import {
   AttendanceListQueryDto,
   CreateAttendanceDto,
   CreateQrCodeDto,
+  RotateQrCodeDto,
   ScanAttendanceDto,
   UpdateAttendanceDto,
 } from './dto/attendance.dto';
@@ -155,6 +156,44 @@ export class AttendanceService {
       after: qr,
     });
     return qr;
+  }
+
+  async rotateQrCode(id: string, actorUserId: string) {
+    const existing = await this.prisma.qrCode.findUnique({
+      where: { id },
+      include: { location: { select: { id: true, name: true, address: true } } },
+    });
+    if (!existing) throw new NotFoundException('QR kodu bulunamadı.');
+
+    // Eski QR'ı pasife çek
+    await this.prisma.qrCode.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    // Aynı lokasyon için yeni token ile yeni QR oluştur
+    const newQr = await this.prisma.qrCode.create({
+      data: {
+        token: this.generateToken(),
+        locationId: existing.locationId,
+        entryPointName: existing.entryPointName,
+        isActive: true,
+        expiresAt: null,
+        createdById: actorUserId,
+      },
+      include: { location: { select: { id: true, name: true, address: true } } },
+    });
+
+    await this.audit.log({
+      actorUserId,
+      action: 'attendance.qr.rotate',
+      entityType: 'qrcode',
+      entityId: newQr.id,
+      before: { id: existing.id, token: existing.token },
+      after: { id: newQr.id, token: newQr.token },
+    });
+
+    return newQr;
   }
 
   async scan(dto: ScanAttendanceDto, actor: { userId: string; employeeId?: string | null }) {

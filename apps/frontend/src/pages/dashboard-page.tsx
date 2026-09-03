@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Building2,
@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock4,
   Lightbulb,
+  QrCode,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/stores/auth';
 import { reportsApi } from '@/features/raporlar/api';
@@ -94,6 +96,7 @@ export function DashboardPage() {
   const profile       = useAuthStore((s) => s.profile);
   const session       = useAuthStore((s) => s.session);
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const navigate      = useNavigate();
 
   // Tek API çağrısı — artık 4 ayrı istek yok
   const { data, isLoading } = useQuery({
@@ -122,7 +125,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-7 animate-fade-in">
-      {/* ── Hero Greeting ───────────────────────────── */}
+      {/* ── Hero Greeting ──────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground font-display">
@@ -133,10 +136,20 @@ export function DashboardPage() {
             {profile?.roles?.length ? ` · ${profile.roles.join(', ')}` : ''}
           </p>
         </div>
-        <Badge variant="secondary" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 status-dot-active" />
-          Sistem Aktif
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate('/qr-okut')}
+            className="gap-2"
+            id="dashboard-qr-scan-btn"
+          >
+            <QrCode className="size-4" />
+            QR Okut
+          </Button>
+          <Badge variant="secondary" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 status-dot-active" />
+            Sistem Aktif
+          </Badge>
+        </div>
       </div>
 
       {/* ── Stat Cards ──────────────────────────────── */}

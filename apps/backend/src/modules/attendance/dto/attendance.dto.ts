@@ -125,3 +125,7 @@ export class CreateQrCodeDto {
   @IsBoolean()
   isActive?: boolean;
 }
+
+export class RotateQrCodeDto {
+  // Body boş — id URL param'dan gelir
+}

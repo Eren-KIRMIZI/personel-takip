@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Eye, EyeOff, ScanLine, Plus } from 'lucide-react';
+import { ArrowLeft, Copy, Eye, Plus, Printer, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/stores/auth';
 import { orgApi } from '@/features/organizasyon/api';
-import { employeesApi } from '@/features/personel/api';
 import { attendanceApi, type QrCodeItem } from '@/features/giris-cikis/api';
 import { formatError } from '@/lib/utils';
 
@@ -25,7 +24,7 @@ export function QrKodlarPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [viewTarget, setViewTarget] = useState<QrCodeItem | null>(null);
-  const [scanTarget, setScanTarget] = useState<QrCodeItem | null>(null);
+  const [rotatingId, setRotatingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['qr-codes'],
@@ -55,13 +54,20 @@ export function QrKodlarPage() {
     onError: (error) => setErrorMessage(formatError(error)),
   });
 
-  const scanMutation = useMutation({
-    mutationFn: (payload: { content: string; employeeId: string }) => attendanceApi.scan(payload.content, payload.employeeId),
-    onSuccess: async () => {
+  const rotateMutation = useMutation({
+    mutationFn: (id: string) => attendanceApi.rotateQr(id),
+    onMutate: (id) => setRotatingId(id),
+    onSuccess: async (newQr) => {
       await invalidate();
-      setScanTarget(null);
+      setRotatingId(null);
+      setErrorMessage(null);
+      // Yeni QR'ı hemen görüntüle
+      setViewTarget(newQr);
     },
-    onError: (error) => setErrorMessage(formatError(error)),
+    onError: (error) => {
+      setRotatingId(null);
+      setErrorMessage(formatError(error));
+    },
   });
 
   return (
@@ -121,9 +127,16 @@ export function QrKodlarPage() {
                     <Button variant="outline" size="sm" onClick={() => setViewTarget(qr)}>
                       <Eye /> Göster
                     </Button>
-                    {hasPermission('attendance:write') && (
-                      <Button variant="outline" size="sm" onClick={() => setScanTarget(qr)}>
-                        <ScanLine /> Okut
+                    {hasPermission('qr:write') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={rotatingId === qr.id}
+                        onClick={() => rotateMutation.mutate(qr.id)}
+                        title="QR'ı yenile (yeni token üretir)"
+                      >
+                        <RefreshCw className={rotatingId === qr.id ? 'animate-spin' : ''} />
+                        {rotatingId === qr.id ? 'Yenileniyor…' : 'Yenile'}
                       </Button>
                     )}
                   </div>
@@ -152,11 +165,24 @@ export function QrKodlarPage() {
         title="QR Kodu"
         description={viewTarget ? `${viewTarget.location.name} — ${viewTarget.entryPointName ?? '(noktasız)'}` : undefined}
       >
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-4">
           {qrImage ? (
-            <img src={qrImage.dataUrl} alt="QR" className="h-48 w-48 border" />
+            <img
+              id="qr-print-img"
+              src={qrImage.dataUrl}
+              alt="QR"
+              className="h-52 w-52 rounded-lg border shadow-sm"
+            />
           ) : (
-            <Skeleton className="h-48 w-48" />
+            <Skeleton className="h-52 w-52" />
+          )}
+          {viewTarget && (
+            <div className="text-center">
+              <p className="text-sm font-medium">{viewTarget.location.name}</p>
+              {viewTarget.entryPointName && (
+                <p className="text-xs text-muted-foreground">{viewTarget.entryPointName}</p>
+              )}
+            </div>
           )}
           <div className="flex w-full items-center gap-2">
             <code className="flex-1 truncate rounded-md border bg-muted px-2 py-1 text-xs">{viewTarget?.token}</code>
@@ -164,22 +190,49 @@ export function QrKodlarPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                if (viewTarget) {
-                  void navigator.clipboard.writeText(viewTarget.token);
-                  setErrorMessage(null);
-                }
+                if (viewTarget) void navigator.clipboard.writeText(viewTarget.token);
               }}
             >
               <Copy /> Kopyala
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Kodu yazdırıp giriş noktasına asabilirsiniz; çalışanlar telefonuyla okutur.
+          <div className="flex w-full gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                if (!qrImage) return;
+                const w = window.open('', '_blank')!;
+                w.document.write(`<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;margin:0">`
+                  + `<div style="text-align:center"><img src="${qrImage.dataUrl}" style="width:300px;height:300px" />`
+                  + `<p style="font-size:14px;margin-top:12px">${viewTarget?.location.name ?? ''}</p>`
+                  + `<p style="font-size:12px;color:#666">${viewTarget?.entryPointName ?? ''}</p></div></body></html>`);
+                w.document.close();
+                w.focus();
+                w.print();
+              }}
+            >
+              <Printer className="mr-2 h-4 w-4" /> Yazdır
+            </Button>
+            {hasPermission('qr:write') && viewTarget && (
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={rotatingId === viewTarget.id}
+                onClick={() => {
+                  if (viewTarget) rotateMutation.mutate(viewTarget.id);
+                }}
+              >
+                <RefreshCw className={rotatingId === viewTarget.id ? 'mr-2 h-4 w-4 animate-spin' : 'mr-2 h-4 w-4'} />
+                {rotatingId === viewTarget.id ? 'Yenileniyor…' : 'QR Yenile'}
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            QR'ı yazdırıp giriş noktasına asabilirsiniz. Personel telefonuyla okutarak giriş-çıkış kaydeder.
           </p>
         </div>
       </Dialog>
-
-      <ScanDialog qr={scanTarget} onClose={() => setScanTarget(null)} pending={scanMutation.isPending} onSubmit={(payload) => scanMutation.mutate(payload)} />
     </div>
   );
 }
@@ -238,95 +291,6 @@ function CreateQrDialog({
           <Label>Giriş noktası adı</Label>
           <Input value={entryPointName} onChange={(e) => setEntryPointName(e.target.value)} placeholder="örn. Ana Giriş" />
         </div>
-      </div>
-    </Dialog>
-  );
-}
-
-function ScanDialog({
-  qr,
-  onClose,
-  onSubmit,
-  pending,
-}: {
-  qr: QrCodeItem | null;
-  onClose: () => void;
-  onSubmit: (payload: { content: string; employeeId: string }) => void;
-  pending: boolean;
-}) {
-  const [content, setContent] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
-  const [showContent, setShowContent] = useState(false);
-  const { data: employees } = useQuery({
-    queryKey: ['employees-all'],
-    queryFn: () => employeesApi.list({ pageSize: 500 }),
-  });
-
-  const submit = () => {
-    if (!content.trim() || !employeeId) return;
-    onSubmit({ content: content.trim(), employeeId });
-  };
-
-  return (
-    <Dialog
-      open={qr !== null}
-      onClose={() => {
-        setContent('');
-        onClose();
-      }}
-      title="QR ile giriş-çıkış"
-      description={qr ? `${qr.location.name} — ${qr.entryPointName ?? '(noktasız)'}` : undefined}
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>Vazgeç</Button>
-          <Button disabled={!content.trim() || !employeeId || pending} onClick={submit}>
-            {pending ? 'İşleniyor…' : 'Harekete Geçir'}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <Label>QR içeriği (token)</Label>
-          <div className="relative">
-            <Input
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={qr ? `qr_… (${qr.token.slice(0, 12)}…)` : 'QR token'}
-              type={showContent ? 'text' : 'password'}
-              className="pr-10"
-            />
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowContent((v) => !v)}
-            >
-              {showContent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          {qr && (
-            <textarea
-              className="min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs font-mono outline-none"
-              value={qr.token}
-              readOnly
-            />
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label>Personel *</Label>
-          <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-            <option value="">Seçin…</option>
-            {employees?.items.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.firstName} {emp.lastName}
-                {emp.employeeNo ? ` (${emp.employeeNo})` : ''}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Personelin son hareketi <b>Giriş</b> ise Çıkış, aksi halde Giriş yazılır.
-        </p>
       </div>
     </Dialog>
   );
