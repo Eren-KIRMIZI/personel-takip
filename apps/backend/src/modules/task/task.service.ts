@@ -20,6 +20,12 @@ export class TaskService {
         department: { select: { id: true, name: true } },
       },
     },
+    comments: {
+      include: {
+        createdBy: { select: { id: true, username: true, employeeId: true } },
+      },
+      orderBy: { createdAt: 'desc' as const },
+    },
   };
 
   async list(query: TaskListQueryDto, actor: AuthenticatedUser) {
@@ -153,5 +159,19 @@ export class TaskService {
       byStatus: statusCounts.map(s => ({ status: s.status, count: s._count.id })),
       byPriority: priorityCounts.map(p => ({ priority: p.priority, count: p._count.id })),
     };
+  }
+
+  async createComment(taskId: string, dto: { content: string }, createdById?: string) {
+    await this.find(taskId);
+    return this.prisma.taskComment.create({
+      data: {
+        taskId,
+        content: dto.content,
+        createdById,
+      },
+      include: {
+        createdBy: { select: { id: true, username: true, employeeId: true } },
+      },
+    });
   }
 }

@@ -19,8 +19,8 @@ export class CreateTaskDto {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH';
 
   @IsOptional()
-  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'])
-  status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'DELAYED', 'CANCELLED'])
+  status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'DELAYED' | 'CANCELLED';
 
   @IsOptional()
   @IsDateString()
@@ -34,8 +34,8 @@ export class CreateTaskDto {
 export class UpdateTaskDto extends PartialType(CreateTaskDto) { }
 
 export class UpdateTaskStatusDto {
-  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'])
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'DELAYED', 'CANCELLED'])
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'DELAYED' | 'CANCELLED';
 
   @IsOptional()
   @IsString()
@@ -55,8 +55,8 @@ export class TaskListQueryDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'])
-  status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'DELAYED', 'CANCELLED'])
+  status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'DELAYED' | 'CANCELLED';
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -82,4 +82,9 @@ export class TaskListQueryDto {
   @IsOptional()
   @Transform(({ value }) => parseInt(value, 10))
   pageSize?: number = 20;
+}
+
+export class CreateTaskCommentDto {
+  @IsString()
+  content: string;
 }
