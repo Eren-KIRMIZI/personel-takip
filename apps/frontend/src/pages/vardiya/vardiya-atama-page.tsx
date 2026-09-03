@@ -24,7 +24,8 @@ export function VardiyaAtamaPage() {
   const { data: shift } = useQuery({ queryKey: ['shift', shiftId], queryFn: () => shiftApi.list().then((s) => s.find((x) => x.id === shiftId)) });
   const { data: assignments, isLoading } = useQuery({
     queryKey: ['shift-assignments', shiftId],
-    queryFn: () => shiftApi.assignments({ shiftId }),
+    queryFn: () => shiftApi.assignments(shiftId ? { shiftId } : undefined),
+    enabled: !!shiftId,
   });
 
   const invalidate = async () => {

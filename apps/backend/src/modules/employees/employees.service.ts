@@ -236,7 +236,7 @@ export class EmployeesService {
       throw new NotFoundException('Personel bulunamadı.');
     }
 
-    const { roleIds, ...raw } = dto;
+    const { roleIds, account: _account, ...raw } = dto;
     const profile = this.parseDateFields(raw);
 
     const historyEntries: Prisma.EmployeeHistoryCreateManyInput[] = ASSIGNMENT_FIELDS.filter(

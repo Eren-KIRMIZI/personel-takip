@@ -72,12 +72,12 @@ export class BulkAssignShiftDto {
 export class ShiftAssignmentListDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsString()
   employeeId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsString()
   shiftId?: string;
 
   @ApiPropertyOptional({ enum: ShiftDay })
