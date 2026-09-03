@@ -35,7 +35,7 @@ export function ZimmetListPage() {
         page,
         pageSize: PAGE_SIZE,
         status: (status || undefined) as AssetStatus | undefined,
-        search: search || undefined,
+        q: search || undefined,
       }),
   });
 

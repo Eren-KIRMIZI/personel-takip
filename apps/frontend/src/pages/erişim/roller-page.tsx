@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ShieldCheck } from 'lucide-react';
+import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,16 +12,19 @@ import { Dialog } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { accessApi, type Permission, type Role } from '@/features/erişim/api';
+import { useAuthStore } from '@/stores/auth';
 import { formatError } from '@/lib/utils';
 
 type PermissionsState = { role: Role; selected: Set<string> } | null;
 
 export function RollerPage() {
   const queryClient = useQueryClient();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: '', code: '', description: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [permissionsState, setPermissionsState] = useState<PermissionsState>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
   const { data: roles, isLoading } = useQuery({ queryKey: ['roles'], queryFn: () => accessApi.roles() });
   const { data: permissions } = useQuery({ queryKey: ['permissions'], queryFn: () => accessApi.permissions() });
@@ -58,6 +61,18 @@ export function RollerPage() {
     onError: (error) => setErrorMessage(formatError(error)),
   });
 
+  const deleteRole = useMutation({
+    mutationFn: (id: string) => accessApi.removeRole(id),
+    onSuccess: async () => {
+      await invalidate();
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      setDeleteTarget(null);
+      setErrorMessage(formatError(error));
+    },
+  });
+
   const groupedPermissions = useMemo(() => {
     const groups = new Map<string, Permission[]>();
     for (const p of permissions ?? []) {
@@ -90,13 +105,14 @@ export function RollerPage() {
               <TableHead>Kod</TableHead>
               <TableHead>Yetki Sayısı</TableHead>
               <TableHead>Durum</TableHead>
+              <TableHead className="w-16 text-right">İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading &&
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                  <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
                 </TableRow>
               ))}
             {roles?.map((role) => (
@@ -112,6 +128,21 @@ export function RollerPage() {
                 <TableCell>{role.permissions.length}</TableCell>
                 <TableCell>
                   <Badge variant={role.isActive ? 'success' : 'secondary'}>{role.isActive ? 'Aktif' : 'Pasif'}</Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {!role.isSystem && hasPermission('role:write') && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Sil"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(role);
+                      }}
+                    >
+                      <Trash2 className="text-destructive" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -189,6 +220,23 @@ export function RollerPage() {
             </div>
           ))}
         </div>
+      </Dialog>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Rolü sil"
+        description={deleteTarget ? `"${deleteTarget.name}" rolü ve ilişkili tüm kullanıcı atamaları silinecek.` : undefined}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Vazgeç</Button>
+            <Button variant="destructive" disabled={deleteRole.isPending} onClick={() => deleteTarget && deleteRole.mutate(deleteTarget.id)}>
+              {deleteRole.isPending ? 'Siliniyor…' : 'Sil'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Bu işlem geri alınamaz. Sistem rolleri silinemez.</p>
       </Dialog>
     </div>
   );

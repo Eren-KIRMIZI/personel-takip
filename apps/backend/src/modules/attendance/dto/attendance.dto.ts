@@ -75,6 +75,23 @@ export class CreateAttendanceDto {
   deviceInfo?: string;
 }
 
+export class UpdateAttendanceDto {
+  @ApiPropertyOptional({ enum: PunchType })
+  @IsOptional()
+  @IsEnum(PunchType)
+  type?: PunchType;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDateString()
+  timestamp?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+}
+
 export class ScanAttendanceDto {
   @ApiProperty({ description: 'QR kodu içeriği (token)' })
   @IsString()

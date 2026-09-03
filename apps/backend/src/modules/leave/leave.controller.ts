@@ -53,6 +53,9 @@ export class LeaveController {
   @Get('leave-requests')
   @RequirePermissions('leave:read')
   list(@Query() query: LeaveListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.permissions.has('leave:approve')) {
+      query.employeeId = user.employeeId ?? undefined;
+    }
     return this.leave.listRequests(query);
   }
 

@@ -136,4 +136,23 @@ export class ShiftService {
     });
     return { deleted: true };
   }
+
+  async removeShift(id: string, actorUserId: string) {
+    const existing = await this.prisma.shift.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Vardiya bulunamadı.');
+
+    await this.prisma.$transaction([
+      this.prisma.shiftAssignment.deleteMany({ where: { shiftId: id } }),
+      this.prisma.shift.delete({ where: { id } }),
+    ]);
+
+    await this.audit.log({
+      actorUserId,
+      action: 'shift.delete',
+      entityType: 'shift',
+      entityId: id,
+      before: existing,
+    });
+    return { id, deleted: true };
+  }
 }

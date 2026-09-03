@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -7,6 +7,7 @@ import {
   CreateAttendanceDto,
   CreateQrCodeDto,
   ScanAttendanceDto,
+  UpdateAttendanceDto,
 } from './dto/attendance.dto';
 import { AttendanceService } from './attendance.service';
 
@@ -18,7 +19,10 @@ export class AttendanceController {
 
   @Get()
   @RequirePermissions('attendance:read')
-  list(@Query() query: AttendanceListQueryDto) {
+  list(@Query() query: AttendanceListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.permissions.has('attendance:write')) {
+      query.employeeId = query.employeeId ?? user.employeeId ?? undefined;
+    }
     return this.attendance.list(query);
   }
 
@@ -28,10 +32,15 @@ export class AttendanceController {
     return this.attendance.punch(dto, user.userId);
   }
 
+  @Patch(':id')
+  @RequirePermissions('attendance:write')
+  update(@Param('id') id: string, @Body() dto: UpdateAttendanceDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.attendance.update(id, dto, user.userId);
+  }
+
   @Get('qr-codes')
   @RequirePermissions('qr:read')
-  qrCodes(@Query() query: { page?: number; pageSize?: number; includeInactive?: string }) {
-    return this.attendance.qrCodes({
+  qrCodes(@Query() query: { page?: number; pageSize?: number; includeInactive?: string }) {    return this.attendance.qrCodes({
       page: query.page ? Number(query.page) : undefined,
       pageSize: query.pageSize ? Number(query.pageSize) : undefined,
       includeInactive: query.includeInactive === 'true',

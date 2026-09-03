@@ -42,7 +42,7 @@ export interface AssetListParams {
   employeeId?: string;
   status?: AssetStatus;
   category?: string;
-  search?: string;
+  q?: string;
 }
 
 export interface CreateAssetPayload {

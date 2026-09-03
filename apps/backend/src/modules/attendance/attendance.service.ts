@@ -8,6 +8,7 @@ import {
   CreateAttendanceDto,
   CreateQrCodeDto,
   ScanAttendanceDto,
+  UpdateAttendanceDto,
 } from './dto/attendance.dto';
 
 const attendanceInclude = {
@@ -77,6 +78,35 @@ export class AttendanceService {
       after: record,
     });
     return record;
+  }
+
+  async update(id: string, dto: UpdateAttendanceDto, actorUserId: string) {
+    const existing = await this.prisma.attendanceRecord.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Giriş-çıkış kaydı bulunamadı.');
+
+    if (dto.locationId) {
+      const location = await this.prisma.workLocation.findUnique({ where: { id: dto.locationId } });
+      if (!location) throw new NotFoundException('Çalışma yeri bulunamadı.');
+    }
+
+    const updated = await this.prisma.attendanceRecord.update({
+      where: { id },
+      data: {
+        type: dto.type ?? undefined,
+        timestamp: dto.timestamp ? new Date(dto.timestamp) : undefined,
+        locationId: dto.locationId ?? undefined,
+      },
+      include: attendanceInclude,
+    });
+    await this.audit.log({
+      actorUserId,
+      action: 'attendance.update',
+      entityType: 'attendance',
+      entityId: id,
+      before: existing,
+      after: updated,
+    });
+    return updated;
   }
 
   async qrCodes(query: { page?: number; pageSize?: number; includeInactive?: boolean }) {

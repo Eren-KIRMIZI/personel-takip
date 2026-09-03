@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ interface FieldConfig {
   name: string;
   label: string;
   required?: boolean;
+  selectOptions?: OrgGroup;
 }
 
 const GROUP_FIELDS: Record<OrgGroup, FieldConfig[]> = {
@@ -28,11 +30,13 @@ const GROUP_FIELDS: Record<OrgGroup, FieldConfig[]> = {
     { name: 'address', label: 'Adres' },
   ],
   departments: [
+    { name: 'companyId', label: 'Bağlı Kurum', required: true, selectOptions: 'companies' },
     { name: 'name', label: 'Departman adı', required: true },
     { name: 'code', label: 'Kod' },
     { name: 'description', label: 'Açıklama' },
   ],
   units: [
+    { name: 'departmentId', label: 'Bağlı Departman', required: true, selectOptions: 'departments' },
     { name: 'name', label: 'Birim adı', required: true },
     { name: 'code', label: 'Kod' },
     { name: 'description', label: 'Açıklama' },
@@ -67,6 +71,13 @@ function OrgGroupManager({ group, singular }: { group: OrgGroup; singular: strin
     queryFn: () => orgApi.list(group, { pageSize: 200, search: search || undefined }),
   });
 
+  const selectField = GROUP_FIELDS[group].find((f) => f.selectOptions);
+  const { data: selectOptions } = useQuery({
+    queryKey: ['org-select', selectField?.selectOptions],
+    queryFn: () => orgApi.list(selectField!.selectOptions as OrgGroup, { pageSize: 200 }),
+    enabled: !!selectField,
+  });
+
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['org', group] });
     await queryClient.invalidateQueries({ queryKey: [`${group}-all`] });
@@ -98,6 +109,10 @@ function OrgGroupManager({ group, singular }: { group: OrgGroup; singular: strin
         if (v) payload[f.name] = v;
       }
       if (!payload.name) throw new Error('Ad alanı zorunlu.');
+      const requiredFk = GROUP_FIELDS[group].find((f) => f.required && f.selectOptions);
+      if (requiredFk && !payload[requiredFk.name]) {
+        throw new Error(`${requiredFk.label} zorunludur.`);
+      }
       if (editable?.mode === 'edit') {
         return orgApi.update(group, editable.id, payload);
       }
@@ -201,10 +216,22 @@ function OrgGroupManager({ group, singular }: { group: OrgGroup; singular: strin
                 {field.label}
                 {field.required && ' *'}
               </Label>
-              <Input
-                value={values[field.name] ?? ''}
-                onChange={(e) => setValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
-              />
+              {field.selectOptions ? (
+                <Select
+                  value={values[field.name] ?? ''}
+                  onChange={(e) => setValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                >
+                  <option value="">Seçin…</option>
+                  {selectOptions?.items.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  value={values[field.name] ?? ''}
+                  onChange={(e) => setValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                />
+              )}
             </div>
           ))}
         </div>

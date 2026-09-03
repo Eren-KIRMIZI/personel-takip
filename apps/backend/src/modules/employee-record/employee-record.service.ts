@@ -76,7 +76,7 @@ export class EmployeeRecordService {
 
   async update(id: string, dto: UpdateEmployeeRecordDto, actorUserId: string) {
     const record = await this.prisma.employeeRecord.findUnique({ where: { id } });
-    if (!record) throw new NotFoundException('Ceza/Ödül kaydı bulunamadı.');
+    if (!record) throw new NotFoundException('Disiplin ve Teşvik kaydı bulunamadı.');
 
     if (dto.issuedById) {
       const issuer = await this.prisma.user.findUnique({ where: { id: dto.issuedById } });
@@ -108,7 +108,7 @@ export class EmployeeRecordService {
 
   async remove(id: string, actorUserId: string) {
     const record = await this.prisma.employeeRecord.findUnique({ where: { id } });
-    if (!record) throw new NotFoundException('Ceza/Ödül kaydı bulunamadı.');
+    if (!record) throw new NotFoundException('Disiplin ve Teşvik kaydı bulunamadı.');
     await this.prisma.employeeRecord.delete({ where: { id } });
     await this.audit.log({
       actorUserId,

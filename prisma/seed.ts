@@ -20,66 +20,94 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// ── Tüm izinler ────────────────────────────────────────────────────────────
+// ── Tüm izinler (apps/backend/src/seed.ts ile senkron) ─────────────────────
 const ALL_PERMISSIONS = [
   // Personel
-  { code: 'employee:read', name: 'Personel Görüntüle', module: 'employees' },
-  { code: 'employee:write', name: 'Personel Yönet', module: 'employees' },
-  { code: 'employee:delete', name: 'Personel Sil', module: 'employees' },
+  { code: 'employee:read', name: 'Personel görüntüleme', module: 'personel' },
+  { code: 'employee:write', name: 'Personel ekleme/düzenleme', module: 'personel' },
+  { code: 'employee:delete', name: 'Personel silme', module: 'personel' },
   // İzin
-  { code: 'leave:read', name: 'İzin Görüntüle', module: 'leave' },
-  { code: 'leave:create', name: 'İzin Talebi Oluştur', module: 'leave' },
-  { code: 'leave:approve', name: 'İzin Onayla', module: 'leave' },
-  { code: 'leave:reject', name: 'İzin Reddet', module: 'leave' },
+  { code: 'leave:read', name: 'İzin görüntüleme', module: 'izin' },
+  { code: 'leave:create', name: 'İzin talebi oluşturma', module: 'izin' },
+  { code: 'leave:approve', name: 'İzin onaylama', module: 'izin' },
+  { code: 'leave:reject', name: 'İzin reddetme', module: 'izin' },
+  { code: 'leave:write', name: 'İzin tipi yönetimi', module: 'izin' },
   // Mesai
-  { code: 'overtime:read', name: 'Mesai Görüntüle', module: 'overtime' },
-  { code: 'overtime:create', name: 'Mesai Ekle', module: 'overtime' },
-  { code: 'overtime:approve', name: 'Mesai Onayla', module: 'overtime' },
-  { code: 'overtime:reject', name: 'Mesai Reddet', module: 'overtime' },
+  { code: 'overtime:read', name: 'Mesai görüntüleme', module: 'mesai' },
+  { code: 'overtime:create', name: 'Mesai tanımlama', module: 'mesai' },
+  { code: 'overtime:approve', name: 'Mesai onaylama', module: 'mesai' },
+  { code: 'overtime:reject', name: 'Mesai reddetme', module: 'mesai' },
   // Maaş
-  { code: 'payroll:read', name: 'Maaş Görüntüle', module: 'payroll' },
-  { code: 'payroll:write', name: 'Maaş Yönet', module: 'payroll' },
-  { code: 'payroll:approve', name: 'Maaş Onayla', module: 'payroll' },
-  // Prim
-  { code: 'bonus:read', name: 'Prim Görüntüle', module: 'bonus' },
-  { code: 'bonus:write', name: 'Prim Yönet', module: 'bonus' },
+  { code: 'payroll:read', name: 'Maaş görüntüleme', module: 'maas' },
+  { code: 'payroll:write', name: 'Maaş düzenleme', module: 'maas' },
+  { code: 'payroll:approve', name: 'Bordro onaylama', module: 'maas' },
   // Avans
-  { code: 'advance:read', name: 'Avans Görüntüle', module: 'advance' },
-  { code: 'advance:write', name: 'Avans Yönet', module: 'advance' },
-  { code: 'advance:approve', name: 'Avans Onayla', module: 'advance' },
-  // Giriş-Çıkış
-  { code: 'attendance:read', name: 'Puantaj Görüntüle', module: 'attendance' },
-  { code: 'attendance:write', name: 'Puantaj Yönet', module: 'attendance' },
-  { code: 'qr:read', name: 'QR Görüntüle', module: 'attendance' },
-  { code: 'qr:write', name: 'QR Yönet', module: 'attendance' },
-  // Vardiya
-  { code: 'shift:read', name: 'Vardiya Görüntüle', module: 'shift' },
-  { code: 'shift:write', name: 'Vardiya Yönet', module: 'shift' },
-  { code: 'shift:assign', name: 'Vardiya Ata', module: 'shift' },
-  // Görev
-  { code: 'task:read', name: 'Görev Görüntüle', module: 'task' },
-  { code: 'task:write', name: 'Görev Yönet', module: 'task' },
+  { code: 'advance:read', name: 'Avans görüntüleme', module: 'avans' },
+  { code: 'advance:write', name: 'Avans talebi oluşturma', module: 'avans' },
+  { code: 'advance:approve', name: 'Avans onaylama', module: 'avans' },
+  // Prim
+  { code: 'bonus:read', name: 'Prim görüntüleme', module: 'prim' },
+  { code: 'bonus:write', name: 'Prim ekleme/düzenleme', module: 'prim' },
+  { code: 'bonus:approve', name: 'Prim onaylama', module: 'prim' },
+  // Disiplin ve Teşvik
+  { code: 'employee-record:read', name: 'Disiplin ve Teşvik görüntüleme', module: 'personel' },
+  { code: 'employee-record:write', name: 'Disiplin ve Teşvik ekleme/düzenleme', module: 'personel' },
+  { code: 'employee-record:delete', name: 'Disiplin ve Teşvik silme', module: 'personel' },
   // Zimmet
-  { code: 'asset:read', name: 'Zimmet Görüntüle', module: 'asset' },
-  { code: 'asset:write', name: 'Zimmet Yönet', module: 'asset' },
-  { code: 'asset:return', name: 'Zimmet İade Al', module: 'asset' },
+  { code: 'asset:read', name: 'Zimmet görüntüleme', module: 'zimmet' },
+  { code: 'asset:write', name: 'Zimmet ekleme/düzenleme', module: 'zimmet' },
+  { code: 'asset:return', name: 'Zimmet iade alma', module: 'zimmet' },
+  { code: 'asset:delete', name: 'Zimmet silme', module: 'zimmet' },
+  // Görev
+  { code: 'task:read', name: 'Görev görüntüleme', module: 'görev' },
+  { code: 'task:write', name: 'Görev oluşturma/düzenleme', module: 'görev' },
+  { code: 'task:create', name: 'Görev oluşturma', module: 'görev' },
+  { code: 'task:assign', name: 'Görev atama', module: 'görev' },
   // Evrak
-  { code: 'document:read', name: 'Evrak Görüntüle', module: 'document' },
-  { code: 'document:write', name: 'Evrak Yönet', module: 'document' },
+  { code: 'document:read', name: 'Evrak görüntüleme', module: 'evrak' },
+  { code: 'document:write', name: 'Evrak oluşturma/düzenleme', module: 'evrak' },
+  { code: 'document:create', name: 'Evrak oluşturma', module: 'evrak' },
   // Duyuru
-  { code: 'announcement:read', name: 'Duyuru Görüntüle', module: 'announcement' },
-  { code: 'announcement:write', name: 'Duyuru Yönet', module: 'announcement' },
-  // Raporlar
-  { code: 'report:read', name: 'Rapor Görüntüle', module: 'reports' },
-  { code: 'report:export', name: 'Rapor Dışa Aktar', module: 'reports' },
+  { code: 'announcement:read', name: 'Duyuru görüntüleme', module: 'duyuru' },
+  { code: 'announcement:write', name: 'Duyuru oluşturma/düzenleme', module: 'duyuru' },
+  { code: 'announcement:create', name: 'Duyuru oluşturma', module: 'duyuru' },
+  { code: 'announcement:publish', name: 'Duyuru yayınlama', module: 'duyuru' },
+  // Bildirim
+  { code: 'notification:read', name: 'Bildirim görüntüleme', module: 'bildirim' },
+  // Rapor
+  { code: 'report:view', name: 'Rapor görüntüleme', module: 'rapor' },
+  { code: 'report:create', name: 'Rapor oluşturma', module: 'rapor' },
+  { code: 'report:export', name: 'Rapor dışa aktarma', module: 'rapor' },
+  // Giriş-çıkış
+  { code: 'attendance:read', name: 'Giriş-çıkış görüntüleme', module: 'puantaj' },
+  { code: 'attendance:write', name: 'Giriş-çıkış düzenleme', module: 'puantaj' },
+  // QR
+  { code: 'qr:read', name: 'QR görüntüleme', module: 'qr' },
+  { code: 'qr:write', name: 'QR yönetimi', module: 'qr' },
+  { code: 'qr:report', name: 'QR raporlama', module: 'qr' },
+  // Vardiya
+  { code: 'shift:read', name: 'Vardiya görüntüleme', module: 'vardiya' },
+  { code: 'shift:write', name: 'Vardiya ve atama düzenleme', module: 'vardiya' },
   // Organizasyon
-  { code: 'organization:read', name: 'Organizasyon Görüntüle', module: 'organization' },
-  { code: 'organization:write', name: 'Organizasyon Yönet', module: 'organization' },
-  // Erişim / Roller
-  { code: 'access:read', name: 'Rol Yetki Görüntüle', module: 'access' },
-  { code: 'access:write', name: 'Rol Yetki Yönet', module: 'access' },
-  // Loglar
-  { code: 'audit:read', name: 'Logları Görüntüle', module: 'audit' },
+  { code: 'company:read', name: 'Kurum görüntüleme', module: 'organizasyon' },
+  { code: 'company:write', name: 'Kurum düzenleme', module: 'organizasyon' },
+  { code: 'department:read', name: 'Departman görüntüleme', module: 'organizasyon' },
+  { code: 'department:write', name: 'Departman düzenleme', module: 'organizasyon' },
+  { code: 'unit:read', name: 'Birim görüntüleme', module: 'organizasyon' },
+  { code: 'unit:write', name: 'Birim düzenleme', module: 'organizasyon' },
+  { code: 'location:read', name: 'Görev yeri görüntüleme', module: 'organizasyon' },
+  { code: 'location:write', name: 'Görev yeri düzenleme', module: 'organizasyon' },
+  { code: 'title:read', name: 'Unvan görüntüleme', module: 'organizasyon' },
+  { code: 'title:write', name: 'Unvan düzenleme', module: 'organizasyon' },
+  { code: 'position:read', name: 'Pozisyon görüntüleme', module: 'organizasyon' },
+  { code: 'position:write', name: 'Pozisyon düzenleme', module: 'organizasyon' },
+  // Erişim
+  { code: 'role:read', name: 'Rol görüntüleme', module: 'erişim' },
+  { code: 'role:write', name: 'Rol düzenleme', module: 'erişim' },
+  { code: 'user:read', name: 'Kullanıcı görüntüleme', module: 'erişim' },
+  { code: 'user:write', name: 'Kullanıcı düzenleme', module: 'erişim' },
+  // Denetim
+  { code: 'audit:read', name: 'İşlem loglarını görüntüleme', module: 'denetim' },
 ];
 
 // ── Rol tanımları: hangi rol hangi izinlere sahip ──────────────────────────
@@ -92,14 +120,14 @@ const ROLES: Array<{
 }> = [
     {
       name: 'Admin',
-      code: 'ADMIN',
+      code: 'admin',
       description: 'Sisteme tam erişim yetkisi',
       isSystem: true,
       permissions: ALL_PERMISSIONS.map((p) => p.code), // HEPSİ
     },
     {
       name: 'Birim Yöneticisi',
-      code: 'UNIT_MANAGER',
+      code: 'unit_manager',
       description: 'Kendi birimine ait personel/izin/mesai yönetimi',
       isSystem: false,
       permissions: [
@@ -107,40 +135,40 @@ const ROLES: Array<{
         'leave:read', 'leave:approve', 'leave:reject',
         'overtime:read', 'overtime:approve', 'overtime:reject',
         'attendance:read',
-        'shift:read', 'shift:assign',
-        'task:read', 'task:write',
+        'shift:read', 'shift:write',
+        'task:read', 'task:write', 'task:assign',
         'document:read',
         'announcement:read',
-        'report:read',
-        'organization:read',
+        'report:view',
+        'company:read', 'department:read', 'unit:read',
       ],
     },
     {
       name: 'İK Uzmanı',
-      code: 'HR_SPECIALIST',
+      code: 'hr_specialist',
       description: 'İnsan kaynakları süreçlerini yöneten uzman',
       isSystem: false,
       permissions: [
         'employee:read', 'employee:write',
-        'leave:read', 'leave:create', 'leave:approve', 'leave:reject',
+        'leave:read', 'leave:create', 'leave:approve', 'leave:reject', 'leave:write',
         'overtime:read', 'overtime:create', 'overtime:approve', 'overtime:reject',
         'payroll:read', 'payroll:write',
-        'bonus:read', 'bonus:write',
+        'bonus:read', 'bonus:write', 'bonus:approve',
         'advance:read', 'advance:write', 'advance:approve',
         'attendance:read', 'attendance:write',
-        'shift:read', 'shift:write', 'shift:assign',
+        'shift:read', 'shift:write',
         'task:read', 'task:write',
         'asset:read',
         'document:read', 'document:write',
         'announcement:read', 'announcement:write',
-        'report:read', 'report:export',
-        'organization:read',
+        'report:view', 'report:export',
+        'company:read', 'department:read', 'unit:read',
         'audit:read',
       ],
     },
     {
       name: 'Standart Personel',
-      code: 'EMPLOYEE',
+      code: 'employee',
       description: 'Sadece kendi verilerine erişebilen personel',
       isSystem: false,
       permissions: [
@@ -164,7 +192,7 @@ const TEST_USERS = [
     username: 'yonetici',
     firstName: 'Mehmet',
     lastName: 'Yılmaz',
-    roleCode: 'UNIT_MANAGER',
+    roleCode: 'unit_manager',
     title: 'Birim Yöneticisi',
   },
   {
@@ -173,7 +201,7 @@ const TEST_USERS = [
     username: 'ik.uzmani',
     firstName: 'Ayşe',
     lastName: 'Kaya',
-    roleCode: 'HR_SPECIALIST',
+    roleCode: 'hr_specialist',
     title: 'İK Uzmanı',
   },
   {
@@ -182,7 +210,7 @@ const TEST_USERS = [
     username: 'personel',
     firstName: 'Ali',
     lastName: 'Demir',
-    roleCode: 'EMPLOYEE',
+    roleCode: 'employee',
     title: 'Memur',
   },
 ];

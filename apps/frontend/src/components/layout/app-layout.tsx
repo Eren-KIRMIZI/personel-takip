@@ -77,7 +77,7 @@ const NAV_SECTIONS: Array<{
       { to: '/gorevler',   label: 'Görev',        icon: <Briefcase />,permission: 'task:read' },
       { to: '/zimmet',     label: 'Zimmet',       icon: <Package />,  permission: 'asset:read' },
       { to: '/evrak',      label: 'Evrak',        icon: <FileText />, permission: 'document:read' },
-      { to: '/cza-odul',   label: 'Ceza / Ödül', icon: <Scale />,    permission: 'employee-record:read' },
+      { to: '/cza-odul',   label: 'Disiplin ve Teşvik', icon: <Scale />,    permission: 'employee-record:read' },
       { to: '/duyurular',  label: 'Duyurular',   icon: <Megaphone />,permission: 'announcement:read' },
     ],
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,18 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { employeesApi, FULL_NAME, type Employee } from '@/features/personel/api';
 import { shiftApi, SHIFT_DAY_ORDER, SHIFT_DAY_LABEL, type ShiftDay, type ShiftAssignment } from '@/features/vardiya/api';
 import { useAuthStore } from '@/stores/auth';
 import { formatError } from '@/lib/utils';
-import { User, Plus } from 'lucide-react';
+import { User, Plus, Search } from 'lucide-react';
 
 export function CalismaPlanlariPage() {
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((s) => s.hasPermission);
   
   const [selectedCell, setSelectedCell] = useState<{ employee: Employee; day: ShiftDay; assignment?: ShiftAssignment } | null>(null);
+  const [search, setSearch] = useState('');
 
   const { data: employees, isLoading: loadingEmployees } = useQuery({
     queryKey: ['employees'],
@@ -38,13 +40,21 @@ export function CalismaPlanlariPage() {
 
   const isLoading = loadingEmployees || loadingAssignments;
 
+  const filteredEmployees = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return employees?.items ?? [];
+    return (employees?.items ?? []).filter((emp) =>
+      `${emp.firstName} ${emp.lastName} ${emp.employeeNo ?? ''}`.toLowerCase().includes(q),
+    );
+  }, [employees, search]);
+
   // Helper to find assignment for a specific employee and day
   const getAssignment = (empId: string, day: ShiftDay) => {
     return assignments?.find(a => a.employeeId === empId && a.day === day);
   };
 
   const handleCellClick = (employee: Employee, day: ShiftDay) => {
-    if (!hasPermission('shift:assign')) return;
+    if (!hasPermission('shift:write')) return;
     const assignment = getAssignment(employee.id, day);
     setSelectedCell({ employee, day, assignment });
   };
@@ -55,6 +65,16 @@ export function CalismaPlanlariPage() {
         title="Haftalık Çalışma Planları" 
         description="Personellerin haftalık vardiya çizelgesi"
       />
+
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+        <Input
+          placeholder="Personel ara (ad, soyad, sicil)…"
+          className="pl-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       <Card className="overflow-x-auto">
         <CardContent className="p-0">
@@ -79,12 +99,14 @@ export function CalismaPlanlariPage() {
                     ))}
                   </TableRow>
                 ))
-              ) : employees?.items.length === 0 ? (
+              ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Personel bulunamadı</TableCell>
+                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                    {search.trim() ? 'Arama kriterine uyan personel bulunamadı' : 'Personel bulunamadı'}
+                  </TableCell>
                 </TableRow>
               ) : (
-                employees?.items.map((emp) => (
+                filteredEmployees.map((emp) => (
                   <TableRow key={emp.id} className="group">
                     <TableCell className="font-medium sticky left-0 bg-background z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] group-hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-2">

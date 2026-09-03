@@ -47,10 +47,10 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'prim', code: 'bonus:read', name: 'Prim görüntüleme' },
   { module: 'prim', code: 'bonus:write', name: 'Prim ekleme/düzenleme' },
   { module: 'prim', code: 'bonus:approve', name: 'Prim onaylama' },
-  // Ceza / Ödül
-  { module: 'personel', code: 'employee-record:read', name: 'Ceza/Ödül görüntüleme' },
-  { module: 'personel', code: 'employee-record:write', name: 'Ceza/Ödül ekleme/düzenleme' },
-  { module: 'personel', code: 'employee-record:delete', name: 'Ceza/Ödül silme' },
+  // Disiplin ve Teşvik
+  { module: 'personel', code: 'employee-record:read', name: 'Disiplin ve Teşvik görüntüleme' },
+  { module: 'personel', code: 'employee-record:write', name: 'Disiplin ve Teşvik ekleme/düzenleme' },
+  { module: 'personel', code: 'employee-record:delete', name: 'Disiplin ve Teşvik silme' },
   // Zimmet
   { module: 'zimmet', code: 'asset:read', name: 'Zimmet görüntüleme' },
   { module: 'zimmet', code: 'asset:write', name: 'Zimmet ekleme/düzenleme' },

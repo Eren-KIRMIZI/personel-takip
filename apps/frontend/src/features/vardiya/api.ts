@@ -58,6 +58,7 @@ export const shiftApi = {
   bulkAssign: (payload: { shiftId: string; day: ShiftDay; employeeIds: string[] }) =>
     api<{ assigned: number; skipped: number }>('/api/shifts/assignments/bulk', { method: 'POST', body: payload }),
   removeAssignment: (id: string) => api<{ deleted: boolean }>(`/api/shifts/assignments/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => api<{ deleted: boolean }>(`/api/shifts/${id}`, { method: 'DELETE' }),
 };
 
 export function durationLabel(startTime: string, endTime: string, breakMinutes: number): string {

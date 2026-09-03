@@ -44,7 +44,7 @@ export function CzaOdulPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Ceza / Ödül"
+        title="Disiplin ve Teşvik"
         description="Personel disiplin ve ödül kayıtları"
       />
       <Tabs

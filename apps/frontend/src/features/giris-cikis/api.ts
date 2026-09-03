@@ -75,6 +75,8 @@ export const attendanceApi = {
     api<Paginated<AttendanceEntry>>('/api/attendance', params ? { query: { ...params } } : {}),
   punch: (payload: ManualPunchPayload) =>
     api<AttendanceEntry>('/api/attendance', { method: 'POST', body: payload }),
+  update: (id: string, payload: { type?: PunchType; timestamp?: string; locationId?: string }) =>
+    api<AttendanceEntry>(`/api/attendance/${id}`, { method: 'PATCH', body: payload }),
   qrCodes: () => api<Paginated<QrCodeItem>>('/api/attendance/qr-codes', { query: { pageSize: 100 } }),
   createQr: (payload: CreateQrPayload) =>
     api<QrCodeItem>('/api/attendance/qr-codes', { method: 'POST', body: payload }),

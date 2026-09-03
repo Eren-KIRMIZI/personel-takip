@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { PlusCircle, QrCode } from 'lucide-react';
+import { PlusCircle, QrCode, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
   formatDateTime,
   PUNCH_SOURCE_LABEL,
   PUNCH_TYPE_LABEL,
+  type AttendanceEntry,
   type PunchSource,
   type PunchType,
 } from '@/features/giris-cikis/api';
@@ -38,6 +39,7 @@ export function GirisCikisPage() {
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [punchOpen, setPunchOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<AttendanceEntry | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -61,6 +63,19 @@ export function GirisCikisPage() {
         queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
       ]);
       setPunchOpen(false);
+    },
+    onError: (error) => setErrorMessage(formatError(error)),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: { type: PunchType; timestamp: string; locationId?: string }) =>
+      attendanceApi.update(editTarget!.id, payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
+      ]);
+      setEditTarget(null);
     },
     onError: (error) => setErrorMessage(formatError(error)),
   });
@@ -114,13 +129,14 @@ export function GirisCikisPage() {
               <TableHead>Zaman</TableHead>
               <TableHead>Kaynak</TableHead>
               <TableHead>Konum</TableHead>
+              <TableHead className="w-16 text-right">İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading &&
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
+                  <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
                 </TableRow>
               ))}
             {data?.items.map((entry) => (
@@ -145,11 +161,18 @@ export function GirisCikisPage() {
                   <Badge variant="outline">{PUNCH_SOURCE_LABEL[entry.source]}</Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{entry.location?.name ?? '—'}</TableCell>
+                <TableCell className="text-right">
+                  {hasPermission('attendance:write') && (
+                    <Button variant="ghost" size="icon" title="Düzenle" onClick={() => setEditTarget(entry)}>
+                      <Pencil />
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">Kayıt yok</TableCell>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">Kayıt yok</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -167,6 +190,13 @@ export function GirisCikisPage() {
         onError={setErrorMessage}
         onSubmit={(payload) => punchMutation.mutate(payload)}
         pending={punchMutation.isPending}
+      />
+
+      <EditAttendanceDialog
+        entry={editTarget}
+        onClose={() => setEditTarget(null)}
+        pending={updateMutation.isPending}
+        onSubmit={(payload) => updateMutation.mutate(payload)}
       />
     </div>
   );
@@ -263,6 +293,94 @@ function ManualPunchDialog({
         <div className="space-y-2">
           <Label>Görev yeri</Label>
           <Select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <option value="">Seçin…</option>
+            {locations?.items.map((loc) => (
+              <option key={loc.id} value={loc.id}>{loc.name}</option>
+            ))}
+          </Select>
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+function EditAttendanceDialog({
+  entry,
+  onClose,
+  onSubmit,
+  pending,
+}: {
+  entry: AttendanceEntry | null;
+  onClose: () => void;
+  onSubmit: (payload: { type: PunchType; timestamp: string; locationId?: string }) => void;
+  pending: boolean;
+}) {
+  const key = entry?.id;
+  const { data: locations } = useQuery({
+    queryKey: ['work-locations'],
+    queryFn: () => orgApi.list('work-locations', { pageSize: 100 }),
+  });
+
+  const initial = {
+    type: (entry?.type ?? 'IN') as PunchType,
+    date: entry?.timestamp ? entry.timestamp.slice(0, 10) : '',
+    time: entry?.timestamp ? entry.timestamp.slice(11, 16) : '',
+    locationId: entry?.locationId ?? '',
+  };
+
+  const [display, setDisplay] = useState(initial);
+  const isOpen = !!entry;
+
+  if (key !== undefined) {
+    if (display.type !== initial.type || display.date !== initial.date || display.time !== initial.time || display.locationId !== initial.locationId) {
+      setDisplay({ type: initial.type, date: initial.date, time: initial.time, locationId: initial.locationId });
+    }
+  }
+
+  const submit = () => {
+    if (!entry) return;
+    if (!display.date || !display.time) return;
+    const timestamp = `${display.date}T${display.time}:00`;
+    onSubmit({ type: display.type, timestamp, locationId: display.locationId || undefined });
+  };
+
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      key={key}
+      title="Giriş-Çıkış Düzenle"
+      description={entry ? `${entry.employee.firstName} ${entry.employee.lastName} — ${formatDateTime(entry.timestamp)}` : undefined}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Vazgeç</Button>
+          <Button disabled={!entry || pending} onClick={submit}>
+            {pending ? 'Kaydediliyor…' : 'Kaydet'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <Label>Tür *</Label>
+          <Select value={display.type} onChange={(e) => setDisplay((d) => ({ ...d, type: e.target.value as PunchType }))}>
+            <option value="IN">Giriş</option>
+            <option value="OUT">Çıkış</option>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Tarih *</Label>
+            <Input type="date" value={display.date} onChange={(e) => setDisplay((d) => ({ ...d, date: e.target.value }))} />
+          </div>
+          <div className="space-y-2">
+            <Label>Saat *</Label>
+            <Input type="time" value={display.time} onChange={(e) => setDisplay((d) => ({ ...d, time: e.target.value }))} />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Görev yeri</Label>
+          <Select value={display.locationId} onChange={(e) => setDisplay((d) => ({ ...d, locationId: e.target.value }))}>
             <option value="">Seçin…</option>
             {locations?.items.map((loc) => (
               <option key={loc.id} value={loc.id}>{loc.name}</option>

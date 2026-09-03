@@ -24,6 +24,12 @@ export class ShiftController {
     return this.shift.createShift(dto, user.userId);
   }
 
+  @Delete(':id')
+  @RequirePermissions('shift:write')
+  removeShift(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+    return this.shift.removeShift(id, user.userId);
+  }
+
   @Get('assignments')
   @RequirePermissions('shift:read')
   listAssignments(@Query() query: ShiftAssignmentListDto) {

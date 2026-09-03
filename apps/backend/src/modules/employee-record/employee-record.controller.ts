@@ -5,7 +5,7 @@ import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-
 import { CreateEmployeeRecordDto, EmployeeRecordListQueryDto, UpdateEmployeeRecordDto } from './dto/employee-record.dto';
 import { EmployeeRecordService } from './employee-record.service';
 
-@ApiTags('ceza-ödül')
+@ApiTags('disiplin-ve-tesvik')
 @ApiBearerAuth()
 @Controller('employee-records')
 export class EmployeeRecordController {

@@ -79,7 +79,7 @@ const defaultValues: FormValues = {
 function useOptionList(group: OrgGroup, queryKey: string) {
   return useQuery({
     queryKey: [queryKey],
-    queryFn: () => orgApi.list(group, { pageSize: 500 }),
+    queryFn: () => orgApi.list(group, { pageSize: 200 }),
   });
 }
 
@@ -236,7 +236,11 @@ export function PersonelCreatePage() {
             <FormField label="Departman">
               <Select {...register('departmentId')}>
                 <option value="">Seçiniz</option>
-                {departments.data?.items.map((item) => (
+                {departments.isLoading ? (
+                  <option disabled>Yükleniyor…</option>
+                ) : departments.isError ? (
+                  <option disabled>Yüklenemedi</option>
+                ) : departments.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
@@ -245,7 +249,11 @@ export function PersonelCreatePage() {
             <FormField label="Birim">
               <Select {...register('unitId')}>
                 <option value="">Seçiniz</option>
-                {units.data?.items.map((item) => (
+                {units.isLoading ? (
+                  <option disabled>Yükleniyor…</option>
+                ) : units.isError ? (
+                  <option disabled>Yüklenemedi</option>
+                ) : units.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
@@ -254,7 +262,11 @@ export function PersonelCreatePage() {
             <FormField label="Görev Yeri">
               <Select {...register('workLocationId')}>
                 <option value="">Seçiniz</option>
-                {locations.data?.items.map((item) => (
+                {locations.isLoading ? (
+                  <option disabled>Yükleniyor…</option>
+                ) : locations.isError ? (
+                  <option disabled>Yüklenemedi</option>
+                ) : locations.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
@@ -263,7 +275,11 @@ export function PersonelCreatePage() {
             <FormField label="Unvan">
               <Select {...register('titleId')}>
                 <option value="">Seçiniz</option>
-                {titles.data?.items.map((item) => (
+                {titles.isLoading ? (
+                  <option disabled>Yükleniyor…</option>
+                ) : titles.isError ? (
+                  <option disabled>Yüklenemedi</option>
+                ) : titles.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>
@@ -272,7 +288,11 @@ export function PersonelCreatePage() {
             <FormField label="Görev / Pozisyon">
               <Select {...register('positionId')}>
                 <option value="">Seçiniz</option>
-                {positions.data?.items.map((item) => (
+                {positions.isLoading ? (
+                  <option disabled>Yükleniyor…</option>
+                ) : positions.isError ? (
+                  <option disabled>Yüklenemedi</option>
+                ) : positions.data?.items.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </Select>

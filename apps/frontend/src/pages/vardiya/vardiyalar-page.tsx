@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,15 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { orgApi } from '@/features/organizasyon/api';
-import { durationLabel, shiftApi } from '@/features/vardiya/api';
+import { durationLabel, shiftApi, type ShiftItem } from '@/features/vardiya/api';
+import { useAuthStore } from '@/stores/auth';
 import { formatError } from '@/lib/utils';
 
 export function VardiyalarPage() {
   const queryClient = useQueryClient();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ShiftItem | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ['shifts'], queryFn: () => shiftApi.list({ includeInactive: true }) });
@@ -29,6 +32,18 @@ export function VardiyalarPage() {
       setErrorMessage(null);
     },
     onError: (err) => setErrorMessage(formatError(err)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => shiftApi.remove(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      setConfirmDelete(null);
+    },
+    onError: (err) => {
+      setConfirmDelete(null);
+      setErrorMessage(formatError(err));
+    },
   });
 
   return (
@@ -58,7 +73,14 @@ export function VardiyalarPage() {
                   {shift.breakMinutes > 0 ? ` · ${shift.breakMinutes}dk mola` : ''}
                 </p>
               </div>
-              <Badge variant={shift.isActive ? 'success' : 'secondary'}>{shift.isActive ? 'Aktif' : 'Pasif'}</Badge>
+              <div className="flex items-center gap-1">
+                <Badge variant={shift.isActive ? 'success' : 'secondary'}>{shift.isActive ? 'Aktif' : 'Pasif'}</Badge>
+                {hasPermission('shift:write') && (
+                  <Button variant="ghost" size="icon" title="Sil" onClick={() => setConfirmDelete(shift)}>
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <div>
@@ -66,9 +88,11 @@ export function VardiyalarPage() {
               </div>
               <div className="text-muted-foreground">{shift.workLocation?.name ?? 'Konumsuz'}</div>
               <div className="text-muted-foreground">{shift._count?.assignments ?? 0} atama</div>
-              <Link to={`/vardiya/atama/${shift.id}`} className="text-sm font-medium text-primary underline underline-offset-4">
-                Atamaları Yönet →
-              </Link>
+              {hasPermission('shift:write') && (
+                <Link to={`/vardiya/atama/${shift.id}`} className="text-sm font-medium text-primary underline underline-offset-4">
+                  Atamaları Yönet →
+                </Link>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -76,6 +100,23 @@ export function VardiyalarPage() {
           <Card><CardContent className="text-muted-foreground">Vardiya tanımlı değil</CardContent></Card>
         )}
       </div>
+
+      <Dialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        title="Vardiyayı sil"
+        description={`"${confirmDelete?.name}" vardiyası ve tüm atamaları kalıcı olarak silinecek.`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Vazgeç</Button>
+            <Button variant="destructive" disabled={deleteMutation.isPending} onClick={() => confirmDelete && deleteMutation.mutate(confirmDelete.id)}>
+              {deleteMutation.isPending ? 'Siliniyor…' : 'Sil'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Bu işlem geri alınamaz.</p>
+      </Dialog>
 
       <CreateShiftDialog
         open={createOpen}

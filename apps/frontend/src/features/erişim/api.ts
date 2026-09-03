@@ -35,6 +35,8 @@ export const accessApi = {
     api<Role>('/api/roles', { method: 'POST', body }),
   setRolePermissions: (id: string, permissionIds: string[]) =>
     api<Role>(`/api/roles/${id}/permissions`, { method: 'PATCH', body: { permissionIds } }),
+  removeRole: (id: string) =>
+    api<{ id: string }>(`/api/roles/${id}`, { method: 'DELETE' }),
   users: (search?: string) => api<UserRow[]>('/api/users', { query: { search } }),
   setUserRoles: (id: string, roleIds: string[]) =>
     api<UserRow>(`/api/users/${id}/roles`, { method: 'PATCH', body: { roleIds } }),

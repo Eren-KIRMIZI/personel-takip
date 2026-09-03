@@ -33,9 +33,9 @@ export function IzinCreatePage() {
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: employees } = useQuery({
+  const { data: employees, isLoading: employeesLoading, isError: employeesError } = useQuery({
     queryKey: ['employees-all'],
-    queryFn: () => employeesApi.list({ pageSize: 500 }),
+    queryFn: () => employeesApi.list({ pageSize: 200 }),
   });
   const { data: types } = useQuery({ queryKey: ['leave-types'], queryFn: () => leaveApi.types() });
 
@@ -91,7 +91,11 @@ export function IzinCreatePage() {
               disabled={isSelfOnly}
             >
               <option value="">Seçin…</option>
-              {employees?.items.map((emp) => (
+              {employeesLoading ? (
+                <option disabled>Yükleniyor…</option>
+              ) : employeesError ? (
+                <option disabled>Yüklenemedi</option>
+              ) : employees?.items.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.firstName} {emp.lastName}
                   {emp.employeeNo ? ` (${emp.employeeNo})` : ''}
