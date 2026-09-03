@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { AdvanceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { AdvanceListQueryDto, CreateAdvanceDto, RejectAdvanceDto } from './dto/advance.dto';
 
 const advanceInclude = {
@@ -16,14 +18,16 @@ export class AdvanceService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: AdvanceListQueryDto) {
+  async list(query: AdvanceListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where: Prisma.AdvanceWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.periodYear) where.periodYear = query.periodYear;
-    if (query.periodMonth) where.periodMonth = query.periodMonth;
-    if (query.status) where.status = query.status;
+    const base: Prisma.AdvanceWhereInput = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.periodYear) base.periodYear = query.periodYear;
+    if (query.periodMonth) base.periodMonth = query.periodMonth;
+    if (query.status) base.status = query.status;
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.advance.findMany({

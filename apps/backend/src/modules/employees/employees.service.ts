@@ -4,6 +4,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { CreateEmployeeDto, EmployeeListQueryDto, UpdateEmployeeDto } from './dto/employees.dto';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeEntityScopedWhere } from '../../common/scope';
 
 // Listede kullanılan hafif include — user/roles JOIN'i yok
 const listInclude = {
@@ -49,13 +51,13 @@ export class EmployeesService {
     private readonly supabase: SupabaseService,
   ) {}
 
-  async list(query: EmployeeListQueryDto, actorUserId: string) {
+  async list(query: EmployeeListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: Record<string, unknown> = {};
+    const base: Record<string, unknown> = {};
     if (query.search) {
-      where.OR = [
+      base.OR = [
         { firstName: { startsWith: query.search, mode: 'insensitive' } },
         { lastName: { startsWith: query.search, mode: 'insensitive' } },
         { employeeNo: { startsWith: query.search, mode: 'insensitive' } },
@@ -64,11 +66,13 @@ export class EmployeesService {
         { phone: { startsWith: query.search, mode: 'insensitive' } },
       ];
     }
-    if (query.departmentId) where.departmentId = query.departmentId;
-    if (query.unitId) where.unitId = query.unitId;
-    if (query.workLocationId) where.workLocationId = query.workLocationId;
-    if (query.titleId) where.titleId = query.titleId;
-    if (query.status) where.status = query.status;
+    if (query.departmentId) base.departmentId = query.departmentId;
+    if (query.unitId) base.unitId = query.unitId;
+    if (query.workLocationId) base.workLocationId = query.workLocationId;
+    if (query.titleId) base.titleId = query.titleId;
+    if (query.status) base.status = query.status;
+
+    const where = employeeEntityScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({

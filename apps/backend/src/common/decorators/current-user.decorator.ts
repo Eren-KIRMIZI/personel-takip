@@ -6,6 +6,9 @@ export interface AuthenticatedUser {
   username: string;
   email?: string | null;
   employeeId?: string | null;
+  departmentId?: string | null;
+  unitId?: string | null;
+  companyId?: string | null;
   roles: string[];
   permissions: Set<string>;
 }

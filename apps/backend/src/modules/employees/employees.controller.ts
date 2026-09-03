@@ -15,7 +15,7 @@ export class EmployeesController {
   @Get()
   @RequirePermissions('employee:read')
   list(@Query() query: EmployeeListQueryDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.employees.list(query, user.userId);
+    return this.employees.list(query, user);
   }
 
   @Get(':id/history')

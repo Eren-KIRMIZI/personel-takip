@@ -3,6 +3,8 @@ import { Prisma, PunchSource, PunchType } from '@prisma/client';
 import QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import {
   AttendanceListQueryDto,
   CreateAttendanceDto,
@@ -23,20 +25,22 @@ export class AttendanceService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: AttendanceListQueryDto) {
+  async list(query: AttendanceListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: Prisma.AttendanceRecordWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.type) where.type = query.type;
-    if (query.source) where.source = query.source;
+    const base: Prisma.AttendanceRecordWhereInput = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.type) base.type = query.type;
+    if (query.source) base.source = query.source;
     if (query.from || query.to) {
-      where.timestamp = {
+      base.timestamp = {
         ...(query.from ? { gte: new Date(query.from) } : {}),
         ...(query.to ? { lte: new Date(query.to) } : {}),
       };
     }
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.attendanceRecord.findMany({

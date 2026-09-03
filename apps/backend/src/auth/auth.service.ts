@@ -91,14 +91,49 @@ export class AuthService {
       }
     }
 
+    const scope = await this.resolveScope(user.employeeId);
+
     return {
       userId: user.id,
       authId,
       username: user.username,
       email: user.email,
       employeeId: user.employeeId,
+      departmentId: scope.departmentId,
+      unitId: scope.unitId,
+      companyId: scope.companyId,
       roles: user.roles.map((r) => r.role.code),
       permissions,
+    };
+  }
+
+  /**
+   * Kullanıcının bağlı çalışanının organizasyon kapsamını çözer.
+   * departmentId / unitId / companyId, rol bazlı satır kapsamlama (scoping) için kullanılır.
+   */
+  private async resolveScope(employeeId?: string | null): Promise<{
+    departmentId: string | null;
+    unitId: string | null;
+    companyId: string | null;
+  }> {
+    if (!employeeId) {
+      return { departmentId: null, unitId: null, companyId: null };
+    }
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        departmentId: true,
+        unitId: true,
+        department: { select: { companyId: true } },
+      },
+    });
+    if (!employee) {
+      return { departmentId: null, unitId: null, companyId: null };
+    }
+    return {
+      departmentId: employee.departmentId ?? null,
+      unitId: employee.unitId ?? null,
+      companyId: employee.department?.companyId ?? null,
     };
   }
 

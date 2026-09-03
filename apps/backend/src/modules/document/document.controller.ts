@@ -13,8 +13,8 @@ export class DocumentController {
 
   @Get()
   @RequirePermissions('document:read')
-  async list(@Query() query: DocumentListQueryDto) {
-    return this.documentService.list(query);
+  async list(@Query() query: DocumentListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.documentService.list(query, user);
   }
 
   @Get('stats')

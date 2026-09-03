@@ -15,7 +15,7 @@ export class OvertimeController {
   @Get()
   @RequirePermissions('overtime:read')
   list(@Query() query: OvertimeListQueryDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.overtime.list(query);
+    return this.overtime.list(query, user);
   }
 
   @Get(':id')

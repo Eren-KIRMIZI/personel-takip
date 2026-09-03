@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { EmploymentStatus, PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { CreatePayrollDto, PayrollListQueryDto, SetSalaryDto, UpdatePayrollDto } from './dto/payroll.dto';
 
 const payrollInclude = {
@@ -30,14 +32,16 @@ export class PayrollService {
     return { start, end };
   }
 
-  async list(query: PayrollListQueryDto) {
+  async list(query: PayrollListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where: Prisma.PayrollItemWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.periodYear) where.periodYear = query.periodYear;
-    if (query.periodMonth) where.periodMonth = query.periodMonth;
-    if (query.status) where.status = query.status;
+    const base: Prisma.PayrollItemWhereInput = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.periodYear) base.periodYear = query.periodYear;
+    if (query.periodMonth) base.periodMonth = query.periodMonth;
+    if (query.status) base.status = query.status;
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.payrollItem.findMany({

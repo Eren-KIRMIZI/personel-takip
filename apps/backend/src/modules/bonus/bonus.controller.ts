@@ -10,8 +10,8 @@ export class BonusController {
 
   @Get()
   @RequirePermissions('bonus:read')
-  async list(@Query() query: BonusListQueryDto) {
-    return this.bonusService.list(query);
+  async list(@Query() query: BonusListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.bonusService.list(query, user);
   }
 
   @Get('stats')

@@ -13,8 +13,8 @@ export class EmployeeRecordController {
 
   @Get()
   @RequirePermissions('employee-record:read')
-  list(@Query() query: EmployeeRecordListQueryDto) {
-    return this.service.list(query);
+  list(@Query() query: EmployeeRecordListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.list(query, user);
   }
 
   @Post()

@@ -13,8 +13,8 @@ export class AdvanceController {
 
   @Get()
   @RequirePermissions('advance:read')
-  list(@Query() query: AdvanceListQueryDto) {
-    return this.advance.list(query);
+  list(@Query() query: AdvanceListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.advance.list(query, user);
   }
 
   @Post()

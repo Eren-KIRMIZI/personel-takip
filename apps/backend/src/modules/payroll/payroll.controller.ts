@@ -14,8 +14,8 @@ export class PayrollController {
 
   @Get()
   @RequirePermissions('payroll:read')
-  list(@Query() query: PayrollListQueryDto) {
-    return this.payroll.list(query);
+  list(@Query() query: PayrollListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.payroll.list(query, user);
   }
 
   @Get('employees/:employeeId/salary')

@@ -14,8 +14,8 @@ export class AssetController {
 
   @Get()
   @RequirePermissions('asset:read')
-  async list(@Query() query: AssetListQueryDto) {
-    return this.asset.list(query);
+  async list(@Query() query: AssetListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.asset.list(query, user);
   }
 
   @Get('stats')

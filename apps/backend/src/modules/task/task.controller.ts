@@ -13,8 +13,8 @@ export class TaskController {
 
   @Get()
   @RequirePermissions('task:read')
-  async list(@Query() query: TaskListQueryDto) {
-    return this.taskService.list(query);
+  async list(@Query() query: TaskListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.taskService.list(query, user);
   }
 
   @Get('stats')

@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { LeaveStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import {
   CreateLeaveRequestDto,
   CreateLeaveTypeDto,
@@ -89,14 +91,16 @@ export class LeaveService {
   // Talep yönetimi
   // ------------------------------------------------------------
 
-  async listRequests(query: LeaveListQueryDto) {
+  async listRequests(query: LeaveListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: Prisma.LeaveRequestWhereInput = {};
-    if (query.status) where.status = query.status;
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.leaveTypeId) where.leaveTypeId = query.leaveTypeId;
+    const base: Prisma.LeaveRequestWhereInput = {};
+    if (query.status) base.status = query.status;
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.leaveTypeId) base.leaveTypeId = query.leaveTypeId;
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.leaveRequest.findMany({

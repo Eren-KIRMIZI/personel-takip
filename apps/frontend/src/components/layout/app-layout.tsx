@@ -73,7 +73,7 @@ const NAV_SECTIONS: Array<{
     title: 'İş Süreçleri',
     items: [
       { to: '/mesai',      label: 'Mesai',        icon: <Timer />,    permission: 'overtime:read' },
-      { to: '/mesai/yeni', label: 'Mesai Ekle',   icon: <ClockPlus />,permission: 'overtime:create' },
+      { to: '/mesai/yeni', label: 'Mesai Ekle',   icon: <ClockPlus />,permission: 'overtime:approve' },
       { to: '/gorevler',   label: 'Görev',        icon: <Briefcase />,permission: 'task:read' },
       { to: '/zimmet',     label: 'Zimmet',       icon: <Package />,  permission: 'asset:read' },
       { to: '/evrak',      label: 'Evrak',        icon: <FileText />, permission: 'document:read' },

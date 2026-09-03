@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { CreateBonusDto, UpdateBonusDto, UpdateBonusStatusDto, BonusListQueryDto } from './dto/bonus.dto';
 import { BonusStatus } from '@prisma/client';
 
@@ -16,13 +18,15 @@ export class BonusService {
     approvedBy: { select: { id: true, employee: { select: { firstName: true, lastName: true } } } },
   };
 
-  async list(query: BonusListQueryDto) {
+  async list(query: BonusListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: any = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.status) where.status = query.status;
+    const base: any = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.status) base.status = query.status;
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.bonus.findMany({

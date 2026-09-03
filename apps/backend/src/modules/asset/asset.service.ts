@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { AssetStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { AssetListQueryDto, CreateAssetDto, UpdateAssetDto } from './dto/asset.dto';
 
 const assetInclude = {
@@ -15,20 +17,22 @@ export class AssetService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: AssetListQueryDto) {
+  async list(query: AssetListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where: Prisma.AssetWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.status) where.status = query.status;
-    if (query.category) where.category = query.category;
+    const base: Prisma.AssetWhereInput = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.status) base.status = query.status;
+    if (query.category) base.category = query.category;
     if (query.q) {
-      where.OR = [
+      base.OR = [
         { name: { contains: query.q, mode: 'insensitive' } },
         { code: { contains: query.q, mode: 'insensitive' } },
         { serialNo: { contains: query.q, mode: 'insensitive' } },
       ];
     }
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.asset.findMany({

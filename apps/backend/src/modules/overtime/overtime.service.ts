@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { OvertimeStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { CreateOvertimeDto, OvertimeListQueryDto } from './dto/overtime.dto';
 
 const overtimeInclude = {
@@ -15,19 +17,21 @@ export class OvertimeService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: OvertimeListQueryDto) {
+  async list(query: OvertimeListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: Prisma.OvertimeWhereInput = {};
-    if (query.status) where.status = query.status;
-    if (query.employeeId) where.employeeId = query.employeeId;
+    const base: Prisma.OvertimeWhereInput = {};
+    if (query.status) base.status = query.status;
+    if (query.employeeId) base.employeeId = query.employeeId;
     if (query.from || query.to) {
-      where.date = {
+      base.date = {
         ...(query.from ? { gte: new Date(query.from) } : {}),
         ...(query.to ? { lte: new Date(query.to) } : {}),
       };
     }
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.overtime.findMany({

@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { CreateEmployeeRecordDto, EmployeeRecordListQueryDto, UpdateEmployeeRecordDto } from './dto/employee-record.dto';
 
 const recordInclude = {
@@ -16,18 +18,20 @@ export class EmployeeRecordService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: EmployeeRecordListQueryDto) {
+  async list(query: EmployeeRecordListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where: Prisma.EmployeeRecordWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.category) where.category = query.category;
-    if (query.type) where.type = query.type;
+    const base: Prisma.EmployeeRecordWhereInput = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.category) base.category = query.category;
+    if (query.type) base.type = query.type;
     if (query.from || query.to) {
-      where.date = {};
-      if (query.from) where.date.gte = new Date(query.from);
-      if (query.to) where.date.lte = new Date(query.to);
+      base.date = {};
+      if (query.from) base.date.gte = new Date(query.from);
+      if (query.to) base.date.lte = new Date(query.to);
     }
+
+    const where = employeeScopedWhere(actor, base);
 
     const [items, total] = await Promise.all([
       this.prisma.employeeRecord.findMany({

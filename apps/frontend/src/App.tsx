@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'zimmet/yeni', element: <ZimmetCreatePage /> },
       { path: 'gorevler', element: <GorevListPage /> },
       { path: 'gorevler/yeni', element: <GorevCreatePage /> },
+      { path: 'gorevler/:id/duzenle', element: <GorevCreatePage /> },
       { path: 'evrak', element: <EvrakListPage /> },
       { path: 'evrak/yeni', element: <EvrakCreatePage /> },
       { path: 'duyurular', element: <DuyuruListPage /> },

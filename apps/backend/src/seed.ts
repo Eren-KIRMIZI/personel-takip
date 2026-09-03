@@ -144,6 +144,99 @@ async function seedAdminRole(all: Array<{ id: string }>) {
   return role;
 }
 
+async function seedManagerRole(all: Array<{ id: string; code: string }>) {
+  const MANAGER_PERMISSIONS = [
+    'employee:read', 'employee:write',
+    'department:read', 'unit:read', 'location:read', 'title:read', 'position:read',
+    'leave:read', 'leave:approve', 'leave:reject',
+    'overtime:read', 'overtime:approve', 'overtime:reject',
+    'attendance:read', 'attendance:write',
+    'task:read', 'task:write', 'task:assign',
+    'shift:read', 'shift:write',
+    'advance:read', 'advance:approve',
+    'bonus:read', 'bonus:approve',
+    'asset:read',
+    'document:read',
+    'employee-record:read',
+    'announcement:read',
+    'report:view',
+    'notification:read',
+  ];
+
+  let role = await prisma.role.findFirst({ where: { code: 'unit_manager' } });
+  if (!role) {
+    role = await prisma.role.findFirst({ where: { name: 'Birim Yöneticisi' } });
+  }
+  if (!role) {
+    role = await prisma.role.create({
+      data: { name: 'Birim Yöneticisi', code: 'unit_manager', description: 'Kendi departmanını yöneten yönetici', isSystem: true },
+    });
+  } else {
+    role = await prisma.role.update({ where: { id: role.id }, data: { code: 'unit_manager', isSystem: true, isActive: true } });
+  }
+
+  await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+  const permissionIds = all.filter((p) => MANAGER_PERMISSIONS.includes(p.code)).map((p) => ({ roleId: role!.id, permissionId: p.id }));
+  await prisma.rolePermission.createMany({ data: permissionIds });
+  console.log(`✓ Birim Yöneticisi rolüne ${permissionIds.length} yetki atandı.`);
+  return role;
+}
+
+async function seedEmployeeRole(all: Array<{ id: string; code: string }>) {
+  const EMPLOYEE_PERMISSIONS = [
+    'leave:create', 'leave:read',
+    'overtime:create', 'overtime:read',
+    'attendance:read',
+    'task:read',
+    'shift:read',
+    'advance:write', 'advance:read',
+    'bonus:read',
+    'asset:read',
+    'document:read',
+    'announcement:read',
+    'notification:read',
+  ];
+
+  let role = await prisma.role.findFirst({ where: { code: 'employee' } });
+  if (!role) {
+    role = await prisma.role.findFirst({ where: { name: 'Standart Personel' } });
+  }
+  if (!role) {
+    role = await prisma.role.create({
+      data: { name: 'Standart Personel', code: 'employee', description: 'Temel erişim haklarına sahip personel', isSystem: true },
+    });
+  } else {
+    role = await prisma.role.update({ where: { id: role.id }, data: { code: 'employee', isSystem: true, isActive: true } });
+  }
+
+  await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+  const permissionIds = all.filter((p) => EMPLOYEE_PERMISSIONS.includes(p.code)).map((p) => ({ roleId: role!.id, permissionId: p.id }));
+  await prisma.rolePermission.createMany({ data: permissionIds });
+  console.log(`✓ Standart Personel rolüne ${permissionIds.length} yetki atandı.`);
+  return role;
+}
+
+async function seedHrRole(all: Array<{ id: string; code: string }>) {
+  let role = await prisma.role.findFirst({ where: { code: 'hr_specialist' } });
+  if (!role) {
+    role = await prisma.role.findFirst({ where: { name: 'İK Uzmanı' } });
+  }
+  if (!role) {
+    role = await prisma.role.create({
+      data: { name: 'İK Uzmanı', code: 'hr_specialist', description: 'İnsan kaynakları tüm yetkilere sahip', isSystem: true },
+    });
+  } else {
+    role = await prisma.role.update({ where: { id: role.id }, data: { code: 'hr_specialist', isSystem: true, isActive: true } });
+  }
+
+  await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+  await prisma.rolePermission.createMany({
+    data: all.map((p) => ({ roleId: role!.id, permissionId: p.id })),
+  });
+  console.log('✓ İK Uzmanı rolüne tüm yetkiler atandı.');
+  return role;
+}
+
 
 async function seedOrganization() {
   const company = await prisma.company.upsert({
@@ -252,6 +345,9 @@ async function seedAdminUser() {
 async function main() {
   const all = await seedPermissions();
   await seedAdminRole(all);
+  await seedManagerRole(all);
+  await seedEmployeeRole(all);
+  await seedHrRole(all);
   await seedOrganization();
   await seedLeaveTypes();
   await seedAdminUser();

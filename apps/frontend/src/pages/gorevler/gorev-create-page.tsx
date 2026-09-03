@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import { formatError } from '@/lib/utils';
 
 export function GorevCreatePage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const queryClient = useQueryClient();
 
   const [employeeId, setEmployeeId] = useState('');
@@ -23,20 +25,44 @@ export function GorevCreatePage() {
   const [dueDate, setDueDate] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: employees } = useQuery({
+  const { data: employees, isLoading: isLoadingEmployees, isError: isErrorEmployees } = useQuery({
     queryKey: ['employees-all'],
     queryFn: () => employeesApi.list({ pageSize: 500 }),
   });
 
+  const { data: existingTask } = useQuery({
+    queryKey: ['task', id],
+    queryFn: () => taskApi.find(id!),
+    enabled: isEdit,
+  });
+
+  useEffect(() => {
+    if (existingTask) {
+      setEmployeeId(existingTask.employeeId);
+      setTitle(existingTask.title);
+      setDescription(existingTask.description ?? '');
+      setPriority(existingTask.priority);
+      setDueDate(existingTask.dueDate ? existingTask.dueDate.slice(0, 10) : '');
+    }
+  }, [existingTask]);
+
   const createMutation = useMutation({
     mutationFn: () =>
-      taskApi.create({
-        employeeId,
-        title,
-        description: description || undefined,
-        priority,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-      }),
+      isEdit
+        ? taskApi.update(id!, {
+            employeeId,
+            title,
+            description: description || undefined,
+            priority,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          })
+        : taskApi.create({
+            employeeId,
+            title,
+            description: description || undefined,
+            priority,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       navigate('/gorevler');
@@ -49,8 +75,8 @@ export function GorevCreatePage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Yeni Görev Oluştur"
-        description="Personele atanacak görevi detaylandırın"
+        title={isEdit ? 'Görevi Düzenle' : 'Yeni Görev Oluştur'}
+        description={isEdit ? 'Mevcut görev bilgilerini güncelleyin' : 'Personele atanacak görevi detaylandırın'}
         actions={
           <Link to="/gorevler" className={buttonVariants({ variant: 'outline' })}>
             <ArrowLeft /> Listeye Dön
@@ -79,7 +105,9 @@ export function GorevCreatePage() {
           <div className="space-y-2">
             <Label>Atanacak Personel *</Label>
             <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              <option value="">Seçin…</option>
+              <option value="">
+                {isLoadingEmployees ? 'Yükleniyor...' : isErrorEmployees ? 'Personel listesi yüklenemedi' : 'Seçin…'}
+              </option>
               {employees?.items.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.firstName} {emp.lastName}
@@ -110,7 +138,7 @@ export function GorevCreatePage() {
       <div className="flex justify-end gap-2">
         <Link to="/gorevler" className={buttonVariants({ variant: 'outline' })}>Vazgeç</Link>
         <Button disabled={!canSubmit || createMutation.isPending} onClick={() => createMutation.mutate()}>
-          <Save /> {createMutation.isPending ? 'Oluşturuluyor…' : 'Görevi Ata'}
+          <Save /> {createMutation.isPending ? (isEdit ? 'Güncelleniyor…' : 'Oluşturuluyor…') : (isEdit ? 'Güncelle' : 'Görevi Ata')}
         </Button>
       </div>
     </div>

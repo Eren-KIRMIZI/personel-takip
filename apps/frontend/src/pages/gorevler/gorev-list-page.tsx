@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/stores/auth';
 import { taskApi, TASK_STATUS_META, TASK_PRIORITY_META, type TaskStatus, type TaskPriority } from '@/features/gorev/api';
@@ -25,6 +26,7 @@ export function GorevListPage() {
   const [priority, setPriority] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', status, priority, search, page],
@@ -42,6 +44,14 @@ export function GorevListPage() {
     mutationFn: ({ id, newStatus }: { id: string; newStatus: TaskStatus }) => 
       taskApi.updateStatus(id, { status: newStatus }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => taskApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setTaskToDelete(null);
+    },
   });
 
   return (
@@ -105,7 +115,7 @@ export function GorevListPage() {
               <TableHead>Bitiş Tarihi</TableHead>
               <TableHead>Öncelik</TableHead>
               <TableHead>Durum</TableHead>
-              <TableHead className="w-40 text-right">Hızlı İşlem</TableHead>
+              <TableHead className="w-40 text-right">İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -142,6 +152,24 @@ export function GorevListPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
+                    {hasPermission('task:write') && (
+                      <Link to={`/gorevler/${task.id}/duzenle`}>
+                        <Button variant="ghost" size="sm" title="Düzenle">
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </Link>
+                    )}
+                    {hasPermission('task:write') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Sil"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => setTaskToDelete(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                     {task.status !== 'DONE' && hasPermission('task:write') && (
                       <Button
                         variant="ghost"
@@ -183,6 +211,23 @@ export function GorevListPage() {
           </div>
         )}
       </Card>
+
+      <Dialog
+        open={taskToDelete !== null}
+        onClose={() => setTaskToDelete(null)}
+        title="Görevi Sil"
+        description="Bu görevi silmek istediğinize emin misiniz?"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setTaskToDelete(null)}>Vazgeç</Button>
+            <Button variant="destructive" disabled={deleteMutation.isPending} onClick={() => taskToDelete && deleteMutation.mutate(taskToDelete)}>
+              {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Bu işlem geri alınamaz.</p>
+      </Dialog>
     </div>
   );
 }

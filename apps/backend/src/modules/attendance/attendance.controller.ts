@@ -20,10 +20,7 @@ export class AttendanceController {
   @Get()
   @RequirePermissions('attendance:read')
   list(@Query() query: AttendanceListQueryDto, @CurrentUser() user: AuthenticatedUser) {
-    if (!user.permissions.has('attendance:write')) {
-      query.employeeId = query.employeeId ?? user.employeeId ?? undefined;
-    }
-    return this.attendance.list(query);
+    return this.attendance.list(query, user);
   }
 
   @Post()

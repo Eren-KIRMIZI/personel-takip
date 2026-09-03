@@ -23,7 +23,7 @@ export function MesaiCreatePage() {
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: employees } = useQuery({
+  const { data: employees, isLoading: isLoadingEmployees, isError: isErrorEmployees } = useQuery({
     queryKey: ['employees-all'],
     queryFn: () => employeesApi.list({ pageSize: 500 }),
   });
@@ -68,7 +68,9 @@ export function MesaiCreatePage() {
           <div className="space-y-2">
             <Label>Personel *</Label>
             <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              <option value="">Seçin…</option>
+              <option value="">
+                {isLoadingEmployees ? 'Yükleniyor...' : isErrorEmployees ? 'Personel listesi yüklenemedi' : 'Seçin…'}
+              </option>
               {employees?.items.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.firstName} {emp.lastName}

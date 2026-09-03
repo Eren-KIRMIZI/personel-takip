@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { employeeScopedWhere } from '../../common/scope';
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStatusDto, TaskListQueryDto } from './dto/task.dto';
 
 @Injectable()
@@ -20,21 +22,21 @@ export class TaskService {
     },
   };
 
-  async list(query: TaskListQueryDto) {
+  async list(query: TaskListQueryDto, actor: AuthenticatedUser) {
     const { employeeId, priority, status, search, from, to, page = 1, pageSize = 20 } = query;
 
-    const where: Record<string, unknown> = {};
+    const base: Record<string, unknown> = {};
 
-    if (employeeId) where.employeeId = employeeId;
-    if (priority) where.priority = priority;
-    if (status) where.status = status;
+    if (employeeId) base.employeeId = employeeId;
+    if (priority) base.priority = priority;
+    if (status) base.status = status;
     if (from || to) {
-      where.dueDate = {};
-      if (from) (where.dueDate as Record<string, unknown>).gte = new Date(from);
-      if (to) (where.dueDate as Record<string, unknown>).lte = new Date(to);
+      base.dueDate = {};
+      if (from) (base.dueDate as Record<string, unknown>).gte = new Date(from);
+      if (to) (base.dueDate as Record<string, unknown>).lte = new Date(to);
     }
     if (search) {
-      where.OR = [
+      base.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         {
@@ -47,6 +49,8 @@ export class TaskService {
         },
       ];
     }
+
+    const where = employeeScopedWhere(actor, base);
 
     const skip = (page - 1) * pageSize;
 
