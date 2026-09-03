@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -14,6 +15,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Menu,
   Megaphone,
   Package,
   QrCode,
@@ -24,6 +26,7 @@ import {
   UserCog,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
@@ -98,6 +101,7 @@ const NAV_SECTIONS: Array<{
 
 
 export function AppLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const profile    = useAuthStore((s) => s.profile);
   const session    = useAuthStore((s) => s.session);
   const signOut    = useAuthStore((s) => s.signOut);
@@ -111,11 +115,26 @@ export function AppLayout() {
     profile?.username ??
     '';
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <div className="flex min-h-screen bg-background">
+      {/* ── Mobile overlay ──────────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ── Dark Sidebar ──────────────────────────────────── */}
       <aside
-        className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col"
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 flex w-60 flex-col transition-transform duration-300 ease-in-out',
+          // Mobile: slide in/out. Desktop: always visible.
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        )}
         style={{ background: 'var(--sidebar)' }}
       >
         {/* Logo */}
@@ -127,11 +146,21 @@ export function AppLayout() {
             <Users className="size-3.5 text-white" />
           </div>
           <span
-            className="text-sm font-semibold tracking-tight"
+            className="text-sm font-semibold tracking-tight flex-1"
             style={{ color: 'var(--sidebar-foreground-active)' }}
           >
-            Personel & İK
+            Personel &amp; İK
           </span>
+          {/* Close button — mobile only */}
+          <button
+            type="button"
+            className="rounded-md p-1 transition-colors hover:bg-white/10 md:hidden"
+            style={{ color: 'var(--sidebar-muted)' }}
+            onClick={closeSidebar}
+            aria-label="Menüyü kapat"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -165,6 +194,7 @@ export function AppLayout() {
                         key={item.to}
                         to={item.to!}
                         end={item.to === '/'}
+                        onClick={closeSidebar}
                         className={({ isActive }) => cn(
                           'group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150',
                           isActive ? '' : 'hover:bg-white/5'
@@ -254,11 +284,20 @@ export function AppLayout() {
       </aside>
 
       {/* ── Main content ──────────────────────────────────── */}
-      <main className="ml-60 flex min-h-screen flex-1 flex-col">
+      <main className="md:ml-60 flex min-h-screen w-full flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Personel ve İnsan Kaynakları</span>
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-4 md:px-6 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              className="rounded-md p-1.5 transition-colors hover:bg-accent md:hidden"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Menüyü aç"
+            >
+              <Menu className="size-5 text-foreground" />
+            </button>
+            <span className="font-medium text-sm text-foreground hidden sm:block">Personel ve İnsan Kaynakları</span>
           </div>
           <div className="flex items-center gap-3">
             <NotificationDropdown />
@@ -273,7 +312,7 @@ export function AppLayout() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 p-6 animate-fade-in">
+        <div className="flex-1 p-4 md:p-6 animate-fade-in">
           <Outlet />
         </div>
       </main>
