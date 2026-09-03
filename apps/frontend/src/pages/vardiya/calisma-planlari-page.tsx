@@ -19,6 +19,8 @@ import { User, Plus, Search } from 'lucide-react';
 export function CalismaPlanlariPage() {
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const profile = useAuthStore((s) => s.profile);
+  const isOnlyPersonel = profile?.roles.includes('PERSONEL') && !profile?.roles.includes('ADMIN');
   
   const [selectedCell, setSelectedCell] = useState<{ employee: Employee; day: ShiftDay; assignment?: ShiftAssignment } | null>(null);
   const [search, setSearch] = useState('');
@@ -41,12 +43,16 @@ export function CalismaPlanlariPage() {
   const isLoading = loadingEmployees || loadingAssignments;
 
   const filteredEmployees = useMemo(() => {
+    let list = employees?.items ?? [];
+    if (isOnlyPersonel && profile?.employeeId) {
+      list = list.filter(emp => emp.id === profile.employeeId);
+    }
     const q = search.trim().toLowerCase();
-    if (!q) return employees?.items ?? [];
-    return (employees?.items ?? []).filter((emp) =>
+    if (!q) return list;
+    return list.filter((emp) =>
       `${emp.firstName} ${emp.lastName} ${emp.employeeNo ?? ''}`.toLowerCase().includes(q),
     );
-  }, [employees, search]);
+  }, [employees, search, isOnlyPersonel, profile?.employeeId]);
 
   // Helper to find assignment for a specific employee and day
   const getAssignment = (empId: string, day: ShiftDay) => {

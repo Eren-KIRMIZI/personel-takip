@@ -284,6 +284,7 @@ model User {
   approvedBonuses  Bonus[]   @relation("BonusApprover")
   issuedRecords EmployeeRecord[] @relation("RecordIssuer")
   notifications Notification[]
+  taskComments TaskComment[]
 
   @@index([status])
   @@map("users")
@@ -714,6 +715,7 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  DELAYED
   CANCELLED
 }
 
@@ -735,12 +737,28 @@ model Task {
   updatedAt   DateTime     @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id])
+  comments TaskComment[]
 
   @@index([employeeId])
   @@index([status])
   @@index([priority])
   @@index([dueDate])
   @@map("tasks")
+}
+
+model TaskComment {
+  id          String   @id @default(uuid()) @db.Uuid
+  taskId      String   @db.Uuid
+  content     String   @db.Text
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([createdById])
+  @@map("task_comments")
 }
 
 // ---------------------------------------------------------------------------

@@ -11,6 +11,8 @@ import { Select } from '@/components/ui/select';
 import { employeesApi } from '@/features/personel/api';
 import { overtimeApi } from '@/features/mesai/api';
 import { formatError } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { useEffect } from 'react';
 
 export function MesaiCreatePage() {
   const navigate = useNavigate();
@@ -22,6 +24,15 @@ export function MesaiCreatePage() {
   const [rate, setRate] = useState('1');
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  const { profile } = useAuthStore();
+  const isOnlyPersonel = profile?.roles.includes('PERSONEL') && !profile?.roles.includes('ADMIN');
+
+  useEffect(() => {
+    if (isOnlyPersonel && profile?.employeeId) {
+      setEmployeeId(profile.employeeId);
+    }
+  }, [isOnlyPersonel, profile?.employeeId]);
 
   const { data: employees, isLoading: isLoadingEmployees, isError: isErrorEmployees } = useQuery({
     queryKey: ['employees-all'],
@@ -65,20 +76,22 @@ export function MesaiCreatePage() {
       <Card>
         <CardHeader><CardTitle>Mesai Bilgileri</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Personel *</Label>
-            <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              <option value="">
-                {isLoadingEmployees ? 'Yükleniyor...' : isErrorEmployees ? 'Personel listesi yüklenemedi' : 'Seçin…'}
-              </option>
-              {employees?.items.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName}
-                  {emp.employeeNo ? ` (${emp.employeeNo})` : ''}
+          {!isOnlyPersonel && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>Personel *</Label>
+              <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+                <option value="">
+                  {isLoadingEmployees ? 'Yükleniyor...' : isErrorEmployees ? 'Personel listesi yüklenemedi' : 'Seçin…'}
                 </option>
-              ))}
-            </Select>
-          </div>
+                {employees?.items.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.firstName} {emp.lastName}
+                    {emp.employeeNo ? ` (${emp.employeeNo})` : ''}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Mesai Tarihi *</Label>

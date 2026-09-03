@@ -1,7 +1,20 @@
 import { api } from '@/lib/api';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'DELAYED' | 'CANCELLED';
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  content: string;
+  createdById?: string | null;
+  createdAt: string;
+  createdBy?: {
+    id: string;
+    username: string;
+    employeeId?: string | null;
+  } | null;
+}
 
 export interface Task {
   id: string;
@@ -26,6 +39,7 @@ export interface Task {
     unit?: { id: string; name: string } | null;
     department?: { id: string; name: string } | null;
   };
+  comments?: TaskComment[];
 }
 
 export interface Paginated<T> {
@@ -67,6 +81,8 @@ export const taskApi = {
   updateStatus: async (id: string, payload: { status: TaskStatus; note?: string }) => {
     return api<Task>(`/api/tasks/${id}/status`, { method: 'PATCH', body: payload });
   },
+  createComment: (id: string, payload: { content: string }) =>
+    api<TaskComment>(`/api/tasks/${id}/comments`, { method: 'POST', body: payload }),
   getStats: async () => {
     return api<{ total: number; byStatus: { status: TaskStatus; count: number }[]; byPriority: { priority: TaskPriority; count: number }[] }>('/api/tasks/stats');
   },
@@ -79,9 +95,10 @@ export const TASK_PRIORITY_META: Record<TaskPriority, { label: string; variant: 
   HIGH: { label: 'Yüksek', variant: 'destructive' },
 };
 
-export const TASK_STATUS_META: Record<TaskStatus, { label: string; variant: 'secondary' | 'outline' | 'success' | 'destructive' }> = {
+export const TASK_STATUS_META: Record<TaskStatus, { label: string; variant: 'secondary' | 'outline' | 'success' | 'destructive' | 'warning' }> = {
   TODO: { label: 'Tamamlanmadı', variant: 'secondary' },
   IN_PROGRESS: { label: 'Devam ediyor', variant: 'outline' },
   DONE: { label: 'Tamamlandı', variant: 'success' },
+  DELAYED: { label: 'Gecikti', variant: 'warning' },
   CANCELLED: { label: 'İptal edildi', variant: 'destructive' },
 };

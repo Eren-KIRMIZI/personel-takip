@@ -6,7 +6,7 @@ import { CreateTaskDto, UpdateTaskDto, UpdateTaskStatusDto, TaskListQueryDto } f
 
 @Injectable()
 export class TaskService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private includeEmployee = {
     employee: {
@@ -140,7 +140,7 @@ export class TaskService {
       by: ['status'],
       _count: { id: true },
     });
-    
+
     const priorityCounts = await this.prisma.task.groupBy({
       by: ['priority'],
       _count: { id: true },

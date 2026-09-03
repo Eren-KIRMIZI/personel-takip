@@ -31,7 +31,7 @@ export class CreateTaskDto {
   note?: string;
 }
 
-export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
+export class UpdateTaskDto extends PartialType(CreateTaskDto) { }
 
 export class UpdateTaskStatusDto {
   @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'])

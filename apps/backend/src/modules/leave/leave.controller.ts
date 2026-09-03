@@ -69,7 +69,7 @@ export class LeaveController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ) {
-    return this.leave.createRequest(dto, user.userId);
+    return this.leave.createRequest(dto, user);
   }
 
   @Patch('leave-requests/:id/approve')

@@ -152,6 +152,7 @@ export function IzinListPage() {
               <TableHead>Başlangıç</TableHead>
               <TableHead>Bitiş</TableHead>
               <TableHead>Gün</TableHead>
+              <TableHead>Açıklama</TableHead>
               <TableHead>Durum</TableHead>
               <TableHead className="w-40 text-right pr-6">İşlem</TableHead>
             </TableRow>
@@ -206,6 +207,9 @@ export function IzinListPage() {
                 <TableCell>
                   <span className="font-mono text-sm">{request.days}</span>
                 </TableCell>
+                <TableCell className="max-w-[200px] truncate" title={request.description || ''}>
+                  <span className="text-sm text-muted-foreground">{request.description || '-'}</span>
+                </TableCell>
                 <TableCell>
                   <StatusBadge status={request.status} />
                 </TableCell>
@@ -254,7 +258,7 @@ export function IzinListPage() {
 
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <div className="flex size-14 items-center justify-center rounded-2xl bg-muted mb-4">
                       <CalendarDays className="size-7 text-muted-foreground" />

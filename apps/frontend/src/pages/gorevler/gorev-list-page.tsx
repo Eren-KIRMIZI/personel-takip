@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, CheckCircle2, Circle, Pencil, Trash2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Pencil, Trash2, Clock, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -27,6 +27,8 @@ export function GorevListPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [taskToComment, setTaskToComment] = useState<string | null>(null);
+  const [commentContent, setCommentContent] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', status, priority, search, page],
@@ -51,6 +53,16 @@ export function GorevListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setTaskToDelete(null);
+    },
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      taskApi.createComment(id, { content }),
+    onSuccess: () => {
+      setTaskToComment(null);
+      setCommentContent('');
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 
@@ -130,6 +142,16 @@ export function GorevListPage() {
                 <TableCell>
                   <div className="font-medium">{task.title}</div>
                   <div className="text-xs text-muted-foreground truncate max-w-[250px]">{task.description ?? '-'}</div>
+                  {task.comments && task.comments.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {task.comments.map(c => (
+                        <div key={c.id} className="text-[11px] p-1.5 bg-muted rounded-md border border-border/50 break-words max-w-[250px]">
+                          <span className="font-medium text-foreground">{c.createdBy?.username || 'Sistem'}: </span>
+                          <span className="text-muted-foreground">{c.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">{task.employee.firstName} {task.employee.lastName}</div>
@@ -170,7 +192,7 @@ export function GorevListPage() {
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
-                    {task.status !== 'DONE' && hasPermission('task:write') && (
+                    {task.status !== 'DONE' && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -181,7 +203,18 @@ export function GorevListPage() {
                         <CheckCircle2 className="h-4 w-4 text-success" />
                       </Button>
                     )}
-                    {task.status === 'DONE' && hasPermission('task:write') && (
+                    {task.status !== 'DELAYED' && task.status !== 'DONE' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Gecikti olarak işaretle"
+                        disabled={statusMutation.isPending}
+                        onClick={() => statusMutation.mutate({ id: task.id, newStatus: 'DELAYED' })}
+                      >
+                        <Clock className="h-4 w-4 text-warning" />
+                      </Button>
+                    )}
+                    {task.status === 'DONE' && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -192,6 +225,14 @@ export function GorevListPage() {
                         <Circle className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Yanıt Ekle"
+                      onClick={() => setTaskToComment(task.id)}
+                    >
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -227,6 +268,32 @@ export function GorevListPage() {
         }
       >
         <p className="text-sm text-muted-foreground">Bu işlem geri alınamaz.</p>
+      </Dialog>
+
+      <Dialog
+        open={taskToComment !== null}
+        onClose={() => { setTaskToComment(null); setCommentContent(''); }}
+        title="Göreve Yanıt Ekle"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setTaskToComment(null); setCommentContent(''); }}>Vazgeç</Button>
+            <Button 
+              disabled={!commentContent.trim() || commentMutation.isPending} 
+              onClick={() => taskToComment && commentMutation.mutate({ id: taskToComment, content: commentContent })}
+            >
+              {commentMutation.isPending ? 'Gönderiliyor...' : 'Gönder'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 pt-2">
+          <textarea
+            className="w-full min-h-[100px] p-3 text-sm rounded-md border border-input bg-transparent"
+            placeholder="Yanıtınızı buraya yazın..."
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+          />
+        </div>
       </Dialog>
     </div>
   );

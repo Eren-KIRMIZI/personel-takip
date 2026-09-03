@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Hash,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { StatusBadge, Badge } from '@/components/ui/badge';
@@ -313,6 +314,12 @@ export function PersonelDetailPage() {
                 <PowerOff className="mr-2" /> Pasif Yap
               </Button>
             )}
+            <Link
+              to={`/personel/${employee.id}/duzenle`}
+              className={buttonVariants({ variant: 'outline', className: "w-full sm:w-auto" })}
+            >
+              <Pencil className="mr-2 h-4 w-4" /> Düzenle
+            </Link>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}

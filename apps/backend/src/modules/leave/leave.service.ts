@@ -143,7 +143,9 @@ export class LeaveService {
     return request;
   }
 
-  async createRequest(dto: CreateLeaveRequestDto, actorUserId: string) {
+  async createRequest(dto: CreateLeaveRequestDto, actor: AuthenticatedUser) {
+    const actorUserId = actor.userId;
+    const isAdmin = actor.roles.includes('ADMIN');
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
     await this.prisma.leaveType.findUniqueOrThrow({ where: { id: dto.leaveTypeId } });
@@ -151,7 +153,7 @@ export class LeaveService {
     const days = this.calculateDays(dto.startDate, dto.endDate);
     if (days <= 0) throw new BadRequestException('Bitiş tarihi başlangıçtan önce olamaz.');
 
-    await this.assertNoOverlap(dto.employeeId, dto.startDate, dto.endDate);
+    await this.assertNoOverlap(dto.employeeId, dto.startDate, dto.endDate, isAdmin);
 
     const request = await this.prisma.leaveRequest.create({
       data: {
@@ -243,13 +245,14 @@ export class LeaveService {
   // Yardımcılar
   // ------------------------------------------------------------
 
-  private async assertNoOverlap(employeeId: string, startDate: string, endDate: string) {
+  private async assertNoOverlap(employeeId: string, startDate: string, endDate: string, isAdmin = false) {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const statusIn = isAdmin ? [LeaveStatus.APPROVED] : [LeaveStatus.PENDING, LeaveStatus.APPROVED];
     const overlap = await this.prisma.leaveRequest.findFirst({
       where: {
         employeeId,
-        status: { in: [LeaveStatus.PENDING, LeaveStatus.APPROVED] },
+        status: { in: statusIn },
         startDate: { lte: end },
         endDate: { gte: start },
       },

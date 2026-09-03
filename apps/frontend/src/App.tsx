@@ -25,6 +25,9 @@ const PersonelCreatePage = lazy(() =>
 const PersonelDetailPage = lazy(() =>
   import('@/pages/personel/personel-detail-page').then((m) => ({ default: m.PersonelDetailPage })),
 );
+const PersonelEditPage = lazy(() =>
+  import('@/pages/personel/personel-edit-page').then((m) => ({ default: m.PersonelEditPage })),
+);
 
 // Organizasyon
 const OrganizasyonPage = lazy(() =>
@@ -177,6 +180,10 @@ export const router = createBrowserRouter([
       {
         path: 'personel/:id',
         element: <SuspenseWrap><PersonelDetailPage /></SuspenseWrap>,
+      },
+      {
+        path: 'personel/:id/duzenle',
+        element: <SuspenseWrap><PersonelEditPage /></SuspenseWrap>,
       },
       {
         path: 'organizasyon',

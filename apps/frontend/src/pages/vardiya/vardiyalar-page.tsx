@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Users } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,9 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { orgApi } from '@/features/organizasyon/api';
-import { durationLabel, shiftApi, type ShiftItem } from '@/features/vardiya/api';
+import { durationLabel, shiftApi, type ShiftItem, type ShiftDay } from '@/features/vardiya/api';
+import { employeesApi } from '@/features/personel/api';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuthStore } from '@/stores/auth';
 import { formatError } from '@/lib/utils';
 
@@ -25,7 +27,16 @@ export function VardiyalarPage() {
   const { data, isLoading } = useQuery({ queryKey: ['shifts'], queryFn: () => shiftApi.list({ includeInactive: true }) });
 
   const createMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof shiftApi.create>[0]) => shiftApi.create(payload),
+    mutationFn: async ({ payload, employeeIds }: { payload: Parameters<typeof shiftApi.create>[0]; employeeIds: string[] }) => {
+      const shift = await shiftApi.create(payload);
+      if (employeeIds.length > 0) {
+        const weekdays: ShiftDay[] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+        for (const day of weekdays) {
+          await shiftApi.bulkAssign({ shiftId: shift.id, day, employeeIds });
+        }
+      }
+      return shift;
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['shifts'] });
       setCreateOpen(false);
@@ -122,7 +133,7 @@ export function VardiyalarPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         pending={createMutation.isPending}
-        onSubmit={(payload) => createMutation.mutate(payload)}
+        onSubmit={(payload, employeeIds) => createMutation.mutate({ payload, employeeIds })}
       />
     </div>
   );
@@ -136,7 +147,7 @@ function CreateShiftDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (payload: Parameters<typeof shiftApi.create>[0]) => void;
+  onSubmit: (payload: Parameters<typeof shiftApi.create>[0], employeeIds: string[]) => void;
   pending: boolean;
 }) {
   const [name, setName] = useState('');
@@ -146,7 +157,10 @@ function CreateShiftDialog({
   const [breakMinutes, setBreakMinutes] = useState('60');
   const [description, setDescription] = useState('');
   const [workLocationId, setWorkLocationId] = useState('');
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  
   const { data: locations } = useQuery({ queryKey: ['work-locations'], queryFn: () => orgApi.list('work-locations', { pageSize: 100 }) });
+  const { data: employees } = useQuery({ queryKey: ['employees-all'], queryFn: () => employeesApi.list({ pageSize: 500 }) });
 
   const submit = () => {
     if (!name || !startTime || !endTime) return;
@@ -158,12 +172,17 @@ function CreateShiftDialog({
       breakMinutes: Number(breakMinutes) || 0,
       description: description.trim() || undefined,
       workLocationId: workLocationId || undefined,
-    });
+    }, selectedEmployeeIds);
     setName('');
     setCode('');
     setBreakMinutes('60');
     setDescription('');
     setWorkLocationId('');
+    setSelectedEmployeeIds([]);
+  };
+
+  const toggleEmployee = (id: string) => {
+    setSelectedEmployeeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   return (
@@ -214,6 +233,25 @@ function CreateShiftDialog({
         <div className="space-y-2 sm:col-span-2">
           <Label>Açıklama</Label>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        
+        <div className="space-y-2 sm:col-span-2 pt-2 border-t border-border mt-2">
+          <Label className="flex items-center gap-2 mb-2">
+            <Users className="size-4" />
+            Personel Seçimi <span className="text-muted-foreground text-xs font-normal">(İsteğe bağlı - Sadece hafta içi günleri için otomatik atanır)</span>
+          </Label>
+          <div className="h-40 overflow-y-auto border border-input rounded-md p-2 space-y-1">
+            {employees?.items.length === 0 && <div className="text-sm text-muted-foreground p-2">Personel bulunamadı.</div>}
+            {employees?.items.map(emp => (
+              <label key={emp.id} className="flex items-center gap-2 p-1.5 hover:bg-accent/50 rounded cursor-pointer transition-colors">
+                <Checkbox 
+                  checked={selectedEmployeeIds.includes(emp.id)} 
+                  onCheckedChange={() => toggleEmployee(emp.id)} 
+                />
+                <span className="text-sm">{emp.firstName} {emp.lastName} {emp.employeeNo ? `(${emp.employeeNo})` : ''}</span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </Dialog>

@@ -83,8 +83,10 @@ export function ZimmetCreatePage() {
             <Label>Kategori</Label>
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">Seçin…</option>
-              <option value="BILGISAYAR">Bilgisayar / Laptop</option>
-              <option value="TELEFON">Cep Telefonu / Tablet</option>
+              <option value="PC">Masaüstü Bilgisayar (PC)</option>
+              <option value="LAPTOP">Laptop / Dizüstü Bilgisayar</option>
+              <option value="CEP_TELEFONU">Cep Telefonu</option>
+              <option value="TABLET">Tablet</option>
               <option value="ARAC">Araç</option>
               <option value="DIGER">Diğer Ekipman</option>
             </Select>

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { TaskService } from './task.service';
-import { CreateTaskDto, UpdateTaskDto, UpdateTaskStatusDto, TaskListQueryDto } from './dto/task.dto';
+import { CreateTaskDto, UpdateTaskDto, UpdateTaskStatusDto, TaskListQueryDto, CreateTaskCommentDto } from './dto/task.dto';
 
 @ApiTags('görevler')
 @ApiBearerAuth()
@@ -45,6 +45,12 @@ export class TaskController {
   @RequirePermissions('task:write')
   updateStatus(@Param('id') id: string, @Body() dto: UpdateTaskStatusDto, @CurrentUser() user: AuthenticatedUser) {
     return this.taskService.updateStatus(id, dto, user.userId);
+  }
+
+  @Post(':id/comments')
+  @RequirePermissions('task:read') // Even read-only people can comment maybe? No, let's use write or let's say task:read because they are responding to tasks assigned to them
+  createComment(@Param('id') id: string, @Body() dto: CreateTaskCommentDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.taskService.createComment(id, dto, user.userId);
   }
 
   @Delete(':id')
