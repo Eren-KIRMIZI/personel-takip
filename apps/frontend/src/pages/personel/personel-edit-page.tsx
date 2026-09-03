@@ -119,7 +119,7 @@ export function PersonelEditPage() {
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: () => accessApi.roles() });
 
   
-  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+  const { data: employee } = useQuery({
     queryKey: ['employee', id],
     queryFn: () => employeesApi.get(id!),
     enabled: !!id,

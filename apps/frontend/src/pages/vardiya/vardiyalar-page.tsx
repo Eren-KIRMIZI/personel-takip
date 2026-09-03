@@ -246,7 +246,7 @@ function CreateShiftDialog({
               <label key={emp.id} className="flex items-center gap-2 p-1.5 hover:bg-accent/50 rounded cursor-pointer transition-colors">
                 <Checkbox 
                   checked={selectedEmployeeIds.includes(emp.id)} 
-                  onCheckedChange={() => toggleEmployee(emp.id)} 
+                  onChange={() => toggleEmployee(emp.id)} 
                 />
                 <span className="text-sm">{emp.firstName} {emp.lastName} {emp.employeeNo ? `(${emp.employeeNo})` : ''}</span>
               </label>
