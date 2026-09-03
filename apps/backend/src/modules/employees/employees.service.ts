@@ -143,7 +143,8 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto, actor: { userId: string; ip?: string; userAgent?: string }) {
-    const { account, ...profile } = dto;
+    const { account, ...raw } = dto;
+    const profile = this.parseDateFields(raw);
 
     let createdEmployee;
 
@@ -173,13 +174,12 @@ export class EmployeesService {
           },
           include: employeeInclude,
         });
-        await this.createInitialHistory(this.prisma, createdEmployee.id, profile);
+        await this.createInitialHistory(this.prisma, createdEmployee.id, raw);
       } catch (prismaError) {
         // Prisma işlemi başarısız olduysa Supabase auth kullanıcısını geri al
         try {
           await this.supabase.deleteAuthUser(authId);
         } catch (supabaseRollbackError) {
-          // Rollback başarısız olsa bile orijinal hatayı fırlat
           console.error('Supabase auth rollback başarısız:', supabaseRollbackError);
         }
         throw new InternalServerErrorException(
@@ -191,7 +191,7 @@ export class EmployeesService {
         data: { ...profile },
         include: employeeInclude,
       });
-      await this.createInitialHistory(this.prisma, createdEmployee.id, profile);
+      await this.createInitialHistory(this.prisma, createdEmployee.id, raw);
     }
 
     await this.audit.log({
@@ -210,6 +210,19 @@ export class EmployeesService {
     return createdEmployee;
   }
 
+  /** YYYY-MM-DD veya ISO string tarih alanlarını Date nesnesine çevirir */
+  private parseDateFields<T extends Record<string, unknown>>(obj: T): T {
+    const dateFields = ['workStartDate', 'workEndDate', 'birthDate'] as const;
+    const result = { ...obj } as Record<string, unknown>;
+    for (const field of dateFields) {
+      const val = result[field];
+      if (typeof val === 'string' && val.trim()) {
+        result[field] = new Date(val);
+      }
+    }
+    return result as T;
+  }
+
   async update(
     id: string,
     dto: UpdateEmployeeDto,
@@ -223,7 +236,8 @@ export class EmployeesService {
       throw new NotFoundException('Personel bulunamadı.');
     }
 
-    const { roleIds, ...profile } = dto;
+    const { roleIds, ...raw } = dto;
+    const profile = this.parseDateFields(raw);
 
     const historyEntries: Prisma.EmployeeHistoryCreateManyInput[] = ASSIGNMENT_FIELDS.filter(
       (field) => profile[field] !== undefined && profile[field] !== before[field],
@@ -296,9 +310,51 @@ export class EmployeesService {
       }
     }
 
-    // Prisma kaydını sil (cascade ile ilişkili kayıtlar da silinir)
-    await this.prisma.employee.delete({ where: { id } });
+    // Transaction operasyonlarını (tek bir veritabanı turu ile çalıştırmak için) diziye topla
+    const txOperations: any[] = [];
 
+    // Audit logları — employeeId FK
+    txOperations.push(this.prisma.auditLog.updateMany({ where: { employeeId: id }, data: { employeeId: null } }));
+
+    // User kaydını önce kaldır (employee silinmeden)
+    if (employee.user) {
+      const userId = employee.user.id;
+      // User'a referans veren alanları temizle (FK constraint hatasını önlemek için)
+      txOperations.push(this.prisma.auditLog.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } }));
+      txOperations.push(this.prisma.advance.updateMany({ where: { approvedById: userId }, data: { approvedById: null } }));
+      txOperations.push(this.prisma.bonus.updateMany({ where: { approvedById: userId }, data: { approvedById: null } }));
+      txOperations.push(this.prisma.employeeRecord.updateMany({ where: { issuedById: userId }, data: { issuedById: null } }));
+
+      txOperations.push(this.prisma.userRole.deleteMany({ where: { userId } }));
+      txOperations.push(this.prisma.user.delete({ where: { id: userId } }));
+    }
+
+    // İlişkili tüm veriler
+    txOperations.push(this.prisma.employeeHistory.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.leaveRequest.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.overtime.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.attendanceRecord.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.shiftAssignment.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.payrollItem.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.advance.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.bonus.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.employeeRecord.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.asset.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.task.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.document.updateMany({ where: { employeeId: id }, data: { employeeId: null } }));
+    txOperations.push(this.prisma.announcementEmployee.deleteMany({ where: { employeeId: id } }));
+    txOperations.push(this.prisma.announcementRead.deleteMany({ where: { employeeId: id } }));
+
+    // Alt personellerin yönetici bağını kaldır
+    txOperations.push(this.prisma.employee.updateMany({ where: { managerId: id }, data: { managerId: null } }));
+
+    // Personeli sil
+    txOperations.push(this.prisma.employee.delete({ where: { id } }));
+
+    // Tek bir seferde çalıştır
+    await this.prisma.$transaction(txOperations);
+
+    // Audit log (transaction dışında — personel zaten silindi)
     await this.audit.log({
       actorUserId: actor.userId,
       action: 'employee.delete',

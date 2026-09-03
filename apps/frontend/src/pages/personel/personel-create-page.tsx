@@ -136,7 +136,7 @@ export function PersonelCreatePage() {
         workLocationId: values.workLocationId || undefined,
         titleId: values.titleId || undefined,
         positionId: values.positionId || undefined,
-        workStartDate: values.workStartDate || undefined,
+        workStartDate: values.workStartDate ? new Date(values.workStartDate).toISOString() : undefined,
       }),
     onSuccess: async (employee) => {
       await queryClient.invalidateQueries({ queryKey: ['employees'] });
