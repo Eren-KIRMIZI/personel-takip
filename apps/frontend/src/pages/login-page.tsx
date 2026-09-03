@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { Users, Lock, Mail } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
+import { prefetchWarmupChunks, prefetchCriticalData } from '@/lib/prefetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,17 +13,22 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState<'Giriş yapılıyor…' | 'Hazırlanıyor…'>('Giriş yapılıyor…');
   const session     = useAuthStore((s) => s.session);
   const initialized = useAuthStore((s) => s.initialized);
   const signIn      = useAuthStore((s) => s.signIn);
   const navigate    = useNavigate();
 
-  // Supabase warm-up: login ekranı açılır açılmaz DB bağlantısı başlatılır.
-  // Kullanıcı şifresini yazarken DB zaten uyanmış olur.
+  // 1. Supabase warm-up & 2. Arka plan chunk ön yükleme
   useEffect(() => {
-    supabase.from('departments').select('id').limit(1).then(() => {
-      // sonucu umursamıyoruz — amaç yalnızca bağlantı kurmak
-    });
+    supabase.from('departments').select('id').limit(1).then(() => {});
+
+    // Kullanıcı henüz şifresini yazarken Dashboard ve Layout JS parçaları sessizce indirilir
+    const timer = setTimeout(() => {
+      prefetchWarmupChunks();
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (initialized && session) {
@@ -33,12 +39,18 @@ export function LoginPage() {
     event.preventDefault();
     setError(null);
     setLoading(true);
+    setLoadingText('Giriş yapılıyor…');
     try {
       await signIn(email.trim(), password);
+
+      // Başarılı girişten hemen sonra arka planda Dashboard verilerini çek
+      // Maksimum 900ms sınır (veri erken gelirse beklemeden anında geçer!)
+      setLoadingText('Hazırlanıyor…');
+      await prefetchCriticalData(900);
+
       navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Giriş başarısız.');
-    } finally {
       setLoading(false);
     }
   };
@@ -108,7 +120,7 @@ export function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Giriş yapılıyor…
+                  {loadingText}
                 </span>
               ) : (
                 'Giriş Yap'

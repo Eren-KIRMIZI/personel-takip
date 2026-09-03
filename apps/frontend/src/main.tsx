@@ -1,22 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './App';
 import { useAuthStore } from './stores/auth';
+import { queryClient } from './lib/query-client';
 import './index.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      // Veri 1 dakika boyunca "taze" sayılır → sayfa değiştirince tekrar istek atılmaz
-      staleTime: 60 * 1000,
-      // Cache 10 dakika bellekte tutulur → geri döndüğünde anlık gösterilir
-      gcTime: 10 * 60 * 1000,
-    },
-  },
+// Yeni deployment sonrası eski chunk 404 hatası alınırsa sayfayı temizce yeniler
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload();
 });
 
 void useAuthStore.getState().initialize();
