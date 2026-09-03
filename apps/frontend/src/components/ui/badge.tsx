@@ -32,15 +32,22 @@ export { Badge, badgeVariants };
 
 /* ── Status Badge with animated dot ─────────────────────── */
 const STATUS_MAP: Record<string, { label: string; variant: BadgeProps['variant']; dot: string }> = {
-  ACTIVE:    { label: 'Aktif',      variant: 'success',     dot: 'bg-emerald-500' },
-  PASSIVE:   { label: 'Pasif',      variant: 'secondary',   dot: 'bg-gray-400' },
-  SUSPENDED: { label: 'Askıda',     variant: 'warning',     dot: 'bg-amber-500' },
-  DISABLED:  { label: 'Devre Dışı', variant: 'secondary',   dot: 'bg-gray-400' },
-  PENDING:   { label: 'Beklemede',  variant: 'warning',     dot: 'bg-amber-500' },
-  APPROVED:  { label: 'Onaylandı',  variant: 'success',     dot: 'bg-emerald-500' },
-  REJECTED:  { label: 'Reddedildi', variant: 'destructive', dot: 'bg-red-500' },
-  CANCELLED: { label: 'İptal',      variant: 'secondary',   dot: 'bg-gray-400' },
-  PAID:      { label: 'Ödendi',     variant: 'success',     dot: 'bg-emerald-500' },
+  ACTIVE:      { label: 'Aktif',        variant: 'success',     dot: 'bg-emerald-500' },
+  PASSIVE:     { label: 'Pasif',        variant: 'secondary',   dot: 'bg-gray-400' },
+  SUSPENDED:   { label: 'Askıda',       variant: 'warning',     dot: 'bg-amber-500' },
+  DISABLED:    { label: 'Devre Dışı',   variant: 'secondary',   dot: 'bg-gray-400' },
+  PENDING:     { label: 'Beklemede',    variant: 'warning',     dot: 'bg-amber-500' },
+  APPROVED:    { label: 'Onaylandı',    variant: 'success',     dot: 'bg-emerald-500' },
+  REJECTED:    { label: 'Reddedildi',   variant: 'destructive', dot: 'bg-red-500' },
+  CANCELLED:   { label: 'İptal',        variant: 'secondary',   dot: 'bg-gray-400' },
+  PAID:        { label: 'Ödendi',       variant: 'success',     dot: 'bg-emerald-500' },
+  IN_PROGRESS: { label: 'Devam Ediyor', variant: 'info',        dot: 'bg-sky-500' },
+  TODO:        { label: 'Yapılacak',    variant: 'secondary',   dot: 'bg-gray-400' },
+  DONE:        { label: 'Tamamlandı',   variant: 'success',     dot: 'bg-emerald-500' },
+  EXPIRED:     { label: 'Süresi Doldu', variant: 'secondary',   dot: 'bg-gray-400' },
+  DRAFT:       { label: 'Taslak',       variant: 'secondary',   dot: 'bg-gray-400' },
+  RETURNED:    { label: 'İade Edildi',  variant: 'info',        dot: 'bg-sky-500' },
+  OVERDUE:     { label: 'Gecikmiş',     variant: 'destructive', dot: 'bg-red-500' },
 };
 
 export function StatusBadge({ status }: { status: string }) {

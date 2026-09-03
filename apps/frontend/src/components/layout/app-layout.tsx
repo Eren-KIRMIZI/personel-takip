@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
+import { Toaster } from '@/components/ui/toaster';
 import { useAuthStore } from '@/stores/auth';
 import { NotificationDropdown } from './notification-dropdown';
 
@@ -276,6 +277,8 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      <Toaster />
     </div>
   );
 }

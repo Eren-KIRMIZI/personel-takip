@@ -1,81 +1,295 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/app-layout';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ProtectedRoute } from '@/components/layout/protected-route';
-import { LoginPage } from '@/pages/login-page';
-import { DashboardPage } from '@/pages/dashboard-page';
-import { PersonelListPage } from '@/pages/personel/personel-list-page';
-import { PersonelCreatePage } from '@/pages/personel/personel-create-page';
-import { PersonelDetailPage } from '@/pages/personel/personel-detail-page';
-import { OrganizasyonPage } from '@/pages/organizasyon/organizasyon-page';
-import { RollerPage } from '@/pages/erişim/roller-page';
-import { KullanicilarPage } from '@/pages/erişim/kullanicilar-page';
-import { IzinListPage } from '@/pages/izin/izin-list-page';
-import { IzinCreatePage } from '@/pages/izin/izin-create-page';
-import { MesaiListPage } from '@/pages/mesai/mesai-list-page';
-import { MesaiCreatePage } from '@/pages/mesai/mesai-create-page';
-import { GirisCikisPage } from '@/pages/giris-cikis/giris-cikis-page';
-import { QrKodlarPage } from '@/pages/giris-cikis/qr-kodlar-page';
-import { RaporlarPage } from '@/pages/raporlar/raporlar-page';
-import { VardiyalarPage } from '@/pages/vardiya/vardiyalar-page';
-import { VardiyaAtamaPage } from '@/pages/vardiya/vardiya-atama-page';
-import { MaasPage } from '@/pages/maas/maas-page';
-import { AvanslarPage } from '@/pages/avans/avanslar-page';
-import { CzaOdulPage } from '@/pages/cza-odul/cza-odul-page';
-import { ZimmetListPage } from '@/pages/zimmet/zimmet-list-page';
-import { ZimmetCreatePage } from '@/pages/zimmet/zimmet-create-page';
-import { GorevListPage } from '@/pages/gorevler/gorev-list-page';
-import { GorevCreatePage } from '@/pages/gorevler/gorev-create-page';
-import { EvrakListPage } from '@/pages/evrak/evrak-list-page';
-import { EvrakCreatePage } from '@/pages/evrak/evrak-create-page';
-import { DuyuruListPage } from '@/pages/duyurular/duyuru-list-page';
-import { DuyuruCreatePage } from '@/pages/duyurular/duyuru-create-page';
-import { SistemRaporlariPage } from '@/pages/raporlar/sistem-raporlari-page';
-import { IslemLoglariPage } from '@/pages/loglar/islem-loglari-page';
-import { PrimListPage } from '@/pages/prim/prim-list-page';
-import { CalismaPlanlariPage } from '@/pages/vardiya/calisma-planlari-page';
+
+// ── Layout (eager – her navigasyonda lazım) ────────────────
+const AppLayout = lazy(() =>
+  import('@/components/layout/app-layout').then((m) => ({ default: m.AppLayout })),
+);
+const LoginPage = lazy(() =>
+  import('@/pages/login-page').then((m) => ({ default: m.LoginPage })),
+);
+
+// ── Page chunks ────────────────────────────────────────────
+// Core (dashboard, personel – en çok kullanılanlar)
+const DashboardPage = lazy(() =>
+  import('@/pages/dashboard-page').then((m) => ({ default: m.DashboardPage })),
+);
+const PersonelListPage = lazy(() =>
+  import('@/pages/personel/personel-list-page').then((m) => ({ default: m.PersonelListPage })),
+);
+const PersonelCreatePage = lazy(() =>
+  import('@/pages/personel/personel-create-page').then((m) => ({ default: m.PersonelCreatePage })),
+);
+const PersonelDetailPage = lazy(() =>
+  import('@/pages/personel/personel-detail-page').then((m) => ({ default: m.PersonelDetailPage })),
+);
+
+// Organizasyon
+const OrganizasyonPage = lazy(() =>
+  import('@/pages/organizasyon/organizasyon-page').then((m) => ({ default: m.OrganizasyonPage })),
+);
+
+// İzin
+const IzinListPage = lazy(() =>
+  import('@/pages/izin/izin-list-page').then((m) => ({ default: m.IzinListPage })),
+);
+const IzinCreatePage = lazy(() =>
+  import('@/pages/izin/izin-create-page').then((m) => ({ default: m.IzinCreatePage })),
+);
+
+// Mesai
+const MesaiListPage = lazy(() =>
+  import('@/pages/mesai/mesai-list-page').then((m) => ({ default: m.MesaiListPage })),
+);
+const MesaiCreatePage = lazy(() =>
+  import('@/pages/mesai/mesai-create-page').then((m) => ({ default: m.MesaiCreatePage })),
+);
+
+// Giriş-Çıkış
+const GirisCikisPage = lazy(() =>
+  import('@/pages/giris-cikis/giris-cikis-page').then((m) => ({ default: m.GirisCikisPage })),
+);
+const QrKodlarPage = lazy(() =>
+  import('@/pages/giris-cikis/qr-kodlar-page').then((m) => ({ default: m.QrKodlarPage })),
+);
+
+// Raporlar
+const RaporlarPage = lazy(() =>
+  import('@/pages/raporlar/raporlar-page').then((m) => ({ default: m.RaporlarPage })),
+);
+const SistemRaporlariPage = lazy(() =>
+  import('@/pages/raporlar/sistem-raporlari-page').then((m) => ({ default: m.SistemRaporlariPage })),
+);
+
+// Vardiya
+const VardiyalarPage = lazy(() =>
+  import('@/pages/vardiya/vardiyalar-page').then((m) => ({ default: m.VardiyalarPage })),
+);
+const VardiyaAtamaPage = lazy(() =>
+  import('@/pages/vardiya/vardiya-atama-page').then((m) => ({ default: m.VardiyaAtamaPage })),
+);
+const CalismaPlanlariPage = lazy(() =>
+  import('@/pages/vardiya/calisma-planlari-page').then((m) => ({ default: m.CalismaPlanlariPage })),
+);
+
+// Ödeme
+const MaasPage = lazy(() =>
+  import('@/pages/maas/maas-page').then((m) => ({ default: m.MaasPage })),
+);
+const AvanslarPage = lazy(() =>
+  import('@/pages/avans/avanslar-page').then((m) => ({ default: m.AvanslarPage })),
+);
+const PrimListPage = lazy(() =>
+  import('@/pages/prim/prim-list-page').then((m) => ({ default: m.PrimListPage })),
+);
+
+// İş Süreçleri
+const GorevListPage = lazy(() =>
+  import('@/pages/gorevler/gorev-list-page').then((m) => ({ default: m.GorevListPage })),
+);
+const GorevCreatePage = lazy(() =>
+  import('@/pages/gorevler/gorev-create-page').then((m) => ({ default: m.GorevCreatePage })),
+);
+const ZimmetListPage = lazy(() =>
+  import('@/pages/zimmet/zimmet-list-page').then((m) => ({ default: m.ZimmetListPage })),
+);
+const ZimmetCreatePage = lazy(() =>
+  import('@/pages/zimmet/zimmet-create-page').then((m) => ({ default: m.ZimmetCreatePage })),
+);
+const EvrakListPage = lazy(() =>
+  import('@/pages/evrak/evrak-list-page').then((m) => ({ default: m.EvrakListPage })),
+);
+const EvrakCreatePage = lazy(() =>
+  import('@/pages/evrak/evrak-create-page').then((m) => ({ default: m.EvrakCreatePage })),
+);
+const CzaOdulPage = lazy(() =>
+  import('@/pages/cza-odul/cza-odul-page').then((m) => ({ default: m.CzaOdulPage })),
+);
+const DuyuruListPage = lazy(() =>
+  import('@/pages/duyurular/duyuru-list-page').then((m) => ({ default: m.DuyuruListPage })),
+);
+const DuyuruCreatePage = lazy(() =>
+  import('@/pages/duyurular/duyuru-create-page').then((m) => ({ default: m.DuyuruCreatePage })),
+);
+
+// Yönetim
+const RollerPage = lazy(() =>
+  import('@/pages/erişim/roller-page').then((m) => ({ default: m.RollerPage })),
+);
+const KullanicilarPage = lazy(() =>
+  import('@/pages/erişim/kullanicilar-page').then((m) => ({ default: m.KullanicilarPage })),
+);
+const IslemLoglariPage = lazy(() =>
+  import('@/pages/loglar/islem-loglari-page').then((m) => ({ default: m.IslemLoglariPage })),
+);
+
+function PageFallback() {
+  return (
+    <div className="space-y-4 p-6">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-72" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  );
+}
+
+function SuspenseWrap({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageFallback />}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  {
+    path: '/login',
+    element: (
+      <SuspenseWrap>
+        <LoginPage />
+      </SuspenseWrap>
+    ),
+  },
   {
     path: '/',
     element: (
       <ProtectedRoute>
-        <AppLayout />
+        <SuspenseWrap>
+          <AppLayout />
+        </SuspenseWrap>
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'personel', element: <PersonelListPage /> },
-      { path: 'personel/yeni', element: <PersonelCreatePage /> },
-      { path: 'personel/:id', element: <PersonelDetailPage /> },
-      { path: 'organizasyon', element: <OrganizasyonPage /> },
-      { path: 'izin', element: <IzinListPage /> },
-      { path: 'izin/yeni', element: <IzinCreatePage /> },
-      { path: 'mesai', element: <MesaiListPage /> },
-      { path: 'mesai/yeni', element: <MesaiCreatePage /> },
-      { path: 'giris-cikis', element: <GirisCikisPage /> },
-      { path: 'giris-cikis/qr', element: <QrKodlarPage /> },
-      { path: 'raporlar', element: <RaporlarPage /> },
-      { path: 'vardiya', element: <VardiyalarPage /> },
-      { path: 'vardiya/atama/:id', element: <VardiyaAtamaPage /> },
-      { path: 'calisma-planlari', element: <CalismaPlanlariPage /> },
-      { path: 'maas', element: <MaasPage /> },
-      { path: 'avans', element: <AvanslarPage /> },
-      { path: 'prim', element: <PrimListPage /> },
-      { path: 'cza-odul', element: <CzaOdulPage /> },
-      { path: 'zimmet', element: <ZimmetListPage /> },
-      { path: 'zimmet/yeni', element: <ZimmetCreatePage /> },
-      { path: 'gorevler', element: <GorevListPage /> },
-      { path: 'gorevler/yeni', element: <GorevCreatePage /> },
-      { path: 'gorevler/:id/duzenle', element: <GorevCreatePage /> },
-      { path: 'evrak', element: <EvrakListPage /> },
-      { path: 'evrak/yeni', element: <EvrakCreatePage /> },
-      { path: 'duyurular', element: <DuyuruListPage /> },
-      { path: 'duyurular/yeni', element: <DuyuruCreatePage /> },
-      { path: 'sistem-raporlari', element: <SistemRaporlariPage /> },
-      { path: 'roller', element: <RollerPage /> },
-      { path: 'kullanicilar', element: <KullanicilarPage /> },
-      { path: 'islem-loglari', element: <IslemLoglariPage /> },
+      {
+        index: true,
+        element: (
+          <SuspenseWrap>
+            <DashboardPage />
+          </SuspenseWrap>
+        ),
+      },
+      {
+        path: 'personel',
+        element: <SuspenseWrap><PersonelListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'personel/yeni',
+        element: <SuspenseWrap><PersonelCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'personel/:id',
+        element: <SuspenseWrap><PersonelDetailPage /></SuspenseWrap>,
+      },
+      {
+        path: 'organizasyon',
+        element: <SuspenseWrap><OrganizasyonPage /></SuspenseWrap>,
+      },
+      {
+        path: 'izin',
+        element: <SuspenseWrap><IzinListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'izin/yeni',
+        element: <SuspenseWrap><IzinCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'mesai',
+        element: <SuspenseWrap><MesaiListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'mesai/yeni',
+        element: <SuspenseWrap><MesaiCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'giris-cikis',
+        element: <SuspenseWrap><GirisCikisPage /></SuspenseWrap>,
+      },
+      {
+        path: 'giris-cikis/qr',
+        element: <SuspenseWrap><QrKodlarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'raporlar',
+        element: <SuspenseWrap><RaporlarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'vardiya',
+        element: <SuspenseWrap><VardiyalarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'vardiya/atama/:id',
+        element: <SuspenseWrap><VardiyaAtamaPage /></SuspenseWrap>,
+      },
+      {
+        path: 'calisma-planlari',
+        element: <SuspenseWrap><CalismaPlanlariPage /></SuspenseWrap>,
+      },
+      {
+        path: 'maas',
+        element: <SuspenseWrap><MaasPage /></SuspenseWrap>,
+      },
+      {
+        path: 'avans',
+        element: <SuspenseWrap><AvanslarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'prim',
+        element: <SuspenseWrap><PrimListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'cza-odul',
+        element: <SuspenseWrap><CzaOdulPage /></SuspenseWrap>,
+      },
+      {
+        path: 'zimmet',
+        element: <SuspenseWrap><ZimmetListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'zimmet/yeni',
+        element: <SuspenseWrap><ZimmetCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'gorevler',
+        element: <SuspenseWrap><GorevListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'gorevler/yeni',
+        element: <SuspenseWrap><GorevCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'gorevler/:id/duzenle',
+        element: <SuspenseWrap><GorevCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'evrak',
+        element: <SuspenseWrap><EvrakListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'evrak/yeni',
+        element: <SuspenseWrap><EvrakCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'duyurular',
+        element: <SuspenseWrap><DuyuruListPage /></SuspenseWrap>,
+      },
+      {
+        path: 'duyurular/yeni',
+        element: <SuspenseWrap><DuyuruCreatePage /></SuspenseWrap>,
+      },
+      {
+        path: 'sistem-raporlari',
+        element: <SuspenseWrap><SistemRaporlariPage /></SuspenseWrap>,
+      },
+      {
+        path: 'roller',
+        element: <SuspenseWrap><RollerPage /></SuspenseWrap>,
+      },
+      {
+        path: 'kullanicilar',
+        element: <SuspenseWrap><KullanicilarPage /></SuspenseWrap>,
+      },
+      {
+        path: 'islem-loglari',
+        element: <SuspenseWrap><IslemLoglariPage /></SuspenseWrap>,
+      },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

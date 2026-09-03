@@ -8,6 +8,7 @@ import { CreateOvertimeDto, OvertimeListQueryDto } from './dto/overtime.dto';
 
 const overtimeInclude = {
   employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true } },
+  approvedBy: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } },
 } as const;
 
 @Injectable()

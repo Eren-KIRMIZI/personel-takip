@@ -12,6 +12,11 @@ export interface OvertimeEntry {
   status: OvertimeStatus;
   approvedById?: string | null;
   approvedAt?: string | null;
+  approvedBy?: {
+    id: string;
+    username: string;
+    employee?: { firstName: string; lastName: string } | null;
+  } | null;
   rejectionReason?: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -63,4 +68,14 @@ export const OVERTIME_STATUS_META: Record<OvertimeStatus, { label: string; varia
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('tr-TR');
+}
+
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatTime(iso: string | null | undefined): string {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
