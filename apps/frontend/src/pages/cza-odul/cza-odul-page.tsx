@@ -206,6 +206,7 @@ function CzaOdulTab({
             onError={setErrorMessage}
           />
           <RecordDialog
+            key={editTarget?.id ?? 'edit-placeholder'}
             open={!!editTarget}
             onClose={() => setEditTarget(null)}
             category={category}
