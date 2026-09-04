@@ -28,6 +28,38 @@ async function fetchProfile(): Promise<MeProfile> {
   return api<MeProfile>('/api/auth/me');
 }
 
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+let idleArm: (() => void) | null = null;
+
+const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'pointerdown'] as const;
+
+function _clearIdleTimer() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+}
+
+function startIdleTimer(onIdle: () => void) {
+  _clearIdleTimer();
+  idleArm = () => {
+    _clearIdleTimer();
+    idleTimer = setTimeout(onIdle, IDLE_TIMEOUT_MS);
+  };
+  IDLE_EVENTS.forEach((evt) => window.addEventListener(evt, idleArm as EventListener, { passive: true }));
+  idleArm();
+}
+
+function stopIdleTimer() {
+  _clearIdleTimer();
+  if (idleArm) {
+    IDLE_EVENTS.forEach((evt) => window.removeEventListener(evt, idleArm as EventListener, true));
+  }
+  idleArm = null;
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
@@ -43,6 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try {
         const profile = await fetchProfile();
         set({ profile });
+        startIdleTimer(() => void get().signOut());
       } catch {
         // Profil çekilemezse oturum geçersiz demektir
         await get().signOut();
@@ -54,7 +87,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session: nextSession });
       if (nextSession) {
         get().refreshProfile();
+        startIdleTimer(() => void get().signOut());
       } else {
+        stopIdleTimer();
         set({ profile: null });
       }
     });
@@ -72,6 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    stopIdleTimer();
     await supabase.auth.signOut();
     tokenStore.set(null);
     set({ session: null, profile: null });
