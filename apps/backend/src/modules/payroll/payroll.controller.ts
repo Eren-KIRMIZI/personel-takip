@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -20,13 +20,13 @@ export class PayrollController {
 
   @Get('employees/:employeeId/salary')
   @RequirePermissions('payroll:read')
-  getEmployeeSalary(@Param('employeeId') employeeId: string) {
+  getEmployeeSalary(@Param('employeeId', ParseUUIDPipe) employeeId: string) {
     return this.payroll.getEmployeeSalary(employeeId);
   }
 
   @Post('employees/:employeeId/salary')
   @RequirePermissions('payroll:write')
-  setSalary(@Param('employeeId') employeeId: string, @Body() dto: SetSalaryDto, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+  setSalary(@Param('employeeId', ParseUUIDPipe) employeeId: string, @Body() dto: SetSalaryDto, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.payroll.setSalary(employeeId, dto, user.userId);
   }
 

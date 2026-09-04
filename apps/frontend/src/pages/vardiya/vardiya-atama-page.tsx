@@ -16,7 +16,7 @@ import { SHIFT_DAY_LABEL, SHIFT_DAY_ORDER, shiftApi, type ShiftDay } from '@/fea
 import { formatError } from '@/lib/utils';
 
 export function VardiyaAtamaPage() {
-  const { shiftId = '' } = useParams();
+  const { id: shiftId = '' } = useParams();
   const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -100,7 +100,7 @@ export function VardiyaAtamaPage() {
                           {a.employee.employeeNo ? ` (${a.employee.employeeNo})` : ''}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {a.shift.name} · {a.shift.startTime}–{a.shift.endTime}
+                          {a.shift ? `${a.shift.name} · ${a.shift.startTime}–${a.shift.endTime}` : '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" title="Kaldır" onClick={() => removeMutation.mutate(a.id)}>
@@ -151,7 +151,7 @@ function AssignDialog({
   onSubmit: (payload: { day: ShiftDay; employeeIds: string[] }) => void;
   pending: boolean;
 }) {
-  const { shiftId = '' } = useParams();
+  const { id: shiftId = '' } = useParams();
   const [day, setDay] = useState<ShiftDay>('MON');
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const { data: employees } = useQuery({ queryKey: ['employees-all'], queryFn: () => employeesApi.list({ pageSize: 500 }) });

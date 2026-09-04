@@ -282,6 +282,7 @@ model User {
   auditLogs AuditLog[]
   approvedAdvances Advance[] @relation("AdvanceApprover")
   approvedBonuses  Bonus[]   @relation("BonusApprover")
+  approvedOvertimes Overtime[] @relation("OvertimeApprover")
   issuedRecords EmployeeRecord[] @relation("RecordIssuer")
   notifications Notification[]
   taskComments TaskComment[]
@@ -391,9 +392,11 @@ model Overtime {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  approvedBy User?    @relation("OvertimeApprover", fields: [approvedById], references: [id])
 
   @@index([employeeId])
+  @@index([approvedById])
   @@index([date])
   @@index([status])
   @@map("overtime_entries")

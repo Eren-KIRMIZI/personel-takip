@@ -131,7 +131,7 @@ export function CalismaPlanlariPage() {
                           <div className="h-full w-full flex items-center justify-center min-h-[40px] border border-transparent hover:border-border rounded-md">
                             {assignment ? (
                               <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 text-xs w-full justify-center">
-                                {assignment.shift.name}
+                                {assignment.shift?.name ?? 'Vardiya'}
                               </Badge>
                             ) : (
                               <span className="text-xs text-muted-foreground/30 flex flex-col items-center gap-1">

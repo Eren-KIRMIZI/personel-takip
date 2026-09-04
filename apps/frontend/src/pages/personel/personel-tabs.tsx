@@ -215,10 +215,10 @@ export function CalismaPlaniTab({ employeeId }: { employeeId: string }) {
               <TableRow key={day}>
                 <TableCell className="font-medium">{SHIFT_DAY_LABEL[day]}</TableCell>
                 <TableCell>
-                  {rows.length ? rows.map((r) => r.shift.name).join(', ') : <span className="text-muted-foreground">İzin / Boş</span>}
+                  {rows.length ? rows.map((r) => r.shift?.name).filter(Boolean).join(', ') : <span className="text-muted-foreground">İzin / Boş</span>}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {rows.length ? rows.map((r) => `${r.shift.startTime}–${r.shift.endTime}`).join(', ') : '-'}
+                  {rows.length ? rows.map((r) => r.shift ? `${r.shift.startTime}–${r.shift.endTime}` : '?').join(', ') : '-'}
                 </TableCell>
               </TableRow>
             ))}
