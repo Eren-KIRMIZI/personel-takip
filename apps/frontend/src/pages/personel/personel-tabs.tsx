@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth';
 import { leaveApi } from '@/features/izin/api';
 import { overtimeApi, formatDate as otDate } from '@/features/mesai/api';
 import { attendanceApi, formatDateTime, PUNCH_TYPE_LABEL, PUNCH_SOURCE_LABEL } from '@/features/giris-cikis/api';
+import { cardApi } from '@/features/card/api';
 import { advanceApi, ADVANCE_STATUS_META, formatMoney as advMoney, monthLabel as advMonth } from '@/features/avans/api';
 import {
   employeeRecordApi,
@@ -610,6 +611,126 @@ export function EvrakTab({ employeeId }: { employeeId: string }) {
       ) : (
         <EmptyState label="Personelle ilişkilendirilmiş evrak yok." />
       )}
+    </SubCard>
+  );
+}
+
+export function KartBilgileriTab({ employeeId }: { employeeId: string }) {
+  const queryClient = useQueryClient();
+  const hasWrite = useAuthStore((s) => s.hasPermission('attendance:write'));
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['personal-cards', employeeId],
+    queryFn: () => cardApi.credentials({ employeeId, pageSize: 20 }),
+    staleTime: 60 * 1000,
+  });
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [cardUid, setCardUid] = useState('');
+  const [note, setNote] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: () => cardApi.createCredential({ employeeId, cardUid: cardUid.trim(), note: note || undefined }),
+    onSuccess: () => {
+      setAddOpen(false);
+      setCardUid('');
+      setNote('');
+      setErrorMessage(null);
+      void queryClient.invalidateQueries({ queryKey: ['personal-cards', employeeId] });
+    },
+    onError: (err) => setErrorMessage(formatError(err)),
+  });
+
+  const toggle = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      cardApi.updateCredential(id, { isActive: !isActive }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['personal-cards', employeeId] });
+    },
+  });
+
+  const cards = data?.items ?? [];
+
+  return (
+    <SubCard
+      title="Kart Bilgileri"
+      action={
+        hasWrite ? (
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+            Kart Tanımla
+          </Button>
+        ) : undefined
+      }
+    >
+      {errorMessage && addOpen && <p className="mb-2 text-sm text-destructive">{errorMessage}</p>}
+      {isLoading ? (
+        <TableSkeleton cols={4} />
+      ) : cards.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Kart ID</TableHead>
+              <TableHead>Not</TableHead>
+              <TableHead>Durum</TableHead>
+              {hasWrite && <TableHead className="text-right">Aksiyon</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {cards.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-mono text-sm">{c.cardUid}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{c.note ?? '-'}</TableCell>
+                <TableCell>
+                  <Badge variant={c.isActive ? 'success' : 'secondary'}>
+                    {c.isActive ? 'Aktif' : 'Pasif'}
+                  </Badge>
+                </TableCell>
+                {hasWrite && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={toggle.isPending}
+                      onClick={() => toggle.mutate({ id: c.id, isActive: c.isActive })}
+                    >
+                      {c.isActive ? 'Devre Dışı' : 'Aktif Et'}
+                    </Button>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyState label="Bu personele tanımlı kart yok." />
+      )}
+
+      <Dialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="Kart Tanımla"
+        description="Bu personele yeni bir kart ID tanımlayın."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Vazgeç</Button>
+            <Button disabled={!cardUid.trim() || create.isPending} onClick={() => create.mutate()}>
+              {create.isPending ? 'Kaydediliyor…' : 'Kaydet'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Kart ID</Label>
+            <Input value={cardUid} onChange={(e) => setCardUid(e.target.value)} placeholder="TEST-CARD-001" />
+          </div>
+          <div className="space-y-2">
+            <Label>Not (opsiyonel)</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ör. Bordo kart" />
+          </div>
+        </div>
+      </Dialog>
     </SubCard>
   );
 }

@@ -114,6 +114,7 @@ export function GirisCikisPage() {
           <option value="QR">QR</option>
           <option value="MANUAL">Manuel</option>
           <option value="PDKS">PDKS</option>
+          <option value="CARD">Kart</option>
         </Select>
         <Input type="date" className="w-40" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
         <span className="text-sm text-muted-foreground">–</span>

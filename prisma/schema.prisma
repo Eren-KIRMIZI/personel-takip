@@ -79,6 +79,7 @@ model WorkLocation {
   qrCodes   QrCode[]
   attendanceRecords AttendanceRecord[]
   shifts   Shift[]
+  cardReaders CardReader[]
 
   @@map("work_locations")
 }
@@ -220,6 +221,7 @@ model Employee {
   documents    Document[]
   announcementEmployees AnnouncementEmployee[]
   announcementReads     AnnouncementRead[]
+  cardCredentials CardCredential[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -437,28 +439,69 @@ enum PunchSource {
   PDKS
   QR
   MANUAL
+  CARD
 }
 
 model AttendanceRecord {
-  id         String    @id @default(uuid()) @db.Uuid
-  employeeId String    @db.Uuid
-  type       PunchType
-  source     PunchSource @default(PDKS)
-  timestamp  DateTime
-  locationId String?   @db.Uuid
-  qrCodeId   String?   @db.Uuid
-  deviceInfo String?
-  latitude   Decimal?  @db.Decimal(9, 6)
-  longitude  Decimal?  @db.Decimal(9, 6)
-  createdAt  DateTime  @default(now())
+  id               String          @id @default(uuid()) @db.Uuid
+  employeeId       String          @db.Uuid
+  type             PunchType
+  source           PunchSource     @default(PDKS)
+  timestamp        DateTime
+  locationId       String?         @db.Uuid
+  qrCodeId         String?         @db.Uuid
+  cardReaderId     String?         @db.Uuid
+  cardCredentialId String?         @db.Uuid
+  deviceInfo       String?
+  latitude         Decimal?        @db.Decimal(9, 6)
+  longitude        Decimal?        @db.Decimal(9, 6)
+  createdAt        DateTime        @default(now())
 
-  employee Employee @relation(fields: [employeeId], references: [id])
-  location WorkLocation? @relation(fields: [locationId], references: [id])
+  employee       Employee        @relation(fields: [employeeId], references: [id])
+  location       WorkLocation?   @relation(fields: [locationId], references: [id])
+  cardReader     CardReader?     @relation(fields: [cardReaderId], references: [id])
+  cardCredential CardCredential? @relation(fields: [cardCredentialId], references: [id])
 
   @@index([employeeId, timestamp])
   @@index([timestamp])
-  @@index([locationId])    // FK index — Supabase Linter
+  @@index([locationId])       // FK index — Supabase Linter
+  @@index([cardReaderId])     // FK index — Supabase Linter
+  @@index([cardCredentialId]) // FK index — Supabase Linter
   @@map("attendance_records")
+}
+
+// Personel → Kart eşleştirmesi (kart teknolojisinden bağımsız, cardUid tanımlayıcıdır)
+model CardCredential {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @db.Uuid
+  cardUid    String   @unique
+  isActive   Boolean  @default(true)
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee         Employee           @relation(fields: [employeeId], references: [id])
+  attendanceRecords AttendanceRecord[]
+
+  @@index([employeeId])
+  @@map("card_credentials")
+}
+
+// PDKS cihazı (okuyucu). Cihaz geldiğinde buraya tanımlanır, kart okutma bundan lokasyon/cihaz bilgisi alır.
+model CardReader {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  serialNo   String?
+  locationId String?  @db.Uuid
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  location         WorkLocation?     @relation(fields: [locationId], references: [id])
+  attendanceRecords AttendanceRecord[]
+
+  @@index([locationId])
+  @@map("card_readers")
 }
 
 model QrCode {

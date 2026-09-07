@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import type { Paginated } from '@/features/personel/api';
 
 export type PunchType = 'IN' | 'OUT';
-export type PunchSource = 'PDKS' | 'QR' | 'MANUAL';
+export type PunchSource = 'PDKS' | 'QR' | 'MANUAL' | 'CARD';
 
 export interface AttendanceEntry {
   id: string;
@@ -101,4 +101,5 @@ export const PUNCH_SOURCE_LABEL: Record<PunchSource, string> = {
   PDKS: 'PDKS',
   QR: 'QR',
   MANUAL: 'Manuel',
+  CARD: 'Kart',
 };

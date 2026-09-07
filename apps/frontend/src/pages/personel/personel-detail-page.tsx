@@ -27,7 +27,7 @@ import { employeesApi } from '@/features/personel/api';
 import { formatDate, formatDateTime, formatError } from '@/lib/utils';
 import {
   IzinlerTab, MesaiTab, GirisCikisTab, CalismaPlaniTab,
-  MaasBordroTab, AvanslarTab, CezaTab, OdulTab, ZimmetTab, GorevTab, EvrakTab,
+  MaasBordroTab, AvanslarTab, CezaTab, OdulTab, ZimmetTab, GorevTab, EvrakTab, KartBilgileriTab,
 } from './personel-tabs';
 
 function InfoField({ label, value, icon: Icon }: { label: string; value?: React.ReactNode; icon?: React.ElementType }) {
@@ -122,6 +122,7 @@ export function PersonelDetailPage() {
     { value: 'izinler', label: 'İzinler' },
     { value: 'mesai', label: 'Mesai' },
     { value: 'giris-cikis', label: 'Giriş-Çıkış' },
+    { value: 'kart-bilgileri', label: 'Kart Bilgileri' },
     { value: 'calisma-plani', label: 'Çalışma Planı' },
     { value: 'maas-prim', label: 'Maaş ve Prim' },
     { value: 'avanslar', label: 'Avanslar' },
@@ -218,6 +219,7 @@ export function PersonelDetailPage() {
       case 'izinler':      return <IzinlerTab employeeId={employee.id} />;
       case 'mesai':        return <MesaiTab employeeId={employee.id} />;
       case 'giris-cikis': return <GirisCikisTab employeeId={employee.id} />;
+      case 'kart-bilgileri': return <KartBilgileriTab employeeId={employee.id} />;
       case 'calisma-plani': return <CalismaPlaniTab employeeId={employee.id} />;
       case 'maas-prim':   return <MaasBordroTab employeeId={employee.id} />;
       case 'avanslar':    return <AvanslarTab employeeId={employee.id} />;

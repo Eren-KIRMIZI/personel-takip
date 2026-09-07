@@ -12,6 +12,7 @@ import { AccessModule } from './modules/access/access.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { OvertimeModule } from './modules/overtime/overtime.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { CardModule } from './modules/card/card.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ShiftModule } from './modules/shift/shift.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
@@ -44,6 +45,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     LeaveModule,
     OvertimeModule,
     AttendanceModule,
+    CardModule,
     ReportsModule,
     ShiftModule,
     PayrollModule,

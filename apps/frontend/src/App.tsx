@@ -61,6 +61,17 @@ const QrOkutPage = lazy(() =>
   import('@/pages/giris-cikis/qr-okut-page').then((m) => ({ default: m.QrOkutPage })),
 );
 
+// Kart Sistemi / PDKS
+const PdksSimulatorPage = lazy(() =>
+  import('@/pages/card/pdks-simulator-page').then((m) => ({ default: m.PdksSimulatorPage })),
+);
+const KartYonetimiPage = lazy(() =>
+  import('@/pages/card/kart-yonetimi-page').then((m) => ({ default: m.KartYonetimiPage })),
+);
+const CihazYonetimiPage = lazy(() =>
+  import('@/pages/card/cihaz-yonetimi-page').then((m) => ({ default: m.CihazYonetimiPage })),
+);
+
 // Raporlar
 const RaporlarPage = lazy(() =>
   import('@/pages/raporlar/raporlar-page').then((m) => ({ default: m.RaporlarPage })),
@@ -219,6 +230,18 @@ export const router = createBrowserRouter([
       {
         path: 'qr-okut',
         element: <SuspenseWrap><QrOkutPage /></SuspenseWrap>,
+      },
+      {
+        path: 'kart-sistemi',
+        element: <SuspenseWrap><KartYonetimiPage /></SuspenseWrap>,
+      },
+      {
+        path: 'kart-sistemi/cihazlar',
+        element: <SuspenseWrap><CihazYonetimiPage /></SuspenseWrap>,
+      },
+      {
+        path: 'pdks-simulator',
+        element: <SuspenseWrap><PdksSimulatorPage /></SuspenseWrap>,
       },
       {
         path: 'raporlar',
