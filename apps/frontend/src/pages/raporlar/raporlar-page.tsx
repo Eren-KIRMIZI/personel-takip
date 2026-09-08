@@ -1,396 +1,227 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Banknote, CalendarDays, Calculator, CalendarX, ChevronRight, Clock, CreditCard, FileChartColumn, Grid3x3, IdCard, MoonStar, Phone, Search, Timer, UserCheck, UserMinus, UserPlus, Wrench, type LucideIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs } from '@/components/ui/tabs';
 import { useAuthStore } from '@/stores/auth';
 import { employeesApi } from '@/features/personel/api';
+import { FULL_NAME } from '@/features/raporlar/api';
 import {
-  downloadExcel,
-  durationLabel,
-  FULL_NAME,
-  reportsApi,
-  type AttendanceLogRow,
-  type AttendanceSummaryRow,
-  type LeaveSummaryRow,
-  type OvertimeSummaryRow,
-} from '@/features/raporlar/api';
-import { formatError } from '@/lib/utils';
+  GENEL_REPORTS,
+  HESAP_REPORTS,
+  ReportView,
+  type ReportDef,
+  type ReportParams,
+  type ReportSection,
+} from './report-views';
 
 const LAST_30 = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
 const TODAY = new Date().toISOString().slice(0, 10);
+const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
 
-const srcLabel = (s?: 'QR' | 'MANUAL' | 'PDKS' | 'CARD' | null) =>
-  s === 'QR' ? 'QR' : s === 'MANUAL' ? 'Manuel' : s === 'PDKS' ? 'PDKS' : s === 'CARD' ? 'Kart' : '—';
+const ICONS: [string, LucideIcon][] = [
+  ['genel-giris-cikis', Clock],
+  ['kisi-giris-cikis', Clock],
+  ['genel-gec-kalanlar', Timer],
+  ['kisi-gec-kalanlar', Timer],
+  ['genel-erken-cikanlar', Timer],
+  ['kisi-erken-cikanlar', Timer],
+  ['mesai', Timer],
+  ['devamsizlar', CalendarX],
+  ['giris-kart-yok', IdCard],
+  ['cikis-kart-yok', IdCard],
+  ['kart-yok', IdCard],
+  ['iceride', UserCheck],
+  ['elle-mudahale', Wrench],
+  ['nobet', MoonStar],
+  ['irtibat', Phone],
+  ['ise-girenler', UserPlus],
+  ['isten-ayrilanlar', UserMinus],
+  ['tatil-calisan', CalendarDays],
+  ['izin', CalendarDays],
+  ['avans', CreditCard],
+  ['prim', Banknote],
+  ['aylik-devam', Grid3x3],
+  ['puantaj', Calculator],
+  ['maas-genel', Banknote],
+  ['maas-kisi', Banknote],
+  ['maas-pusula', FileChartColumn],
+  ['maas-grup', Calculator],
+];
 
-const hhmm = (iso?: string | null) => (iso ? new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '—');
+function iconFor(id: string): LucideIcon {
+  return ICONS.find(([key]) => key === id)?.[1] ?? FileChartColumn;
+}
 
 export function RaporlarPage() {
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const [tab, setTab] = useState<ReportSection>('genel');
+  const [search, setSearch] = useState('');
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const [from, setFrom] = useState(LAST_30);
   const [to, setTo] = useState(TODAY);
+  const [month, setMonth] = useState(CURRENT_MONTH);
   const [employeeId, setEmployeeId] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const params = { from: from || undefined, to: to || undefined, employeeId: employeeId || undefined };
-
-  const { data: employees } = useQuery({
+  const { data: employeesData } = useQuery({
     queryKey: ['employees-all'],
     queryFn: () => employeesApi.list({ pageSize: 500 }),
   });
+  const employees = employeesData?.items ?? [];
 
-  const attendance = useQuery({ queryKey: ['report-att', params], queryFn: () => reportsApi.attendance(params), enabled: hasPermission('attendance:read') });
-  const overtimes = useQuery({ queryKey: ['report-ot', params], queryFn: () => reportsApi.overtimes(params), enabled: hasPermission('overtime:read') });
-  const leaves = useQuery({ queryKey: ['report-lv', params], queryFn: () => reportsApi.leaves(params), enabled: hasPermission('leave:read') });
-  const attendanceLog = useQuery({ queryKey: ['report-attlog', params], queryFn: () => reportsApi.attendanceLog(params), enabled: hasPermission('attendance:read') });
+  const activeDef = useMemo(() => {
+    const all = [...GENEL_REPORTS, ...HESAP_REPORTS];
+    return all.find((r) => r.id === activeId) ?? null;
+  }, [activeId]);
 
-  const onExport = (kind: 'att' | 'ot' | 'lv' | 'attlog'): void => {
-    const run = async () => {
-      try {
-        const fn =
-          kind === 'att'
-            ? reportsApi.attendanceExcel
-            : kind === 'ot'
-              ? reportsApi.overtimesExcel
-              : kind === 'lv'
-                ? reportsApi.leavesExcel
-                : reportsApi.attendanceLogExcel;
-        downloadExcel(await fn(params));
-      } catch (err) {
-        setErrorMessage(formatError(err));
-      }
-    };
-    void run();
+  const params: ReportParams = useMemo(
+    () => ({
+      from: from || undefined,
+      to: to || undefined,
+      month: month || undefined,
+      employeeId: employeeId || undefined,
+    }),
+    [from, to, month, employeeId],
+  );
+
+  const genelVisible = GENEL_REPORTS.filter((r) => hasPermission(r.permission));
+  const hesapVisible = HESAP_REPORTS.filter((r) => hasPermission(r.permission));
+
+  const catalog = useMemo(() => {
+    const pool = tab === 'genel' ? genelVisible : hesapVisible;
+    const q = search.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return pool;
+    return pool.filter((r) => (r.title + ' ' + r.description).toLocaleLowerCase('tr-TR').includes(q));
+  }, [tab, search, genelVisible, hesapVisible]);
+
+  const goBack = () => {
+    setActiveId(null);
+    setSearch('');
   };
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Raporlar" description="Çalışma süresi, mesai ve izin özetleri" />
+      <PageHeader title="Raporlar" description="Genel ve hesap raporları kataloğu" />
 
-      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+      {activeDef ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="ghost" size="sm" onClick={goBack}>
+              <ArrowLeft /> Raporlar
+            </Button>
+            <div className="flex flex-wrap items-end gap-3">
+              {activeDef.kind === 'range' && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Başlangıç</label>
+                    <Input type="date" className="w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Bitiş</label>
+                    <Input type="date" className="w-40" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </>
+              )}
+              {activeDef.kind === 'month' && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Dönem</label>
+                  <Input type="month" className="w-44" value={month} onChange={(e) => setMonth(e.target.value)} />
+                </div>
+              )}
+              {activeDef.employee && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Personel</label>
+                  <Select className="w-56" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+                    <option value="">Tüm personel</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {FULL_NAME(emp)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">{activeDef.title}</h2>
+            <p className="text-sm text-muted-foreground">{activeDef.description}</p>
+          </div>
+          <ReportView def={activeDef} params={params} employees={employees} />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as ReportSection)}
+            tabs={[
+              { value: 'genel', label: `Genel Raporlar (${genelVisible.length})` },
+              { value: 'hesap', label: `Hesap Raporları (${hesapVisible.length})` },
+            ]}
+          />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Başlangıç</label>
-          <Input type="date" className="w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Bitiş</label>
-          <Input type="date" className="w-40" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Personel (isteğe bağlı)</label>
-          <Select className="w-64" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-            <option value="">Tüm personel</option>
-            {employees?.items.map((emp) => (
-              <option key={emp.id} value={emp.id}>{FULL_NAME(emp)}</option>
-            ))}
-          </Select>
-        </div>
-      </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rapor ara..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
 
-      {hasPermission('attendance:read') && (
-        <AttendanceReport data={attendance.data?.summary} loading={attendance.isLoading} meta={attendance.data?.meta} onExport={() => onExport('att')} disabled={!attendance.data} />
-      )}
-      {hasPermission('overtime:read') && (
-        <OvertimeReport data={overtimes.data?.summary} loading={overtimes.isLoading} meta={overtimes.data?.meta} onExport={() => onExport('ot')} disabled={!overtimes.data} />
-      )}
-      {hasPermission('leave:read') && (
-        <LeaveReport data={leaves.data?.summary} loading={leaves.isLoading} meta={leaves.data?.meta} onExport={() => onExport('lv')} disabled={!leaves.data} />
-      )}
-      {hasPermission('attendance:read') && (
-        <AttendanceLogReport data={attendanceLog.data?.rows} loading={attendanceLog.isLoading} meta={attendanceLog.data?.meta} onExport={() => onExport('attlog')} disabled={!attendanceLog.data} />
+          {catalog.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Arama sonucu bulunamadı.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {catalog.map((report) => {
+                const Icon = iconFor(report.id);
+                return (
+                  <ReportCard
+                    key={report.id}
+                    report={report}
+                    icon={<Icon className="size-4" />}
+                    onOpen={() => setActiveId(report.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function ReportFrame({
-  title,
-  description,
-  onExport,
-  disabled,
-  children,
-}: {
-  title: string;
-  description: string;
-  onExport: () => void;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
+function ReportCard({ report, icon, onOpen }: { report: ReportDef; icon: React.ReactNode; onOpen: () => void }) {
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        <Button variant="outline" size="sm" onClick={onExport} disabled={disabled}>
-          <Download /> Excel
-        </Button>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  );
-}
-
-function LoadingRows() {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow><TableHead>Personel</TableHead><TableHead className="text-right">Değer</TableHead></TableRow>
-      </TableHeader>
-      <TableBody>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <TableRow key={i}><TableCell><Skeleton className="h-6 w-40" /></TableCell><TableCell><Skeleton className="h-6 w-16" /></TableCell></TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function EmptyRows() {
-  return (
-    <Table>
-      <TableBody>
-        <TableRow><TableCell className="text-center text-muted-foreground">Bu aralıkta veri yok</TableCell></TableRow>
-      </TableBody>
-    </Table>
-  );
-}
-
-function AttendanceReport({
-  data,
-  loading,
-  meta,
-  onExport,
-  disabled,
-}: {
-  data?: AttendanceSummaryRow[];
-  loading: boolean;
-  meta?: { totalRecords: number; totalWorkedMinutes: number };
-  onExport: () => void;
-  disabled: boolean;
-}) {
-  const totalHours = (meta?.totalWorkedMinutes ?? 0) / 60;
-  return (
-    <ReportFrame
-      title="Çalışma Süresi / Puantaj"
-      description={meta ? `Toplam ${meta.totalRecords} kayıt · ${totalHours.toFixed(1)} saat çalışma` : 'Gün içi toplamlar'}
-      onExport={onExport}
-      disabled={disabled}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group text-left"
     >
-      {loading ? (
-        <LoadingRows />
-      ) : data && data.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Personel</TableHead>
-              <TableHead className="text-right">Giriş</TableHead>
-              <TableHead className="text-right">Çıkış</TableHead>
-              <TableHead className="text-right">Kayıt</TableHead>
-              <TableHead className="text-right">Çalışılan</TableHead>
-              <TableHead className="text-right">Gün</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((row) => (
-              <TableRow key={row.employee.id}>
-                <TableCell>{FULL_NAME(row.employee)}</TableCell>
-                <TableCell className="text-right">{row.totalIn}</TableCell>
-                <TableCell className="text-right">{row.totalOut}</TableCell>
-                <TableCell className="text-right">{row.totalRecords}</TableCell>
-                <TableCell className="text-right font-medium">{durationLabel(row.workedMinutes)}</TableCell>
-                <TableCell className="text-right">{row.days}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <EmptyRows />
-      )}
-    </ReportFrame>
-  );
-}
-
-function OvertimeReport({
-  data,
-  loading,
-  meta,
-  onExport,
-  disabled,
-}: {
-  data?: OvertimeSummaryRow[];
-  loading: boolean;
-  meta?: { totalHours: number; records: number };
-  onExport: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <ReportFrame
-      title="Mesai Raporu"
-      description={meta ? `Toplam ${meta.totalHours} onaylı saat · ${meta.records} kayıt` : 'Onaylı mesai saatleri'}
-      onExport={onExport}
-      disabled={disabled}
-    >
-      {loading ? (
-        <LoadingRows />
-      ) : data && data.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Personel</TableHead>
-              <TableHead className="text-right">Onaylı Saat</TableHead>
-              <TableHead className="text-right">Toplam Saat</TableHead>
-              <TableHead className="text-right">Kayıt</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((row) => (
-              <TableRow key={row.employee.id}>
-                <TableCell>{FULL_NAME(row.employee)}</TableCell>
-                <TableCell className="text-right font-medium">{row.approvedHours}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{row.totalHours}</TableCell>
-                <TableCell className="text-right">{row.records}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <EmptyRows />
-      )}
-    </ReportFrame>
-  );
-}
-
-function AttendanceLogReport({
-  data,
-  loading,
-  meta,
-  onExport,
-  disabled,
-}: {
-  data?: AttendanceLogRow[];
-  loading: boolean;
-  meta?: { totalRows: number };
-  onExport: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <ReportFrame
-      title="Giriş-Çıkış Günlüğü"
-      description={meta ? `Toplam ${meta.totalRows} gün kaydı` : 'Her personel için günde tek satır'}
-      onExport={onExport}
-      disabled={disabled}
-    >
-      {loading ? (
-        <LoadingRows />
-      ) : data && data.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tarih</TableHead>
-              <TableHead className="w-16">Sicil No</TableHead>
-              <TableHead>Personel</TableHead>
-              <TableHead className="w-24">Giriş</TableHead>
-              <TableHead className="w-24">Çıkış</TableHead>
-              <TableHead className="w-24 text-right">Çalışılan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((row) => (
-              <TableRow key={`${row.employee.id}-${row.date}`}>
-                <TableCell className="text-muted-foreground">{row.date}</TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{row.employee.employeeNo ?? '—'}</TableCell>
-                <TableCell>{FULL_NAME(row.employee)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-emerald-600">{hhmm(row.checkIn?.at)}</span>
-                      {row.checkIn?.source && row.checkIn.source !== 'MANUAL' && (
-                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">{srcLabel(row.checkIn.source)}</Badge>
-                      )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-red-600">{hhmm(row.checkOut?.at)}</span>
-                    {row.checkOut?.source && row.checkOut.source !== 'MANUAL' && (
-                      <Badge variant="outline" className="px-1.5 py-0 text-[10px]">{srcLabel(row.checkOut.source)}</Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">{row.worked ?? '—'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <EmptyRows />
-      )}
-    </ReportFrame>
-  );
-}
-
-function LeaveReport({
-  data,
-  loading,
-  meta,
-  onExport,
-  disabled,
-}: {
-  data?: LeaveSummaryRow[];
-  loading: boolean;
-  meta?: { totalDays: number; records: number };
-  onExport: () => void;
-  disabled: boolean;
-}) {
-  const typeNames = Array.from(new Set((data ?? []).flatMap((r) => Object.keys(r.byType))));
-  return (
-    <ReportFrame
-      title="İzin Raporu"
-      description={meta ? `Toplam ${meta.totalDays} onaylı gün · ${meta.records} istek` : 'Durum ve türe göre izinler'}
-      onExport={onExport}
-      disabled={disabled}
-    >
-      {loading ? (
-        <LoadingRows />
-      ) : data && data.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Personel</TableHead>
-              <TableHead className="text-right">Onaylı</TableHead>
-              <TableHead className="text-right">Bekleyen</TableHead>
-              <TableHead className="text-right">Toplam</TableHead>
-              {typeNames.map((t) => (
-                <TableHead key={t} className="text-right">{t}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((row) => (
-              <TableRow key={row.employee.id}>
-                <TableCell>{FULL_NAME(row.employee)}</TableCell>
-                <TableCell className="text-right font-medium">{row.approvedDays}</TableCell>
-                <TableCell className="text-right">{row.pendingDays}</TableCell>
-                <TableCell className="text-right">{row.totalDays}</TableCell>
-                {typeNames.map((t) => (
-                  <TableCell key={t} className="text-right text-muted-foreground">{row.byType[t] ?? 0}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <EmptyRows />
-      )}
-    </ReportFrame>
+      <Card className="h-full transition-colors hover:border-primary">
+        <CardHeader className="flex-row items-start gap-3 space-y-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-sm leading-tight">{report.title}</CardTitle>
+            <CardDescription className="mt-1 line-clamp-2">{report.description}</CardDescription>
+          </div>
+          <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </CardHeader>
+      </Card>
+    </button>
   );
 }

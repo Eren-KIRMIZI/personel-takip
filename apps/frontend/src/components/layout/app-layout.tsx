@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  BarChart3,
   Banknote,
   Briefcase,
   Building2,
@@ -37,7 +36,7 @@ import { NotificationDropdown } from './notification-dropdown';
 
 const NAV_SECTIONS: Array<{
   title: string;
-  items: Array<{ to?: string; label: string; icon: React.ReactNode; soon?: boolean; permission?: string }>;
+  items: Array<{ to?: string; label: string; icon: React.ReactNode; soon?: boolean; permission?: string | string[] }>;
 }> = [
   {
     title: 'Genel',
@@ -62,9 +61,28 @@ const NAV_SECTIONS: Array<{
       { to: '/giris-cikis',   label: 'Giriş-Çıkış',      icon: <Clock />,         permission: 'attendance:read' },
       { to: '/giris-cikis/qr',label: 'QR Kodlar',         icon: <QrCode />,        permission: 'qr:read' },
       { to: '/kart-sistemi',  label: 'Kart Sistemi',      icon: <IdCard />,        permission: 'attendance:read' },
-      { to: '/raporlar',      label: 'Raporlar',          icon: <FileChartColumn />,permission: 'attendance:read' },
       { to: '/vardiya',       label: 'Vardiyalar',        icon: <CalendarRange />, permission: 'shift:read' },
       { to: '/calisma-planlari', label: 'Çalışma Planları', icon: <CalendarDays />, permission: 'shift:read' },
+    ],
+  },
+  {
+    title: 'Raporlar',
+    items: [
+      {
+        to: '/raporlar',
+        label: 'Raporlar',
+        icon: <FileChartColumn />,
+        permission: [
+          'report:view',
+          'attendance:read',
+          'payroll:read',
+          'leave:read',
+          'overtime:read',
+          'advance:read',
+          'bonus:read',
+          'employee:read',
+        ],
+      },
     ],
   },
   {
@@ -86,10 +104,6 @@ const NAV_SECTIONS: Array<{
       { to: '/cza-odul',   label: 'Disiplin ve Teşvik', icon: <Scale />,    permission: 'employee-record:read' },
       { to: '/duyurular',  label: 'Duyurular',   icon: <Megaphone />,permission: 'announcement:read' },
     ],
-  },
-  {
-    title: 'Raporlar',
-    items: [{ to: '/sistem-raporlari', label: 'Sistem Raporları', icon: <BarChart3 />, permission: 'report:view' }],
   },
   {
     title: 'Yönetim',
@@ -168,9 +182,11 @@ export function AppLayout() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
           {NAV_SECTIONS.map((section) => {
-            const visibleItems = section.items.filter(
-              (item) => !item.permission || hasPermission(item.permission),
-            );
+            const visibleItems = section.items.filter((item) => {
+              if (!item.permission) return true;
+              if (Array.isArray(item.permission)) return item.permission.some((p) => hasPermission(p));
+              return hasPermission(item.permission);
+            });
             if (visibleItems.length === 0) return null;
             return (
               <div key={section.title}>

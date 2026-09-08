@@ -76,9 +76,6 @@ const CihazYonetimiPage = lazy(() =>
 const RaporlarPage = lazy(() =>
   import('@/pages/raporlar/raporlar-page').then((m) => ({ default: m.RaporlarPage })),
 );
-const SistemRaporlariPage = lazy(() =>
-  import('@/pages/raporlar/sistem-raporlari-page').then((m) => ({ default: m.SistemRaporlariPage })),
-);
 
 // Vardiya
 const VardiyalarPage = lazy(() =>
@@ -310,10 +307,6 @@ export const router = createBrowserRouter([
       {
         path: 'duyurular/yeni',
         element: <SuspenseWrap><DuyuruCreatePage /></SuspenseWrap>,
-      },
-      {
-        path: 'sistem-raporlari',
-        element: <SuspenseWrap><SistemRaporlariPage /></SuspenseWrap>,
       },
       {
         path: 'roller',

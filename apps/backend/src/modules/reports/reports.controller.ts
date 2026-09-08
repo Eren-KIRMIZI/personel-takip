@@ -1,7 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { ReportQueryDto } from './dto/report.dto';
+import { NonCardPunchQueryDto, PeriodicReportQueryDto, ReportQueryDto } from './dto/report.dto';
 import { ReportsService } from './reports.service';
 
 @ApiTags('raporlar')
@@ -62,5 +63,77 @@ export class ReportsController {
   @RequirePermissions('leave:read')
   leaveExcel(@Query() query: ReportQueryDto) {
     return this.reports.leaveExcel(query);
+  }
+
+  @Get('entries')
+  @RequirePermissions('attendance:read')
+  entries(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.attendanceEntries(query, user);
+  }
+
+  @Get('late')
+  @RequirePermissions('attendance:read')
+  late(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.lateArrivals(query, user);
+  }
+
+  @Get('early')
+  @RequirePermissions('attendance:read')
+  early(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.earlyDepartures(query, user);
+  }
+
+  @Get('absences')
+  @RequirePermissions('attendance:read')
+  absences(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.absences(query, user);
+  }
+
+  @Get('non-card')
+  @RequirePermissions('attendance:read')
+  nonCard(@Query() query: NonCardPunchQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.nonCardPunches(query, user);
+  }
+
+  @Get('present-now')
+  @RequirePermissions('attendance:read')
+  presentNow() {
+    return this.reports.presentNow();
+  }
+
+  @Get('manual')
+  @RequirePermissions('attendance:read')
+  manual(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.manualPunches(query, user);
+  }
+
+  @Get('new-hires')
+  @RequirePermissions('employee:read')
+  newHires(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.newHires(query, user);
+  }
+
+  @Get('terminations')
+  @RequirePermissions('employee:read')
+  terminations(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.terminations(query, user);
+  }
+
+  @Get('weekend-work')
+  @RequirePermissions('attendance:read')
+  weekendWork(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.weekendWork(query, user);
+  }
+
+  @Get('monthly-attendance')
+  @RequirePermissions('attendance:read')
+  monthlyAttendance(@Query() query: PeriodicReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.monthlyAttendance(query, user);
+  }
+
+  @Get('payrun')
+  @RequirePermissions('payroll:read')
+  payrun(@Query() query: PeriodicReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.payrun(query, user);
   }
 }
