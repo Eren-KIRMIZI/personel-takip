@@ -1,8 +1,14 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase, configureAuthStorage } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { tokenStore } from '@/lib/token';
+
+const REMEMBER_KEY = 'pik_remember_session';
+
+function authStorage(): Storage {
+  return typeof localStorage !== 'undefined' && localStorage.getItem(REMEMBER_KEY) === '0' ? sessionStorage : localStorage;
+}
 
 export interface MeProfile {
   userId: string;
@@ -18,7 +24,7 @@ interface AuthState {
   profile: MeProfile | null;
   initialized: boolean;
   initialize: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, remember?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   hasPermission: (code: string) => boolean;
@@ -60,12 +66,32 @@ function stopIdleTimer() {
   idleArm = null;
 }
 
+type AuthStoreApi = {
+  set: (partial: Partial<AuthState> | ((state: AuthState) => Partial<AuthState>)) => void;
+  get: () => AuthState;
+};
+
+function bindAuthStateListener(store: AuthStoreApi) {
+  supabase.auth.onAuthStateChange((_event, nextSession) => {
+    tokenStore.set(nextSession?.access_token ?? null);
+    store.set({ session: nextSession });
+    if (nextSession) {
+      store.get().refreshProfile();
+      startIdleTimer(() => void store.get().signOut());
+    } else {
+      stopIdleTimer();
+      store.set({ profile: null });
+    }
+  });
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
   initialized: false,
 
   initialize: async () => {
+    configureAuthStorage(authStorage());
     const { data } = await supabase.auth.getSession();
     const session = data.session ?? null;
     tokenStore.set(session?.access_token ?? null);
@@ -82,24 +108,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
 
-    supabase.auth.onAuthStateChange((_event, nextSession) => {
-      tokenStore.set(nextSession?.access_token ?? null);
-      set({ session: nextSession });
-      if (nextSession) {
-        get().refreshProfile();
-        startIdleTimer(() => void get().signOut());
-      } else {
-        stopIdleTimer();
-        set({ profile: null });
-      }
-    });
+    bindAuthStateListener({ set, get });
 
     window.addEventListener('auth:expired', () => {
       void get().signOut();
     });
   },
 
-  signIn: async (email: string, password: string) => {
+  signIn: async (email: string, password: string, remember = true) => {
+    localStorage.setItem(REMEMBER_KEY, remember ? '1' : '0');
+    if (configureAuthStorage(remember ? localStorage : sessionStorage)) {
+      bindAuthStateListener({ set, get });
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       throw new Error(error.message === 'Invalid login credentials' ? 'Kullanıcı adı veya şifre hatalı.' : error.message);

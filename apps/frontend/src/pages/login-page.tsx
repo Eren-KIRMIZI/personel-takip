@@ -1,18 +1,56 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, Lock, Mail, Sparkles, Database } from 'lucide-react';
+import {
+  Users, Lock, Mail, Sparkles, Database, Eye, EyeOff, Check, ArrowRight,
+  CalendarDays, QrCode, Wallet, Clock,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
 import { prefetchWarmupChunks, prefetchEverything, type ProgressState } from '@/lib/prefetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+
+function LogoMark({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/25', className)}>
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <path d="M4.5 20.5V6.6a1.6 1.6 0 0 1 1.6-1.6h7.3v15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M13.4 20.5V9.6h4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M13.4 20.5h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M4.5 9.6h7.3M4.5 13.1h7.3M4.5 16.6h7.3" stroke="currentColor" strokeWidth="1.1" opacity="0.7" />
+        <circle cx="10.6" cy="6.9" r="1.6" fill="#BFDBFE" />
+        <path d="M8.8 12.4a1.8 1.8 0 0 1 3.6 0" fill="#BFDBFE" />
+        <path d="M13.4 7.6c.9.3 1.5 1 2 1.9l1.8 1.1" stroke="#93C5FD" strokeWidth="1.2" strokeLinecap="round" />
+        <circle cx="18.6" cy="11.4" r="1.25" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    </div>
+  );
+}
+
+const FEATURES: { icon: typeof Users; label: string }[] = [
+  { icon: Users, label: 'Personel Yönetimi' },
+  { icon: CalendarDays, label: 'İzin ve Puantaj' },
+  { icon: Clock, label: 'Mesai ve Vardiya' },
+  { icon: Wallet, label: 'Maaş ve Ödemeler' },
+  { icon: QrCode, label: 'Görev ve Zimmet' },
+  { icon: Check, label: 'Raporlama' },
+];
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  const [forgotEmail, setForgotEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
   const [progress, setProgress] = useState<ProgressState | null>(null);
   const session     = useAuthStore((s) => s.session);
   const initialized = useAuthStore((s) => s.initialized);
@@ -40,7 +78,7 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
+      await signIn(email.trim(), password, remember);
 
       // Başarılı girişten sonra 15 saniyelik derinlemesine ön yükleme ve ısınma motorunu çalıştır
       await prefetchEverything((state) => {
@@ -55,48 +93,187 @@ export function LoginPage() {
     }
   };
 
+  const onForgot = async (event: FormEvent) => {
+    event.preventDefault();
+    setResetError(null);
+    setResetMessage(null);
+    setResetLoading(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail((forgotEmail || email).trim(), {
+        redirectTo: window.location.origin,
+      });
+      if (resetErr) {
+        throw new Error(resetErr.message);
+      }
+      setResetMessage('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.');
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Sıfırlama bağlantısı gönderilemedi.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const switchMode = (next: 'login' | 'forgot') => {
+    setMode(next);
+    setError(null);
+    setResetError(null);
+    setResetMessage(null);
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/20 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-sm space-y-8 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col items-center text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/20">
-            <Users className="size-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-display">
-            Personel ve İK
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Kurum hesabınızla sisteme giriş yapın
-          </p>
+    <div className="flex min-h-screen bg-background">
+      {/* Sol: kurumsal marka paneli */}
+      <aside className="relative hidden overflow-hidden bg-slate-950 text-white lg:flex lg:w-[46%] xl:w-[42%]">
+        {/* Arka plan dokuları */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-32 size-[30rem] rounded-full bg-primary/25 blur-3xl" />
+          <div className="absolute -bottom-24 -right-16 size-[26rem] rounded-full bg-blue-500/10 blur-3xl" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,#94A3B8_1px,transparent_1px),linear-gradient(to_bottom,#94A3B8_1px,transparent_1px)] [background-size:44px_44px]" />
+        {/* Soluk dashboard kalıntıları */}
+        <div className="pointer-events-none absolute inset-0">
+          <CalendarDays className="absolute left-[8%] top-[30%] size-24 rotate-[-8deg] text-primary opacity-[0.07]" />
+          <Users className="absolute left-[55%] top-[12%] size-28 rotate-6 text-primary opacity-[0.07]" />
+          <QrCode className="absolute left-[70%] top-[55%] size-24 text-primary opacity-[0.06]" />
+          <Clock className="absolute left-[12%] top-[68%] size-20 text-primary opacity-[0.06]" />
         </div>
 
-        {/* Form Container or Progress Screen */}
-        <div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-[var(--shadow-md)]">
-          {progress ? (
-            <div className="space-y-6 py-2 animate-fade-in text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary animate-pulse">
+        <div className="relative z-10 flex w-full flex-col justify-between gap-12 p-12">
+          {/* Marka */}
+          <div className="flex items-center gap-3">
+            <LogoMark className="shadow-none shadow-primary/30" />
+            <div>
+              <p className="font-display text-xl font-bold tracking-tight">Personel ve İK</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-blue-200/70">
+                İnsan Kaynakları Yönetim Sistemi
+              </p>
+            </div>
+          </div>
+
+          {/* Değer önerisi */}
+          <div className="max-w-md space-y-8">
+            <div className="space-y-3">
+              <h2 className="font-display text-3xl font-bold leading-tight tracking-tight">
+                Tek platform. Tüm personel süreçleri.
+              </h2>
+              <p className="text-sm leading-relaxed text-blue-100/70">
+                Personel yönetimi, puantaj, maaş, mesai, görev ve zimmet süreçlerinizi tek merkezden güvenle yönetin.
+              </p>
+            </div>
+
+            <ul className="space-y-3">
+              {FEATURES.map((f) => (
+                <li key={f.label} className="flex items-center gap-3 text-sm text-blue-50/90">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/10 ring-1 ring-white/10">
+                    <f.icon className="size-3.5 text-blue-200" />
+                  </span>
+                  {f.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Alt bilgi */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-blue-100/40">© 2026 Personel ve İK</p>
+            <span className="flex items-center gap-1.5 text-xs text-blue-100/40">
+              <span className="size-1.5 rounded-full bg-emerald-400" />
+              Güvenli kimlik doğrulama
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Sağ: giriş formu */}
+      <main className="flex flex-1 items-center justify-center bg-muted/10 px-6 py-12">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mobil marka */}
+          <div className="flex flex-col items-center gap-3 text-center lg:hidden">
+            <LogoMark />
+            <div>
+              <p className="font-display text-xl font-bold tracking-tight text-foreground">Personel ve İK</p>
+              <p className="text-xs text-muted-foreground">İnsan Kaynakları Yönetim Sistemi</p>
+            </div>
+          </div>
+
+          {/* Başlık */}
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              {mode === 'forgot' ? 'Şifrenizi mi unuttunuz?' : 'Hoş Geldiniz'}
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {mode === 'forgot'
+                ? 'Sıfırlama bağlantısı için e-posta adresinizi girin.'
+                : 'Kurum hesabınızla sisteme giriş yapın.'}
+            </p>
+          </div>
+
+          {mode === 'forgot' ? (
+            <form onSubmit={onForgot} className="space-y-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-email" className="text-sm font-medium">E-posta</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="ornek@kurum.gov.tr"
+                    autoComplete="email"
+                    className="pl-9"
+                    value={forgotEmail || email}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {resetMessage && (
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {resetMessage}
+                </div>
+              )}
+              {resetError && (
+                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {resetError}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" size="lg" disabled={resetLoading}>
+                {resetLoading ? 'Gönderiliyor…' : 'Sıfırlama Bağlantısı Gönder'}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="w-full text-center text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Giriş ekranına dön
+              </button>
+            </form>
+          ) : progress ? (
+            <div className="space-y-6 py-2 text-center">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Sparkles className="size-7" />
               </div>
 
               <div className="space-y-1.5">
-                <h3 className="text-base font-semibold text-foreground font-display">
+                <h3 className="font-display text-base font-semibold text-foreground">
                   Çalışma Alanınız Hazırlanıyor
                 </h3>
-                <p className="text-sm text-muted-foreground min-h-[40px] flex items-center justify-center transition-all duration-200">
+                <p className="flex min-h-[40px] items-center justify-center text-sm text-muted-foreground">
                   {progress.message}
                 </p>
               </div>
 
-              {/* Progress bar */}
+              {/* İlerleme çubuğu */}
               <div className="space-y-2">
-                <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full bg-primary rounded-full transition-all duration-500 ease-out shadow-sm"
+                    className="h-full rounded-full bg-primary shadow-sm"
                     style={{ width: `${progress.percent}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                <div className="flex justify-between text-xs font-medium text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Database className="size-3 text-primary" /> Sistem Isıtılıyor
                   </span>
@@ -113,7 +290,7 @@ export function LoginPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm font-medium">E-posta</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
                     id="email"
                     type="email"
@@ -128,26 +305,50 @@ export function LoginPage() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
-                </div>
+                <label htmlFor="password" className="text-sm font-medium">Şifre</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    className="pl-9"
+                    className="pl-9 pr-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
                 </div>
               </div>
 
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="accent-primary"
+                  />
+                  Beni hatırla
+                </label>
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Şifremi unuttum
+                </button>
+              </div>
+
               {error && (
-                <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 animate-fade-in">
+                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
                 </div>
               )}
@@ -159,13 +360,20 @@ export function LoginPage() {
                     Kimlik Doğrulanıyor…
                   </span>
                 ) : (
-                  'Giriş Yap'
+                  <span className="flex items-center justify-center gap-2">
+                    Giriş Yap
+                    <ArrowRight className="size-4" />
+                  </span>
                 )}
               </Button>
             </form>
           )}
+
+          <p className="text-center text-xs text-muted-foreground">
+            © 2026 Personel ve İK · Kurum içi kullanım içindir
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
