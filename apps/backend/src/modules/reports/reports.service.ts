@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PunchType } from '@prisma/client';
+import { PunchSource, PunchType } from '@prisma/client';
 import ExcelJS from 'exceljs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
@@ -239,6 +239,90 @@ export class ReportsService {
 
     await this.cache.set(cacheKey, result, CacheTTL.DASHBOARD_SUMMARY);
     return result;
+  }
+
+  async attendanceLog(query: ReportQueryDto) {
+    const { from, to } = dateRange(query);
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: {
+        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+        timestamp: { gte: from, lte: to },
+      },
+      select: {
+        employeeId: true,
+        type: true,
+        timestamp: true,
+        source: true,
+        employee: { select: employeeSelect },
+      },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    const map = new Map<
+      string,
+      {
+        employee: (typeof records)[number]['employee'];
+        date: string;
+        checkIn?: { at: Date; source: PunchSource };
+        checkOut?: { at: Date; source: PunchSource };
+      }
+    >();
+
+    for (const r of records) {
+      const date = r.timestamp.toISOString().slice(0, 10);
+      const key = `${r.employeeId}|${date}`;
+      const row =
+        map.get(key) ??
+        { employee: r.employee, date, checkIn: undefined, checkOut: undefined };
+      if (r.type === PunchType.IN) {
+        if (!row.checkIn) row.checkIn = { at: r.timestamp, source: r.source };
+      } else if (!row.checkOut || r.timestamp > row.checkOut.at) {
+        row.checkOut = { at: r.timestamp, source: r.source };
+      }
+      map.set(key, row);
+    }
+
+    const rows = Array.from(map.values()).sort(
+      (a, b) => a.date.localeCompare(b.date) || `${a.employee.lastName} ${a.employee.firstName}`.localeCompare(`${b.employee.lastName} ${b.employee.firstName}`),
+    );
+
+    return {
+      from,
+      to,
+      rows: rows.map((r) => ({
+        ...r,
+        workedMinutes: r.checkIn && r.checkOut && r.checkOut.at > r.checkIn.at ? Math.round((r.checkOut.at.getTime() - r.checkIn.at.getTime()) / 60000) : 0,
+        worked: r.checkIn && r.checkOut && r.checkOut.at > r.checkIn.at ? hoursMin(Math.round((r.checkOut.at.getTime() - r.checkIn.at.getTime()) / 60000)) : undefined,
+      })),
+      meta: { totalRows: rows.length },
+    };
+  }
+
+  async attendanceLogExcel(query: ReportQueryDto) {
+    const { from, to, rows } = await this.attendanceLog(query);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Giriş-Çıkış');
+    ws.addRow(['Tarih', 'Sicil No', 'Personel', 'Giriş', 'Çıkış', 'Çalışılan', 'Giriş Kaynağı', 'Çıkış Kaynağı']);
+    ws.getRow(1).font = { bold: true };
+    const hhmm = (d?: Date) => (d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '-');
+    const src = (s?: PunchSource) => (s ? (s === PunchSource.MANUAL ? 'Manuel' : 'QrSü') : '-');
+    for (const row of rows) {
+      ws.addRow([
+        row.date,
+        row.employee.employeeNo ?? '',
+        `${row.employee.firstName} ${row.employee.lastName}`,
+        hhmm(row.checkIn?.at),
+        hhmm(row.checkOut?.at),
+        row.worked ?? '-',
+        src(row.checkIn?.source),
+        src(row.checkOut?.source),
+      ]);
+    }
+    ws.addRow([]);
+    ws.addRow(['Dönem', from.toISOString().slice(0, 10), '', to.toISOString().slice(0, 10), '', '', '', '']);
+    ws.columns.forEach((col) => (col.width = 16));
+    const buffer = await wb.xlsx.writeBuffer();
+    return this.toFile('giris-cikis-raporu.xlsx', buffer);
   }
 
   async attendanceExcel(query: ReportQueryDto) {

@@ -32,6 +32,7 @@ const schema = z
     internalPhone: z.string().optional().or(z.literal('')),
     externalLine: z.string().optional().or(z.literal('')),
     identityNo: z.string().optional().or(z.literal('')),
+    educationDetail: z.string().optional().or(z.literal('')),
     status: z.enum(['ACTIVE', 'PASSIVE', 'SUSPENDED']),
     departmentId: z.string().optional().or(z.literal('')),
     unitId: z.string().optional().or(z.literal('')),
@@ -67,6 +68,7 @@ const defaultValues: FormValues = {
   internalPhone: '',
   externalLine: '',
   identityNo: '',
+  educationDetail: '',
   status: 'ACTIVE',
   departmentId: '',
   unitId: '',
@@ -130,6 +132,7 @@ export function PersonelEditPage() {
       setValue('firstName', employee.firstName);
       setValue('lastName', employee.lastName);
       setValue('identityNo', employee.identityNo || '');
+      setValue('educationDetail', employee.educationDetail || '');
       setValue('email', employee.email || '');
       setValue('phone', employee.phone || '');
       setValue('workStartDate', employee.workStartDate ? employee.workStartDate.split('T')[0] : '');
@@ -164,6 +167,7 @@ export function PersonelEditPage() {
         internalPhone: values.internalPhone || undefined,
         externalLine: values.externalLine || undefined,
         identityNo: values.identityNo || undefined,
+        educationDetail: values.educationDetail || undefined,
         status: values.status,
         departmentId: values.departmentId || undefined,
         unitId: values.unitId || undefined,
@@ -228,6 +232,10 @@ export function PersonelEditPage() {
             
             <FormField label="TC Kimlik No">
               <Input placeholder="11 Haneli TC No" {...register('identityNo')} />
+            </FormField>
+
+            <FormField label="Diploma / Mezuniyet">
+              <Input placeholder="Örn: KTÜ İnşaat Müh. (2015)" {...register('educationDetail')} />
             </FormField>
             
             <FormField label="E-posta" error={errors.email?.message}>

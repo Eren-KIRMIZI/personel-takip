@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ArrayUnique, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class ScanCardDto {
   @ApiProperty({ description: 'Kart üzerindeki benzersiz ID (cardUid)' })
@@ -23,15 +23,22 @@ export class CreateCardCredentialDto {
   @IsUUID()
   employeeId!: string;
 
-  @ApiProperty({ description: 'Kart üzerindeki benzersiz ID (cardUid)' })
+  @ApiProperty({ description: 'Kart üzerindeki benzersiz ID (15 haneli rakam)' })
   @IsString()
-  @MaxLength(120)
+  @Matches(/^\d{15}$/, { message: 'Kart ID 15 haneli rakam olmalıdır.' })
   cardUid!: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Geçerli olduğu lokasyonlar (boşsa her yerde geçerli)' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  locationIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -41,16 +48,23 @@ export class CreateCardCredentialDto {
 }
 
 export class UpdateCardCredentialDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Kart üzerindeki benzersiz ID (15 haneli rakam)' })
   @IsOptional()
   @IsString()
-  @MaxLength(120)
+  @Matches(/^\d{15}$/, { message: 'Kart ID 15 haneli rakam olmalıdır.' })
   cardUid?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Geçerli olduğu lokasyonlar (boşsa her yerde geçerli)' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  locationIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

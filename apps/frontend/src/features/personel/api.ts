@@ -46,6 +46,7 @@ export interface Employee {
   maritalStatus?: string | null;
   bloodType?: string | null;
   educationLevel?: string | null;
+  educationDetail?: string | null;
   note?: string | null;
   status: EmploymentStatus;
   workStartDate?: string | null;
@@ -98,6 +99,7 @@ export interface CreateEmployeePayload {
   identityNo?: string;
   birthDate?: string;
   workStartDate?: string;
+  educationDetail?: string;
   note?: string;
 }
 

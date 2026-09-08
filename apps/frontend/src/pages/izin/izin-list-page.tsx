@@ -8,6 +8,7 @@ import {
   Ban,
   CalendarDays,
   Filter,
+  FileText,
 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -22,7 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/stores/auth';
-import { leaveApi, formatDate, type LeaveRequest, type LeaveStatus } from '@/features/izin/api';
+import { leaveApi, formatDate, LEAVE_DAY_PART_LABEL, type LeaveRequest, type LeaveStatus } from '@/features/izin/api';
 import { formatError } from '@/lib/utils';
 
 const PAGE_SIZE = 15;
@@ -206,9 +207,27 @@ export function IzinListPage() {
                 </TableCell>
                 <TableCell>
                   <span className="font-mono text-sm">{request.days}</span>
+                  {request.halfDayType && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      {LEAVE_DAY_PART_LABEL[request.halfDayType]}
+                    </span>
+                  )}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={request.description || ''}>
-                  <span className="text-sm text-muted-foreground">{request.description || '-'}</span>
+                <TableCell className="max-w-[200px]" title={request.description || ''}>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground truncate">{request.description || '-'}</span>
+                    {request.documentUrl && (
+                      <a
+                        href={request.documentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FileText className="size-3.5" /> Belge
+                      </a>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={request.status} />

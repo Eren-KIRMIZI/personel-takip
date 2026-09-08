@@ -33,6 +33,12 @@ export class CreateOvertimeDto {
   @Min(0)
   rate?: number;
 
+  @ApiPropertyOptional({ description: 'Çalışılacak alan / yer' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  workArea?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

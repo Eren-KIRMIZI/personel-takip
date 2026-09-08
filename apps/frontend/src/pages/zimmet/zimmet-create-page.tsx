@@ -50,7 +50,7 @@ export function ZimmetCreatePage() {
     <div className="space-y-4">
       <PageHeader
         title="Yeni Zimmet Kaydı"
-        description="Personele verilecek zimmetli malzemeyi kaydedin"
+        description="Personele verilecek zimmetli malzemeyi kaydedin — personel onayından sonra 'Kullanılıyor' durumuna geçer"
         actions={
           <Link to="/zimmet" className={buttonVariants({ variant: 'outline' })}>
             <ArrowLeft /> Listeye Dön

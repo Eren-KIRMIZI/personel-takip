@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 
-export type AssetStatus = 'ASSIGNED' | 'RETURNED' | 'LOST' | 'DAMAGED' | 'SERVICING';
+export type AssetStatus = 'ASSIGNED' | 'PENDING_APPROVAL' | 'REJECTED' | 'RETURNED' | 'RETURN_PENDING' | 'LOST' | 'DAMAGED' | 'SERVICING';
 
 export interface Asset {
   id: string;
@@ -16,6 +16,10 @@ export interface Asset {
   status: AssetStatus;
   note?: string | null;
   issuedById?: string | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
+  rejectedAt?: string | null;
+  returnRequestedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   employee: {
@@ -67,6 +71,14 @@ export const assetApi = {
     api<Asset>(`/api/assets/${id}`, { method: 'PATCH', body: payload }),
   returnItem: (id: string) =>
     api<Asset>(`/api/assets/${id}/return`, { method: 'PATCH' }),
+  approveAssignment: (id: string) =>
+    api<Asset>(`/api/assets/${id}/approve`, { method: 'PATCH' }),
+  rejectAssignment: (id: string, reason?: string) =>
+    api<Asset>(`/api/assets/${id}/reject`, { method: 'PATCH', body: { reason } }),
+  requestReturn: (id: string) =>
+    api<Asset>(`/api/assets/${id}/request-return`, { method: 'PATCH' }),
+  cancelReturn: (id: string) =>
+    api<Asset>(`/api/assets/${id}/cancel-return`, { method: 'PATCH' }),
   updateStatus: (id: string, status: AssetStatus) =>
     api<Asset>(`/api/assets/${id}/status/${status}`, { method: 'PATCH' }),
   remove: (id: string) => api<Asset>(`/api/assets/${id}`, { method: 'DELETE' }),
@@ -75,7 +87,10 @@ export const assetApi = {
 };
 
 export const ASSET_STATUS_META: Record<AssetStatus, { label: string; variant: 'secondary' | 'success' | 'destructive' | 'outline' | 'warning' }> = {
+  PENDING_APPROVAL: { label: 'Onay Bekliyor', variant: 'warning' },
   ASSIGNED: { label: 'Kullanılıyor', variant: 'secondary' },
+  REJECTED: { label: 'Reddedildi', variant: 'destructive' },
+  RETURN_PENDING: { label: 'İade Talep Edildi', variant: 'warning' },
   RETURNED: { label: 'İade edildi', variant: 'success' },
   LOST: { label: 'Kayıp', variant: 'destructive' },
   DAMAGED: { label: 'Arızalı', variant: 'warning' },

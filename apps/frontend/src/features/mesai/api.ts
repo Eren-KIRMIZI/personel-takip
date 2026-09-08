@@ -8,6 +8,7 @@ export interface OvertimeEntry {
   date: string;
   hours: number;
   rate: number;
+  workArea?: string | null;
   description?: string | null;
   status: OvertimeStatus;
   approvedById?: string | null;
@@ -44,6 +45,7 @@ export interface CreateOvertimePayload {
   date: string;
   hours: number;
   rate?: number;
+  workArea?: string;
   description?: string;
 }
 

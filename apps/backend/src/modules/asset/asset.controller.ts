@@ -36,10 +36,34 @@ export class AssetController {
     return this.asset.update(id, dto, user.userId);
   }
 
+  @Patch(':id/approve')
+  @RequirePermissions('asset:approve')
+  approveAssignment(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.asset.approveAssignment(id, user);
+  }
+
+  @Patch(':id/reject')
+  @RequirePermissions('asset:approve')
+  rejectAssignment(@Param('id') id: string, @Body() body: { reason?: string }, @CurrentUser() user: AuthenticatedUser) {
+    return this.asset.rejectAssignment(id, user, body.reason);
+  }
+
+  @Patch(':id/request-return')
+  @RequirePermissions('asset:approve')
+  requestReturn(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.asset.requestReturn(id, user);
+  }
+
   @Patch(':id/return')
   @RequirePermissions('asset:return')
   returnItem(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.asset.returnItem(id, user.userId);
+  }
+
+  @Patch(':id/cancel-return')
+  @RequirePermissions('asset:return')
+  cancelReturn(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.asset.cancelReturn(id, user.userId);
   }
 
   @Patch(':id/status/:status')

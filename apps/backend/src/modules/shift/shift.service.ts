@@ -79,6 +79,8 @@ export class ShiftService {
     const shift = await this.prisma.shift.findUnique({ where: { id: dto.shiftId } });
     if (!shift) throw new NotFoundException('Vardiya bulunamadı.');
 
+    const days = this.resolveDays(dto.days, dto.day);
+
     if (dto.employeeIds?.length) {
       const employees = await this.prisma.employee.findMany({
         where: { id: { in: dto.employeeIds } },
@@ -87,21 +89,23 @@ export class ShiftService {
       if (employees.length !== dto.employeeIds.length) {
         throw new NotFoundException('Bazı personeller bulunamadı.');
       }
-      const data = dto.employeeIds.map((eid) => ({
-        employeeId: eid,
-        shiftId: dto.shiftId,
-        day: dto.day,
-        createdById: actorUserId,
-      }));
+      const data = dto.employeeIds.flatMap((eid) =>
+        days.map((day) => ({
+          employeeId: eid,
+          shiftId: dto.shiftId,
+          day,
+          createdById: actorUserId,
+        })),
+      );
       const result = await this.prisma.shiftAssignment.createMany({ data, skipDuplicates: true });
       await this.audit.log({
         actorUserId,
         action: 'shift.assign',
         entityType: 'shift_assignment',
         entityId: dto.shiftId,
-        after: { count: result.count, day: dto.day, employeeCount: dto.employeeIds.length },
+        after: { count: result.count, days, employeeCount: dto.employeeIds.length },
       });
-      return { assigned: result.count, skipped: dto.employeeIds.length - result.count };
+      return { assigned: result.count, skipped: dto.employeeIds.length * days.length - result.count, days };
     }
     throw new BadRequestException('employeeIds gerekli.');
   }
@@ -116,21 +120,30 @@ export class ShiftService {
     if (employees.length !== dto.employeeIds.length) {
       throw new NotFoundException('Bazı personeller bulunamadı.');
     }
-    const data = dto.employeeIds.map((eid) => ({
-      employeeId: eid,
-      shiftId: dto.shiftId,
-      day: dto.day,
-      createdById: actorUserId,
-    }));
+    const days = this.resolveDays(dto.days, dto.day);
+    const data = dto.employeeIds.flatMap((eid) =>
+      days.map((day) => ({
+        employeeId: eid,
+        shiftId: dto.shiftId,
+        day,
+        createdById: actorUserId,
+      })),
+    );
     const result = await this.prisma.shiftAssignment.createMany({ data, skipDuplicates: true });
     await this.audit.log({
       actorUserId,
       action: 'shift.assign',
       entityType: 'shift_assignment',
       entityId: dto.shiftId,
-      after: { count: result.count, day: dto.day, employeeCount: dto.employeeIds.length },
+      after: { count: result.count, days, employeeCount: dto.employeeIds.length },
     });
-    return { assigned: result.count, skipped: dto.employeeIds.length - result.count };
+    return { assigned: result.count, skipped: dto.employeeIds.length * days.length - result.count, days };
+  }
+
+  private resolveDays(days?: ShiftDay[], legacyDay?: ShiftDay): ShiftDay[] {
+    const resolved = days?.length ? days : legacyDay ? [legacyDay] : [];
+    if (!resolved.length) throw new BadRequestException('En az bir gün seçilmelidir.');
+    return resolved;
   }
 
   async removeAssignment(id: string, actorUserId: string) {

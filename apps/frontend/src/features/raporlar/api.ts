@@ -33,6 +33,15 @@ export interface LeaveSummaryRow {
   byType: Record<string, number>;
 }
 
+export interface AttendanceLogRow {
+  employee: EmployeeRef;
+  date: string;
+  checkIn?: { at: string; source: 'QR' | 'MANUAL' | 'PDKS' | 'CARD' } | null;
+  checkOut?: { at: string; source: 'QR' | 'MANUAL' | 'PDKS' | 'CARD' } | null;
+  workedMinutes: number;
+  worked?: string | null;
+}
+
 export interface DashboardSummary {
   today: string;
   employeesActive: number;
@@ -66,6 +75,8 @@ export const reportsApi = {
   overtimesExcel: (params?: ReportParams) => api<ExcelFile>('/api/reports/overtimes/excel', params ? { query: { ...params } } : {}),
   leaves: (params?: ReportParams) => api<{ from: string; to: string; summary: LeaveSummaryRow[]; meta: { totalDays: number; records: number } }>('/api/reports/leaves', params ? { query: { ...params } } : {}),
   leavesExcel: (params?: ReportParams) => api<ExcelFile>('/api/reports/leaves/excel', params ? { query: { ...params } } : {}),
+  attendanceLog: (params?: ReportParams) => api<{ from: string; to: string; rows: AttendanceLogRow[]; meta: { totalRows: number } }>('/api/reports/attendance-log', params ? { query: { ...params } } : {}),
+  attendanceLogExcel: (params?: ReportParams) => api<ExcelFile>('/api/reports/attendance-log/excel', params ? { query: { ...params } } : {}),
 };
 
 export function downloadExcel(file: ExcelFile) {

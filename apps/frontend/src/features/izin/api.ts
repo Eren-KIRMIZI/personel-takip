@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type LeaveDayPart = 'MORNING' | 'AFTERNOON';
 
 export interface LeaveType {
   id: string;
@@ -22,6 +23,7 @@ export interface LeaveRequest {
   days: number;
   description?: string | null;
   documentUrl?: string | null;
+  halfDayType?: LeaveDayPart | null;
   status: LeaveStatus;
   approvedById?: string | null;
   approvedAt?: string | null;
@@ -53,6 +55,8 @@ export interface CreateLeaveRequestPayload {
   startDate: string;
   endDate: string;
   description?: string;
+  documentUrl?: string;
+  halfDayType?: LeaveDayPart;
 }
 
 export const leaveApi = {
@@ -78,6 +82,11 @@ export const LEAVE_STATUS_META: Record<LeaveStatus, { label: string; variant: 's
   APPROVED: { label: 'Onaylandı', variant: 'success' },
   REJECTED: { label: 'Reddedildi', variant: 'destructive' },
   CANCELLED: { label: 'İptal', variant: 'outline' },
+};
+
+export const LEAVE_DAY_PART_LABEL: Record<LeaveDayPart, string> = {
+  MORNING: 'Sabah',
+  AFTERNOON: 'Öğleden Sonra',
 };
 
 export function formatDate(iso: string): string {

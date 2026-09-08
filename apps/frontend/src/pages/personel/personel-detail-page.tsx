@@ -173,6 +173,7 @@ export function PersonelDetailPage() {
               <InfoField label="Medeni Durum" value={employee.maritalStatus} />
               <InfoField label="Kan Grubu" value={employee.bloodType} />
               <InfoField label="Öğrenim Durumu" value={employee.educationLevel} />
+              <InfoField label="Diploma / Mezuniyet" value={employee.educationDetail} />
               <div className="col-span-full">
                 <InfoField label="Not" value={employee.note} />
               </div>

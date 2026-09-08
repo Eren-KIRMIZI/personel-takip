@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PunchSource, PunchType } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, PunchSource, PunchType, type CardReader } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -14,6 +14,7 @@ import {
 
 const cardCredentialInclude = {
   employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true } },
+  locations: { include: { location: { select: { id: true, name: true } } } },
 } as const;
 
 const cardReaderInclude = {
@@ -33,7 +34,10 @@ export class CardService {
   async scan(dto: ScanCardDto, actor: { userId: string; employeeId?: string | null }) {
     const credential = await this.prisma.cardCredential.findUnique({
       where: { cardUid: dto.cardUid },
-      include: { employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true } } },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true } },
+        locations: { include: { location: { select: { id: true } } } },
+      },
     });
     if (!credential) throw new BadRequestException('Bu kart hiçbir personele tanımlı değil.');
     if (!credential.isActive) throw new BadRequestException('Bu kart pasif durumda.');
@@ -42,11 +46,18 @@ export class CardService {
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
 
-    let reader = null;
+    let reader: CardReader | null = null;
     if (dto.readerId) {
       reader = await this.prisma.cardReader.findUnique({ where: { id: dto.readerId } });
       if (!reader) throw new NotFoundException('Kart okuyucu cihazı bulunamadı.');
       if (!reader.isActive) throw new BadRequestException('Kart okuyucu cihazı pasif durumda.');
+
+      // Lokasyon yetkisi kontrolü: kart belirli lokasyonlara tanımlıysa okutma yalnızca o lokasyonlarda geçerli
+      if (credential.locations.length > 0 && reader.locationId) {
+        const readerLocationId = reader.locationId;
+        const allowed = credential.locations.some((l) => l.location.id === readerLocationId);
+        if (!allowed) throw new ForbiddenException('Bu kart bu konum için yetkili değil.');
+      }
     }
 
     // QR akışıyla birebir aynı toggle mantığı: son kayıt OUT/boş ise IN, IN ise OUT
@@ -131,6 +142,9 @@ export class CardService {
         cardUid: dto.cardUid,
         isActive: dto.isActive ?? true,
         note: dto.note ?? null,
+        ...(dto.locationIds?.length
+          ? { locations: { create: dto.locationIds.map((locationId) => ({ locationId })) } }
+          : {}),
       },
       include: cardCredentialInclude,
     });
@@ -154,14 +168,25 @@ export class CardService {
       if (dup) throw new BadRequestException('Bu kart ID zaten başka bir personele tanımlı.');
     }
 
-    const updated = await this.prisma.cardCredential.update({
-      where: { id },
-      data: {
-        cardUid: dto.cardUid ?? undefined,
-        isActive: dto.isActive ?? undefined,
-        note: dto.note ?? undefined,
-      },
-      include: cardCredentialInclude,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (dto.locationIds !== undefined) {
+        await tx.cardCredentialLocation.deleteMany({ where: { credentialId: id } });
+        if (dto.locationIds.length) {
+          await tx.cardCredentialLocation.createMany({
+            data: dto.locationIds.map((locationId) => ({ credentialId: id, locationId })),
+            skipDuplicates: true,
+          });
+        }
+      }
+      return tx.cardCredential.update({
+        where: { id },
+        data: {
+          cardUid: dto.cardUid ?? undefined,
+          isActive: dto.isActive ?? undefined,
+          note: dto.note !== undefined ? dto.note : undefined,
+        },
+        include: cardCredentialInclude,
+      });
     });
 
     await this.audit.log({

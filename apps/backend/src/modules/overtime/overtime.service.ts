@@ -64,6 +64,7 @@ export class OvertimeService {
         date: new Date(dto.date),
         hours: dto.hours,
         rate: dto.rate ?? 1,
+        workArea: dto.workArea ?? null,
         description: dto.description ?? null,
       },
       include: overtimeInclude,

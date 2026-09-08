@@ -116,6 +116,11 @@ export class CreateEmployeeDto {
   @IsString()
   educationLevel?: string;
 
+  @ApiPropertyOptional({ description: 'Öğrenim / diploma detayı' })
+  @IsOptional()
+  @IsString()
+  educationDetail?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

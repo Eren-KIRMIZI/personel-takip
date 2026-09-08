@@ -171,6 +171,11 @@ function OvertimeCard({
         </div>
 
         {/* Description */}
+        {entry.workArea && (
+          <div className="rounded-lg bg-muted/40 border border-border/60 px-3 py-2 mb-3 text-sm">
+            <span className="font-medium">Çalışılacak alan:</span> {entry.workArea}
+          </div>
+        )}
         {entry.description && (
           <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
             {entry.description}

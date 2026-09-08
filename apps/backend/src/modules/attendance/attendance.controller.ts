@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import {
+  AttendanceDailyQueryDto,
   AttendanceListQueryDto,
   CreateAttendanceDto,
   CreateQrCodeDto,
@@ -22,6 +23,12 @@ export class AttendanceController {
   @RequirePermissions('attendance:read')
   list(@Query() query: AttendanceListQueryDto, @CurrentUser() user: AuthenticatedUser) {
     return this.attendance.list(query, user);
+  }
+
+  @Get('daily')
+  @RequirePermissions('attendance:read')
+  daily(@Query() query: AttendanceDailyQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.attendance.daily(query, user);
   }
 
   @Post()

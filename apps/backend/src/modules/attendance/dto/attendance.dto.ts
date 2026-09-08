@@ -49,6 +49,27 @@ export class AttendanceListQueryDto extends ListQueryDto {
   pageSize?: number = 20;
 }
 
+export class AttendanceDailyQueryDto {
+  @ApiProperty({ type: String, format: 'date' })
+  @IsDateString()
+  day!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  page?: number = 1;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  pageSize?: number = 20;
+}
+
 export class CreateAttendanceDto {
   @ApiProperty()
   @IsUUID()

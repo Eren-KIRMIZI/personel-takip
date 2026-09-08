@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { LeaveStatus, Prisma } from '@prisma/client';
+import { LeaveDayPart, LeaveStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../common/cache/cache.service';
@@ -148,10 +148,24 @@ export class LeaveService {
     const isAdmin = actor.roles.includes('ADMIN');
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
-    await this.prisma.leaveType.findUniqueOrThrow({ where: { id: dto.leaveTypeId } });
+    const leaveType = await this.prisma.leaveType.findUniqueOrThrow({ where: { id: dto.leaveTypeId } });
 
-    const days = this.calculateDays(dto.startDate, dto.endDate);
+    let days = this.calculateDays(dto.startDate, dto.endDate);
     if (days <= 0) throw new BadRequestException('Bitiş tarihi başlangıçtan önce olamaz.');
+
+    // Süt izni yalnızca yarım gün ve tek gün olarak verilebilir
+    const isMaternity = leaveType.code === 'maternity';
+    if (isMaternity) {
+      if (!dto.halfDayType) {
+        throw new BadRequestException('Süt izni için yarım gün seçimi zorunludur (Sabah / Öğleden Sonra).');
+      }
+      if (dto.startDate !== dto.endDate) {
+        throw new BadRequestException('Süt izni yalnızca tek gün için verilebilir.');
+      }
+      days = 0.5;
+    } else if (dto.halfDayType) {
+      throw new BadRequestException('Yarım gün seçimi yalnızca Süt izni türünde kullanılabilir.');
+    }
 
     await this.assertNoOverlap(dto.employeeId, dto.startDate, dto.endDate, isAdmin);
 
@@ -164,6 +178,7 @@ export class LeaveService {
         days,
         description: dto.description ?? null,
         documentUrl: dto.documentUrl ?? null,
+        halfDayType: dto.halfDayType ?? null,
       },
       include: requestInclude,
     });

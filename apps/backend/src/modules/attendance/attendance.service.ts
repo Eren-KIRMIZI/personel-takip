@@ -6,6 +6,7 @@ import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { employeeScopedWhere } from '../../common/scope';
 import {
+  AttendanceDailyQueryDto,
   AttendanceListQueryDto,
   CreateAttendanceDto,
   CreateQrCodeDto,
@@ -54,6 +55,63 @@ export class AttendanceService {
       this.prisma.attendanceRecord.count({ where }),
     ]);
     return { items, total, page, pageSize };
+  }
+
+  async daily(query: AttendanceDailyQueryDto, actor: AuthenticatedUser) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const dayStart = new Date(`${query.day}T00:00:00`);
+    const dayEnd = new Date(`${query.day}T23:59:59.999`);
+
+    const base: Prisma.AttendanceRecordWhereInput = {
+      timestamp: { gte: dayStart, lte: dayEnd },
+    };
+    if (query.employeeId) base.employeeId = query.employeeId;
+
+    const where = employeeScopedWhere(actor, base);
+
+    const records = await this.prisma.attendanceRecord.findMany({
+      where,
+      include: attendanceInclude,
+      orderBy: { timestamp: 'asc' },
+    });
+
+    const byEmployee = new Map<
+      string,
+      {
+        employee: (typeof records)[number]['employee'];
+        checkIn?: (typeof records)[number];
+        checkOut?: (typeof records)[number];
+      }
+    >();
+
+    for (const r of records) {
+      let acc = byEmployee.get(r.employeeId);
+      if (!acc) {
+        acc = { employee: r.employee };
+        byEmployee.set(r.employeeId, acc);
+      }
+      if (r.type === PunchType.IN) {
+        if (!acc.checkIn) acc.checkIn = r;
+      } else {
+        if (!acc.checkOut || r.timestamp > acc.checkOut.timestamp) acc.checkOut = r;
+      }
+    }
+
+    const total = byEmployee.size;
+    const items = Array.from(byEmployee.values())
+      .sort((a, b) => `${a.employee.firstName} ${a.employee.lastName}`.localeCompare(`${b.employee.firstName} ${b.employee.lastName}`))
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((acc) => ({
+        id: acc.checkIn?.id ?? acc.checkOut?.id ?? null,
+        employee: acc.employee,
+        day: query.day,
+        checkIn: acc.checkIn ? { id: acc.checkIn.id, at: acc.checkIn.timestamp, source: acc.checkIn.source, location: acc.checkIn.location } : null,
+        checkOut: acc.checkOut ? { id: acc.checkOut.id, at: acc.checkOut.timestamp, source: acc.checkOut.source, location: acc.checkOut.location } : null,
+      }));
+
+    return { items, total, page, pageSize, day: query.day };
   }
 
   async punch(dto: CreateAttendanceDto, actorUserId: string) {

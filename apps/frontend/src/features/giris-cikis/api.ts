@@ -46,6 +46,21 @@ export interface PunchResult {
   location?: { id: string; name: string } | null;
 }
 
+export interface DailyPunchRef {
+  id: string;
+  at: string;
+  source: PunchSource;
+  location?: { id: string; name: string; address?: string | null } | null;
+}
+
+export interface DailyAttendanceRow {
+  id: string | null;
+  employee: { id: string; firstName: string; lastName: string; employeeNo?: string | null };
+  day: string;
+  checkIn?: DailyPunchRef | null;
+  checkOut?: DailyPunchRef | null;
+}
+
 interface AttendanceListParams {
   page?: number;
   pageSize?: number;
@@ -73,6 +88,8 @@ interface CreateQrPayload {
 export const attendanceApi = {
   list: (params?: AttendanceListParams) =>
     api<Paginated<AttendanceEntry>>('/api/attendance', params ? { query: { ...params } } : {}),
+  daily: (day: string, params?: { page?: number; pageSize?: number; employeeId?: string }) =>
+    api<Paginated<DailyAttendanceRow>>('/api/attendance/daily', { query: { day, ...params } }),
   punch: (payload: ManualPunchPayload) =>
     api<AttendanceEntry>('/api/attendance', { method: 'POST', body: payload }),
   update: (id: string, payload: { type?: PunchType; timestamp?: string; locationId?: string }) =>

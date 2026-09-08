@@ -10,6 +10,7 @@ export interface CardCredential {
   createdAt: string;
   updatedAt: string;
   employee: { id: string; firstName: string; lastName: string; employeeNo?: string | null };
+  locations?: { id: string; location: { id: string; name: string } }[];
 }
 
 export interface CardReader {
@@ -44,12 +45,14 @@ interface CreateCredentialPayload {
   employeeId: string;
   cardUid: string;
   isActive?: boolean;
+  locationIds?: string[];
   note?: string;
 }
 
 interface UpdateCredentialPayload {
   cardUid?: string;
   isActive?: boolean;
+  locationIds?: string[];
   note?: string;
 }
 

@@ -53,9 +53,9 @@ export const shiftApi = {
   }) => api<ShiftItem>('/api/shifts', { method: 'POST', body: payload }),
   assignments: (params?: { employeeId?: string; shiftId?: string; day?: ShiftDay }) =>
     api<ShiftAssignment[]>('/api/shifts/assignments', params ? { query: { ...params } } : {}),
-  assign: (payload: { shiftId: string; day: ShiftDay; employeeIds: string[] }) =>
+  assign: (payload: { shiftId: string; employeeIds: string[]; days?: ShiftDay[]; day?: ShiftDay }) =>
     api<{ assigned: number; skipped: number }>('/api/shifts/assignments', { method: 'POST', body: payload }),
-  bulkAssign: (payload: { shiftId: string; day: ShiftDay; employeeIds: string[] }) =>
+  bulkAssign: (payload: { shiftId: string; employeeIds: string[]; days?: ShiftDay[]; day?: ShiftDay }) =>
     api<{ assigned: number; skipped: number }>('/api/shifts/assignments/bulk', { method: 'POST', body: payload }),
   removeAssignment: (id: string) => api<{ deleted: boolean }>(`/api/shifts/assignments/${id}`, { method: 'DELETE' }),
   remove: (id: string) => api<{ deleted: boolean }>(`/api/shifts/${id}`, { method: 'DELETE' }),

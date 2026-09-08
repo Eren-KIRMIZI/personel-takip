@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Plus, RotateCcw } from 'lucide-react';
+import { Archive, Check, Plus, RotateCcw, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/auth';
@@ -21,11 +22,14 @@ const PAGE_SIZE = 15;
 export function ZimmetListPage() {
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const profile = useAuthStore((s) => s.profile);
 
   const [status, setStatus] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [returnTarget, setReturnTarget] = useState<Asset | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Asset | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -39,12 +43,42 @@ export function ZimmetListPage() {
       }),
   });
 
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['assets'] });
+
   const returnMutation = useMutation({
     mutationFn: () => assetApi.returnItem(returnTarget!.id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+      await invalidate();
       setReturnTarget(null);
     },
+    onError: (error) => setErrorMessage(formatError(error)),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => assetApi.approveAssignment(id),
+    onSuccess: async () => invalidate(),
+    onError: (error) => setErrorMessage(formatError(error)),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => assetApi.rejectAssignment(rejectTarget!.id, rejectReason.trim() || undefined),
+    onSuccess: async () => {
+      await invalidate();
+      setRejectTarget(null);
+      setRejectReason('');
+    },
+    onError: (error) => setErrorMessage(formatError(error)),
+  });
+
+  const requestReturnMutation = useMutation({
+    mutationFn: (id: string) => assetApi.requestReturn(id),
+    onSuccess: async () => invalidate(),
+    onError: (error) => setErrorMessage(formatError(error)),
+  });
+
+  const cancelReturnMutation = useMutation({
+    mutationFn: (id: string) => assetApi.cancelReturn(id),
+    onSuccess: async () => invalidate(),
     onError: (error) => setErrorMessage(formatError(error)),
   });
 
@@ -135,6 +169,78 @@ export function ZimmetListPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
+                    {entry.status === 'PENDING_APPROVAL' && profile?.employeeId === entry.employeeId && hasPermission('asset:approve') && (
+                      <>
+                        <Button
+                          variant="success"
+                          size="sm"
+                          title="Zimmeti onayla"
+                          disabled={approveMutation.isPending}
+                          onClick={() => approveMutation.mutate(entry.id)}
+                        >
+                          <Check className="mr-1 h-3 w-3" /> Onayla
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          title="Zimmeti reddet"
+                          onClick={() => { setRejectTarget(entry); setRejectReason(''); }}
+                        >
+                          <X className="mr-1 h-3 w-3" /> Reddet
+                        </Button>
+                      </>
+                    )}
+
+                    {entry.status === 'ASSIGNED' && profile?.employeeId === entry.employeeId && hasPermission('asset:approve') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="İade talebi oluştur"
+                        disabled={requestReturnMutation.isPending}
+                        onClick={() => requestReturnMutation.mutate(entry.id)}
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" /> İade Talep Et
+                      </Button>
+                    )}
+
+                    {entry.status === 'RETURN_PENDING' && (
+                      <>
+                        {profile?.employeeId === entry.employeeId && hasPermission('asset:approve') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="İade talebini geri çek"
+                            disabled={cancelReturnMutation.isPending}
+                            onClick={() => cancelReturnMutation.mutate(entry.id)}
+                          >
+                            <RotateCcw className="mr-1 h-3 w-3" /> Geri Çek
+                          </Button>
+                        )}
+                        {hasPermission('asset:return') && (
+                          <Button
+                            variant="success"
+                            size="sm"
+                            title="İadeyi onayla"
+                            disabled={returnMutation.isPending}
+                            onClick={() => setReturnTarget(entry)}
+                          >
+                            <Check className="mr-1 h-3 w-3" /> İade Onayla
+                          </Button>
+                        )}
+                        {hasPermission('asset:return') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="İade talebini reddet"
+                            disabled={cancelReturnMutation.isPending}
+                            onClick={() => cancelReturnMutation.mutate(entry.id)}
+                          >
+                            <X className="mr-1 h-3 w-3" /> Reddet
+                          </Button>
+                        )}
+                      </>
+                    )}
+
                     {entry.status === 'ASSIGNED' && hasPermission('asset:return') && (
                       <Button
                         variant="outline"
@@ -181,6 +287,30 @@ export function ZimmetListPage() {
         }
       >
         <></>
+      </Dialog>
+
+      <Dialog
+        open={rejectTarget !== null}
+        onClose={() => setRejectTarget(null)}
+        title="Zimmet Reddi"
+        description={rejectTarget ? `${rejectTarget.employee.firstName} ${rejectTarget.employee.lastName} üzerindeki "${rejectTarget.name}" zimmeti reddedilecek.` : undefined}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>Vazgeç</Button>
+            <Button variant="destructive" disabled={rejectMutation.isPending} onClick={() => rejectMutation.mutate()}>
+              {rejectMutation.isPending ? 'Reddediliyor…' : 'Reddet'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 pt-2">
+          <Label>Red nedeni</Label>
+          <Input
+            placeholder="Opsiyonel — gerekçe bildirilebilir"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          />
+        </div>
       </Dialog>
     </div>
   );

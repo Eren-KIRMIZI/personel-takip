@@ -22,6 +22,7 @@ export function MesaiCreatePage() {
   const [date, setDate] = useState('');
   const [hours, setHours] = useState('');
   const [rate, setRate] = useState('1');
+  const [workArea, setWorkArea] = useState('');
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -46,6 +47,7 @@ export function MesaiCreatePage() {
         date,
         hours: Number(hours),
         rate: Number(rate) || 1,
+        workArea: workArea.trim() || undefined,
         description: description.trim() || undefined,
       }),
     onSuccess: async () => {
@@ -106,6 +108,11 @@ export function MesaiCreatePage() {
           <div className="space-y-2">
             <Label>Katsayı</Label>
             <Input type="number" min="0" step="0.1" value={rate} onChange={(e) => setRate(e.target.value)} />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label>Çalışılacak Alan</Label>
+            <Input value={workArea} onChange={(e) => setWorkArea(e.target.value)} placeholder="Örn: Bölge 3, Depo B..." />
           </div>
 
           <div className="space-y-2 md:col-span-2">

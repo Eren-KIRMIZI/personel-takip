@@ -5,7 +5,6 @@ import { ArrowLeft, Trash2, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,7 @@ export function VardiyaAtamaPage() {
   };
 
   const assignMutation = useMutation({
-    mutationFn: (payload: { day: ShiftDay; employeeIds: string[] }) => shiftApi.assign({ shiftId, ...payload }),
+    mutationFn: (payload: { days: ShiftDay[]; employeeIds: string[] }) => shiftApi.assign({ shiftId, ...payload }),
     onSuccess: async () => {
       await invalidate();
       setAssignOpen(false);
@@ -148,11 +147,11 @@ function AssignDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (payload: { day: ShiftDay; employeeIds: string[] }) => void;
+  onSubmit: (payload: { days: ShiftDay[]; employeeIds: string[] }) => void;
   pending: boolean;
 }) {
   const { id: shiftId = '' } = useParams();
-  const [day, setDay] = useState<ShiftDay>('MON');
+  const [days, setDays] = useState<ShiftDay[]>(['MON']);
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const { data: employees } = useQuery({ queryKey: ['employees-all'], queryFn: () => employeesApi.list({ pageSize: 500 }) });
   const { data: shift } = useQuery({ queryKey: ['shift', shiftId], queryFn: () => shiftApi.list().then((s) => s.find((x) => x.id === shiftId)) });
@@ -163,44 +162,59 @@ function AssignDialog({
   });
 
   const submit = () => {
-    if (!employeeIds.length) return;
-    onSubmit({ day, employeeIds });
+    if (!days.length || !employeeIds.length) return;
+    onSubmit({ days, employeeIds });
     setEmployeeIds([]);
+  };
+
+  const toggleDay = (d: ShiftDay) => {
+    setDays((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d]));
   };
 
   const toggle = (id: string) => {
     setEmployeeIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   };
 
+  const alreadyInAnySelectedDay = (empId: string) =>
+    assignedIds.data?.some((a) => a.employeeId === empId && days.includes(a.day)) ?? false;
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title="Vardiya Ataması"
-      description={`${shift?.name ?? 'Vardiya'} — gün ve personeller`}
+      description={`${shift?.name ?? 'Vardiya'} — günler ve personeller`}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Vazgeç</Button>
-          <Button disabled={!employeeIds.length || pending} onClick={submit}>
-            {pending ? 'Atanıyor…' : `${employeeIds.length} personel ata`}
+          <Button disabled={!days.length || !employeeIds.length || pending} onClick={submit}>
+            {pending ? 'Atanıyor…' : `${employeeIds.length} personel · ${days.length} gün ata`}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <div className="space-y-2">
-          <Label>Gün *</Label>
-          <Select value={day} onChange={(e) => setDay(e.target.value as ShiftDay)}>
+          <Label>Günler *</Label>
+          <div className="grid grid-cols-2 gap-1.5">
             {SHIFT_DAY_ORDER.map((d) => (
-              <option key={d} value={d}>{SHIFT_DAY_LABEL[d]}</option>
+              <label key={d} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={days.includes(d)}
+                  onChange={() => toggleDay(d)}
+                />
+                {SHIFT_DAY_LABEL[d]}
+              </label>
             ))}
-          </Select>
+          </div>
         </div>
         <div className="space-y-2">
-          <Label>Seçili günde zaten atananlar gizlenir</Label>
+          <Label>Seçili günlerde zaten atananlar gizlenir</Label>
           <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border p-2">
             {employees?.items.map((emp) => {
-              const already = assignedIds.data?.some((a) => a.employeeId === emp.id && a.day === day);
+              const already = alreadyInAnySelectedDay(emp.id);
               return (
                 <label
                   key={emp.id}

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { ArrayUnique, IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { ShiftDay } from '@prisma/client';
 
 export class CreateShiftDto {
@@ -43,9 +43,17 @@ export class AssignShiftDto {
   @IsUUID()
   shiftId!: string;
 
-  @ApiProperty({ enum: ShiftDay })
+  @ApiPropertyOptional({ type: [String], enum: ShiftDay, description: 'Atanacak günler' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(ShiftDay, { each: true })
+  days?: ShiftDay[];
+
+  @ApiPropertyOptional({ enum: ShiftDay, description: 'Tekil gün (geriye dönük uyumluluk)' })
+  @IsOptional()
   @IsEnum(ShiftDay)
-  day!: ShiftDay;
+  day?: ShiftDay;
 
   @ApiPropertyOptional({ description: 'Atanacak personeller (boşsa tekil day)' })
   @IsOptional()
@@ -60,9 +68,17 @@ export class BulkAssignShiftDto {
   @IsUUID('4', { each: true })
   employeeIds!: string[];
 
-  @ApiProperty({ enum: ShiftDay })
+  @ApiPropertyOptional({ type: [String], enum: ShiftDay, description: 'Atanacak günler' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(ShiftDay, { each: true })
+  days?: ShiftDay[];
+
+  @ApiPropertyOptional({ enum: ShiftDay, description: 'Tekil gün (geriye dönük uyumluluk)' })
+  @IsOptional()
   @IsEnum(ShiftDay)
-  day!: ShiftDay;
+  day?: ShiftDay;
 
   @ApiProperty()
   @IsUUID()

@@ -80,6 +80,7 @@ model WorkLocation {
   attendanceRecords AttendanceRecord[]
   shifts   Shift[]
   cardReaders CardReader[]
+  cardCredentialLocations CardCredentialLocation[]
 
   @@map("work_locations")
 }
@@ -184,6 +185,7 @@ model Employee {
   maritalStatus  String?
   bloodType      String?
   educationLevel String?
+  educationDetail String? @db.Text
   note           String?
 
   status        EmploymentStatus @default(ACTIVE)
@@ -380,6 +382,11 @@ enum OvertimeStatus {
   CANCELLED
 }
 
+enum LeaveDayPart {
+  MORNING
+  AFTERNOON
+}
+
 model Overtime {
   id             String         @id @default(uuid()) @db.Uuid
   employeeId     String         @db.Uuid
@@ -387,6 +394,7 @@ model Overtime {
   hours          Float
   rate           Float          @default(1)
   description    String?
+  workArea       String?
   status         OvertimeStatus @default(PENDING)
   approvedById   String?        @db.Uuid
   approvedAt     DateTime?
@@ -413,6 +421,7 @@ model LeaveRequest {
   days         Float
   description  String?
   documentUrl  String?
+  halfDayType  LeaveDayPart?
   status       LeaveStatus @default(PENDING)
   approvedById String?    @db.Uuid
   approvedAt   DateTime?
@@ -482,9 +491,25 @@ model CardCredential {
 
   employee         Employee           @relation(fields: [employeeId], references: [id])
   attendanceRecords AttendanceRecord[]
+  locations        CardCredentialLocation[]
 
   @@index([employeeId])
   @@map("card_credentials")
+}
+
+// Kartın geçerli olduğu lokasyonlar. Boşsa (ilişki yoksa) kart her yerde geçerlidir.
+model CardCredentialLocation {
+  id           String        @id @default(uuid()) @db.Uuid
+  credentialId String        @db.Uuid
+  locationId   String        @db.Uuid
+  createdAt    DateTime      @default(now())
+
+  credential CardCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  location   WorkLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([credentialId, locationId])
+  @@index([locationId]) // FK index — Supabase Linter
+  @@map("card_credential_locations")
 }
 
 // PDKS cihazı (okuyucu). Cihaz geldiğinde buraya tanımlanır, kart okutma bundan lokasyon/cihaz bilgisi alır.
@@ -684,28 +709,35 @@ model EmployeeRecord {
 
 enum AssetStatus {
   ASSIGNED
+  PENDING_APPROVAL
+  REJECTED
   RETURNED
+  RETURN_PENDING
   LOST
   DAMAGED
   SERVICING
 }
 
 model Asset {
-  id           String      @id @default(uuid()) @db.Uuid
-  employeeId   String      @db.Uuid
-  name         String
-  code         String?
-  serialNo     String?
-  category     String?
-  description  String?     @db.Text
-  condition    String?
-  assignedDate DateTime?
-  returnedDate DateTime?
-  status       AssetStatus @default(ASSIGNED)
-  note         String?     @db.Text
-  issuedById   String?     @db.Uuid
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String      @id @default(uuid()) @db.Uuid
+  employeeId       String      @db.Uuid
+  name             String
+  code             String?
+  serialNo         String?
+  category         String?
+  description      String?     @db.Text
+  condition        String?
+  assignedDate     DateTime?
+  returnedDate     DateTime?
+  status           AssetStatus @default(PENDING_APPROVAL)
+  note             String?     @db.Text
+  issuedById       String?     @db.Uuid
+  approvedAt       DateTime?
+  rejectionReason  String?     @db.Text
+  rejectedAt       DateTime?
+  returnRequestedAt DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id])
 
@@ -940,6 +972,8 @@ enum NotificationType {
   ANNOUNCEMENT
   ASSET_ASSIGNED
   ASSET_RETURNED
+  ASSET_APPROVAL_PENDING
+  ASSET_RETURN_REQUEST
   GENERAL
 }
 

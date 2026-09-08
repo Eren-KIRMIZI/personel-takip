@@ -55,6 +55,7 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'zimmet', code: 'asset:read', name: 'Zimmet görüntüleme' },
   { module: 'zimmet', code: 'asset:write', name: 'Zimmet ekleme/düzenleme' },
   { module: 'zimmet', code: 'asset:return', name: 'Zimmet iade alma' },
+  { module: 'zimmet', code: 'asset:approve', name: 'Zimmet onaylama' },
   { module: 'zimmet', code: 'asset:delete', name: 'Zimmet silme' },
   // Görev
   { module: 'görev', code: 'task:read', name: 'Görev görüntüleme' },
@@ -155,7 +156,7 @@ async function seedManagerRole(all: Array<{ id: string; code: string }>) {
     'shift:read', 'shift:write',
     'advance:read', 'advance:approve',
     'bonus:read', 'bonus:approve',
-    'asset:read',
+    'asset:read', 'asset:write', 'asset:return', 'asset:approve',
     'document:read',
     'employee-record:read',
     'announcement:read',
@@ -191,7 +192,7 @@ async function seedEmployeeRole(all: Array<{ id: string; code: string }>) {
     'shift:read',
     'advance:write', 'advance:read',
     'bonus:read',
-    'asset:read',
+    'asset:read', 'asset:approve',
     'document:read',
     'announcement:read',
     'notification:read',
@@ -281,8 +282,9 @@ async function seedLeaveTypes() {
   const types = [
     { name: 'Yıllık İzin', code: 'annual', paid: true, color: '#16a34a', defaultDays: 14 },
     { name: 'Mazeret İzni', code: 'personal', paid: true, color: '#2563eb', defaultDays: 3 },
-    { name: 'Hastalık Raporu', code: 'sick', paid: true, color: '#dc2626', defaultDays: 5 },
+    { name: 'Rapor', code: 'sick', paid: true, color: '#dc2626', defaultDays: 5 },
     { name: 'Ücretsiz İzin', code: 'unpaid', paid: false, color: '#6b7280', defaultDays: null },
+    { name: 'Süt İzni', code: 'maternity', paid: true, color: '#f59e0b', defaultDays: null },
   ];
   for (const t of types) {
     await prisma.leaveType.upsert({

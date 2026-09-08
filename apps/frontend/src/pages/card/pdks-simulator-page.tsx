@@ -110,9 +110,11 @@ export function PdksSimulatorPage() {
               <Label>Kart ID</Label>
               <Input
                 value={cardUid}
-                onChange={(e) => setCardUid(e.target.value)}
+                onChange={(e) => setCardUid(e.target.value.replace(/\D/g, '').slice(0, 15))}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
-                placeholder="TEST-CARD-001"
+                placeholder="15 haneli kart numarası"
+                maxLength={15}
+                inputMode="numeric"
                 autoFocus
               />
             </div>

@@ -28,6 +28,18 @@ export class ReportsController {
     return this.reports.attendanceExcel(query);
   }
 
+  @Get('attendance-log')
+  @RequirePermissions('attendance:read')
+  attendanceLog(@Query() query: ReportQueryDto) {
+    return this.reports.attendanceLog(query);
+  }
+
+  @Get('attendance-log/excel')
+  @RequirePermissions('attendance:read')
+  attendanceLogExcel(@Query() query: ReportQueryDto) {
+    return this.reports.attendanceLogExcel(query);
+  }
+
   @Get('overtimes')
   @RequirePermissions('overtime:read')
   overtimes(@Query() query: ReportQueryDto) {

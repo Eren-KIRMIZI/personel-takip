@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { AssetStatus, Prisma } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { AssetStatus, NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { NotificationService } from '../notification/notification.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { employeeScopedWhere } from '../../common/scope';
 import { AssetListQueryDto, CreateAssetDto, UpdateAssetDto } from './dto/asset.dto';
@@ -10,11 +11,14 @@ const assetInclude = {
   employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true } },
 } as const;
 
+type AssetWithEmployee = Prisma.AssetGetPayload<{ include: typeof assetInclude }>;
+
 @Injectable()
 export class AssetService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notification: NotificationService,
   ) {}
 
   async list(query: AssetListQueryDto, actor: AuthenticatedUser) {
@@ -61,7 +65,8 @@ export class AssetService {
         description: dto.description ?? null,
         condition: dto.condition ?? null,
         assignedDate: dto.assignedDate ? new Date(dto.assignedDate) : null,
-        status: dto.status ?? AssetStatus.ASSIGNED,
+        status: dto.status ?? AssetStatus.PENDING_APPROVAL,
+        issuedById: actorUserId,
         note: dto.note ?? null,
       },
       include: assetInclude,
@@ -73,6 +78,19 @@ export class AssetService {
       entityId: asset.id,
       after: { employeeId: dto.employeeId, name: dto.name, status: asset.status },
     });
+
+    // Atanan personelin kullanıcısını haberdar et
+    const employeeUser = await this.prisma.user.findUnique({ where: { employeeId: dto.employeeId } });
+    if (employeeUser) {
+      await this.notification.create({
+        userId: employeeUser.id,
+        type: NotificationType.ASSET_APPROVAL_PENDING,
+        title: 'Yeni zimmet onayı bekliyor',
+        body: `${asset.name} zimmeti için onayınız bekleniyor.`,
+        entityType: 'asset',
+        entityId: asset.id,
+      });
+    }
     return asset;
   }
 
@@ -97,6 +115,154 @@ export class AssetService {
     await this.audit.log({
       actorUserId,
       action: 'asset.update',
+      entityType: 'asset',
+      entityId: id,
+      before: asset,
+      after: updated,
+    });
+    return updated;
+  }
+
+  // ── Personel tarafı: atamayı onayla / reddet ──────────────────────────────
+
+  async approveAssignment(id: string, actor: AuthenticatedUser) {
+    const asset = await this.ensure(id);
+    this.assertOwner(asset, actor);
+    if (asset.status !== AssetStatus.PENDING_APPROVAL) {
+      throw new BadRequestException('Yalnızca onay bekleyen zimmetler onaylanabilir.');
+    }
+    const updated = await this.prisma.asset.update({
+      where: { id },
+      data: {
+        status: AssetStatus.ASSIGNED,
+        assignedDate: asset.assignedDate ?? new Date(),
+        approvedAt: new Date(),
+      },
+      include: assetInclude,
+    });
+    await this.audit.log({
+      actorUserId: actor.userId,
+      action: 'asset.approve',
+      entityType: 'asset',
+      entityId: id,
+      before: asset,
+      after: updated,
+    });
+    if (asset.issuedById) {
+      await this.notification.create({
+        userId: asset.issuedById,
+        type: NotificationType.ASSET_ASSIGNED,
+        title: 'Zimmet onaylandı',
+        body: `${asset.employee.firstName} ${asset.employee.lastName}, ${asset.name} zimmetini onayladı.`,
+        entityType: 'asset',
+        entityId: asset.id,
+      });
+    }
+    return updated;
+  }
+
+  async rejectAssignment(id: string, actor: AuthenticatedUser, reason?: string) {
+    const asset = await this.ensure(id);
+    this.assertOwner(asset, actor);
+    if (asset.status !== AssetStatus.PENDING_APPROVAL) {
+      throw new BadRequestException('Yalnızca onay bekleyen zimmetler reddedilebilir.');
+    }
+    const updated = await this.prisma.asset.update({
+      where: { id },
+      data: { status: AssetStatus.REJECTED, rejectionReason: reason ?? null, rejectedAt: new Date() },
+      include: assetInclude,
+    });
+    await this.audit.log({
+      actorUserId: actor.userId,
+      action: 'asset.reject',
+      entityType: 'asset',
+      entityId: id,
+      before: asset,
+      after: updated,
+    });
+    if (asset.issuedById) {
+      await this.notification.create({
+        userId: asset.issuedById,
+        type: NotificationType.ASSET_RETURN_REQUEST,
+        title: 'Zimmet reddedildi',
+        body: `${asset.employee.firstName} ${asset.employee.lastName}, ${asset.name} zimmetini reddetti${reason ? ` (${reason})` : ''}.`,
+        entityType: 'asset',
+        entityId: asset.id,
+      });
+    }
+    return updated;
+  }
+
+  // ── Personel tarafı: iade talebi ──────────────────────────────────────────
+
+  async requestReturn(id: string, actor: AuthenticatedUser) {
+    const asset = await this.ensure(id);
+    this.assertOwner(asset, actor);
+    if (asset.status !== AssetStatus.ASSIGNED) {
+      throw new BadRequestException('Yalnızca teslim edilmiş zimmetler için iade talep edilebilir.');
+    }
+    const updated = await this.prisma.asset.update({
+      where: { id },
+      data: { status: AssetStatus.RETURN_PENDING, returnRequestedAt: new Date() },
+      include: assetInclude,
+    });
+    await this.audit.log({
+      actorUserId: actor.userId,
+      action: 'asset.return_request',
+      entityType: 'asset',
+      entityId: id,
+      before: asset,
+      after: updated,
+    });
+    if (asset.issuedById) {
+      await this.notification.create({
+        userId: asset.issuedById,
+        type: NotificationType.ASSET_RETURN_REQUEST,
+        title: 'İade talebi',
+        body: `${asset.employee.firstName} ${asset.employee.lastName}, ${asset.name} zimmeti için iade talebinde bulundu.`,
+        entityType: 'asset',
+        entityId: asset.id,
+      });
+    }
+    return updated;
+  }
+
+  // ── Yönetici tarafı: iadeyi onayla / reddet ───────────────────────────────
+
+  async returnItem(id: string, actorUserId: string) {
+    const asset = await this.ensure(id);
+    if (asset.status !== AssetStatus.RETURN_PENDING && asset.status !== AssetStatus.ASSIGNED) {
+      throw new BadRequestException('İade talebi bekleyen zimmet iade edilebilir.');
+    }
+    const updated = await this.updateStatus(id, AssetStatus.RETURNED, actorUserId);
+    // İadeyi onaylayan personeli haberdar et
+    const employeeUser = await this.prisma.user.findUnique({ where: { employeeId: asset.employeeId } });
+    if (employeeUser) {
+      await this.notification.create({
+        userId: employeeUser.id,
+        type: NotificationType.ASSET_RETURNED,
+        title: 'İade onaylandı',
+        body: `${asset.name} zimmeti teslim alındı.`,
+        entityType: 'asset',
+        entityId: asset.id,
+      });
+    }
+    return updated;
+  }
+
+  async cancelReturn(id: string, actorUserId: string) {
+    const asset = await this.ensure(id);
+    if (asset.status !== AssetStatus.RETURN_PENDING) {
+      throw new BadRequestException('Yalnızca iade talebi bekleyen zimmetler geri çekilebilir.');
+    }
+    const updated = await this.prisma.asset.update({
+      where: { id },
+      data: { status: AssetStatus.ASSIGNED, returnRequestedAt: null },
+      include: assetInclude,
+    });
+    await this.audit.log({
+      actorUserId,
+      action: 'asset.return_cancel',
       entityType: 'asset',
       entityId: id,
       before: asset,
@@ -133,10 +299,6 @@ export class AssetService {
     return updated;
   }
 
-  async returnItem(id: string, actorUserId: string) {
-    return this.updateStatus(id, AssetStatus.RETURNED, actorUserId);
-  }
-
   async remove(id: string, actorUserId: string) {
     const asset = await this.prisma.asset.findUnique({ where: { id } });
     if (!asset) throw new NotFoundException('Zimmet kaydı bulunamadı.');
@@ -169,5 +331,17 @@ export class AssetService {
       byStatus: statusCounts.map((s) => ({ status: s.status, count: s._count.id })),
       byCategory: categoryCounts.map((c) => ({ category: c.category, count: c._count.id })),
     };
+  }
+
+  private async ensure(id: string): Promise<AssetWithEmployee> {
+    const asset = await this.prisma.asset.findUnique({ where: { id }, include: assetInclude });
+    if (!asset) throw new NotFoundException('Zimmet kaydı bulunamadı.');
+    return asset;
+  }
+
+  private assertOwner(asset: { employeeId: string }, actor: AuthenticatedUser) {
+    if (!actor.employeeId || actor.employeeId !== asset.employeeId) {
+      throw new ForbiddenException('Bu işlemi yalnızca zimmetin sahibi personel yapabilir.');
+    }
   }
 }

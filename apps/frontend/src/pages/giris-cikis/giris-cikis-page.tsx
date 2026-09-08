@@ -22,17 +22,22 @@ import {
   PUNCH_SOURCE_LABEL,
   PUNCH_TYPE_LABEL,
   type AttendanceEntry,
+  type DailyAttendanceRow,
   type PunchSource,
   type PunchType,
 } from '@/features/giris-cikis/api';
 import { formatError } from '@/lib/utils';
 
 const PAGE_SIZE = 15;
+const DAILY_PAGE_SIZE = 100;
 
 export function GirisCikisPage() {
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
+  const [view, setView] = useState<'daily' | 'raw'>('daily');
+  const [dailyDate, setDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dailyPage, setDailyPage] = useState(1);
   const [type, setType] = useState('');
   const [source, setSource] = useState('');
   const [from, setFrom] = useState('');
@@ -44,6 +49,7 @@ export function GirisCikisPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['attendance', type, source, from, to, page],
+    enabled: view === 'raw',
     queryFn: () =>
       attendanceApi.list({
         page,
@@ -53,6 +59,12 @@ export function GirisCikisPage() {
         from: from || undefined,
         to: to || undefined,
       }),
+  });
+
+  const dailyQuery = useQuery({
+    queryKey: ['attendance-daily', dailyDate, dailyPage],
+    enabled: view === 'daily',
+    queryFn: () => attendanceApi.daily(dailyDate, { page: dailyPage, pageSize: DAILY_PAGE_SIZE }),
   });
 
   const punchMutation = useMutation({
@@ -104,83 +116,127 @@ export function GirisCikisPage() {
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select className="w-40" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
-          <option value="">Tüm türler</option>
-          <option value="IN">Giriş</option>
-          <option value="OUT">Çıkış</option>
-        </Select>
-        <Select className="w-40" value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }}>
-          <option value="">Tüm kaynaklar</option>
-          <option value="QR">QR</option>
-          <option value="MANUAL">Manuel</option>
-          <option value="PDKS">PDKS</option>
-          <option value="CARD">Kart</option>
-        </Select>
-        <Input type="date" className="w-40" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
-        <span className="text-sm text-muted-foreground">–</span>
-        <Input type="date" className="w-40" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+        <div className="flex rounded-lg border border-border p-0.5">
+          <Button
+            variant={view === 'daily' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="rounded-md"
+            onClick={() => { setView('daily'); setDailyPage(1); }}
+          >
+            Günlük
+          </Button>
+          <Button
+            variant={view === 'raw' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="rounded-md"
+            onClick={() => setView('raw')}
+          >
+            Tüm Kayıtlar
+          </Button>
+        </div>
+
+        {view === 'daily' ? (
+          <Input
+            type="date"
+            className="w-40"
+            value={dailyDate}
+            onChange={(e) => { setDailyDate(e.target.value); setDailyPage(1); }}
+          />
+        ) : (
+          <>
+            <Select className="w-40" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
+              <option value="">Tüm türler</option>
+              <option value="IN">Giriş</option>
+              <option value="OUT">Çıkış</option>
+            </Select>
+            <Select className="w-40" value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }}>
+              <option value="">Tüm kaynaklar</option>
+              <option value="QR">QR</option>
+              <option value="MANUAL">Manuel</option>
+              <option value="PDKS">PDKS</option>
+              <option value="CARD">Kart</option>
+            </Select>
+            <Input type="date" className="w-40" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+            <span className="text-sm text-muted-foreground">–</span>
+            <Input type="date" className="w-40" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+          </>
+        )}
       </div>
 
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Personel</TableHead>
-              <TableHead>Tür</TableHead>
-              <TableHead>Zaman</TableHead>
-              <TableHead>Kaynak</TableHead>
-              <TableHead>Konum</TableHead>
-              <TableHead className="w-16 text-right">İşlem</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
+        {view === 'daily' ? (
+          <DailyTable rows={dailyQuery.data?.items ?? []} isLoading={dailyQuery.isLoading} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Personel</TableHead>
+                <TableHead>Tür</TableHead>
+                <TableHead>Zaman</TableHead>
+                <TableHead>Kaynak</TableHead>
+                <TableHead>Konum</TableHead>
+                <TableHead className="w-16 text-right">İşlem</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
+                  </TableRow>
+                ))}
+              {data?.items.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>
+                    <div className="leading-tight">
+                      <div className="font-medium">
+                        {entry.employee.firstName} {entry.employee.lastName}
+                      </div>
+                      {entry.employee.employeeNo && (
+                        <div className="text-xs text-muted-foreground">{entry.employee.employeeNo}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={entry.type === 'IN' ? 'success' : 'secondary'}>
+                      {PUNCH_TYPE_LABEL[entry.type]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDateTime(entry.timestamp)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{PUNCH_SOURCE_LABEL[entry.source]}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{entry.location?.name ?? '—'}</TableCell>
+                  <TableCell className="text-right">
+                    {hasPermission('attendance:write') && (
+                      <Button variant="ghost" size="icon" title="Düzenle" onClick={() => setEditTarget(entry)}>
+                        <Pencil />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
-            {data?.items.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>
-                  <div className="leading-tight">
-                    <div className="font-medium">
-                      {entry.employee.firstName} {entry.employee.lastName}
-                    </div>
-                    {entry.employee.employeeNo && (
-                      <div className="text-xs text-muted-foreground">{entry.employee.employeeNo}</div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={entry.type === 'IN' ? 'success' : 'secondary'}>
-                    {PUNCH_TYPE_LABEL[entry.type]}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDateTime(entry.timestamp)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{PUNCH_SOURCE_LABEL[entry.source]}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{entry.location?.name ?? '—'}</TableCell>
-                <TableCell className="text-right">
-                  {hasPermission('attendance:write') && (
-                    <Button variant="ghost" size="icon" title="Düzenle" onClick={() => setEditTarget(entry)}>
-                      <Pencil />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {!isLoading && data?.items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">Kayıt yok</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        {data && (
+              {!isLoading && data?.items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">Kayıt yok</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+        {view === 'raw' && data && (
           <div className="p-4">
             <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
+          </div>
+        )}
+        {view === 'daily' && dailyQuery.data && dailyQuery.data.total > DAILY_PAGE_SIZE && (
+          <div className="p-4">
+            <Pagination
+              page={dailyQuery.data.page}
+              pageSize={dailyQuery.data.pageSize}
+              total={dailyQuery.data.total}
+              onPageChange={setDailyPage}
+            />
           </div>
         )}
       </Card>
@@ -200,6 +256,79 @@ export function GirisCikisPage() {
         onSubmit={(payload) => updateMutation.mutate(payload)}
       />
     </div>
+  );
+}
+
+function DailyTable({ rows, isLoading }: { rows: DailyAttendanceRow[]; isLoading: boolean }) {
+  const renderPunch = (p?: DailyAttendanceRow['checkIn']) => {
+    if (!p) return <span className="text-muted-foreground/50">—</span>;
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-sm">{new Date(p.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+        <div className="text-xs text-muted-foreground">
+          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">{PUNCH_SOURCE_LABEL[p.source]}</Badge>
+          {p.location?.name ? ` · ${p.location.name}` : ''}
+        </div>
+      </div>
+    );
+  };
+
+  const workingTime = (r: DailyAttendanceRow) => {
+    if (!r.checkIn || !r.checkOut) return null;
+    const diff = new Date(r.checkOut.at).getTime() - new Date(r.checkIn.at).getTime();
+    if (diff <= 0) return null;
+    const h = Math.floor(diff / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    return `${h} sa ${m} dk`;
+  };
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Personel</TableHead>
+          <TableHead className="w-28">Giriş</TableHead>
+          <TableHead className="w-28">Çıkış</TableHead>
+          <TableHead className="w-24">Çalışılan</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading &&
+          Array.from({ length: 6 }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+            </TableRow>
+          ))}
+        {rows.map((row) => (
+          <TableRow key={row.id ?? `${row.employee.id}-${row.day}`}>
+            <TableCell>
+              <div className="leading-tight">
+                <div className="font-medium">
+                  {row.employee.firstName} {row.employee.lastName}
+                </div>
+                {row.employee.employeeNo && (
+                  <div className="text-xs text-muted-foreground">{row.employee.employeeNo}</div>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>{renderPunch(row.checkIn)}</TableCell>
+            <TableCell>{renderPunch(row.checkOut)}</TableCell>
+            <TableCell>
+              {workingTime(row) ? (
+                <Badge variant="secondary">{workingTime(row)}</Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+        {!isLoading && rows.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={4} className="text-center text-muted-foreground">Bu güne ait kayıt yok</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
   );
 }
 

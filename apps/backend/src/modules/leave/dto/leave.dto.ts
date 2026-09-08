@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { LeaveStatus } from '@prisma/client';
+import { LeaveDayPart, LeaveStatus } from '@prisma/client';
 import { ListQueryDto } from '../../organization/dto/organization.dto';
 
 export class CreateLeaveTypeDto {
@@ -75,6 +75,11 @@ export class CreateLeaveRequestDto {
   @IsOptional()
   @IsString()
   documentUrl?: string;
+
+  @ApiPropertyOptional({ enum: LeaveDayPart, description: 'Yarım gün (Süt İzni için)' })
+  @IsOptional()
+  @IsEnum(LeaveDayPart)
+  halfDayType?: LeaveDayPart;
 }
 
 export class RejectLeaveRequestDto {

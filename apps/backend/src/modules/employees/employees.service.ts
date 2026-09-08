@@ -61,12 +61,17 @@ export class EmployeesService {
     const base: Record<string, unknown> = {};
     if (query.search) {
       base.OR = [
-        { firstName: { startsWith: query.search, mode: 'insensitive' } },
-        { lastName: { startsWith: query.search, mode: 'insensitive' } },
-        { employeeNo: { startsWith: query.search, mode: 'insensitive' } },
-        { email: { startsWith: query.search, mode: 'insensitive' } },
-        { internalPhone: { startsWith: query.search, mode: 'insensitive' } },
-        { phone: { startsWith: query.search, mode: 'insensitive' } },
+        { firstName: { contains: query.search, mode: 'insensitive' } },
+        { lastName: { contains: query.search, mode: 'insensitive' } },
+        { employeeNo: { contains: query.search, mode: 'insensitive' } },
+        { email: { contains: query.search, mode: 'insensitive' } },
+        { internalPhone: { contains: query.search, mode: 'insensitive' } },
+        { phone: { contains: query.search, mode: 'insensitive' } },
+        { title: { name: { contains: query.search, mode: 'insensitive' } } },
+        { position: { name: { contains: query.search, mode: 'insensitive' } } },
+        { department: { name: { contains: query.search, mode: 'insensitive' } } },
+        { unit: { name: { contains: query.search, mode: 'insensitive' } } },
+        { workLocation: { name: { contains: query.search, mode: 'insensitive' } } },
       ];
     }
     if (query.departmentId) base.departmentId = query.departmentId;
