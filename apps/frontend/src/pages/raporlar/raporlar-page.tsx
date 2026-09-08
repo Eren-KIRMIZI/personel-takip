@@ -24,12 +24,9 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
 
 const ICONS: [string, LucideIcon][] = [
-  ['genel-giris-cikis', Clock],
-  ['kisi-giris-cikis', Clock],
-  ['genel-gec-kalanlar', Timer],
-  ['kisi-gec-kalanlar', Timer],
-  ['genel-erken-cikanlar', Timer],
-  ['kisi-erken-cikanlar', Timer],
+  ['giris-cikis-listesi', Clock],
+  ['gec-kalanlar-listesi', Timer],
+  ['erken-cikanlar-listesi', Timer],
   ['mesai', Timer],
   ['devamsizlar', CalendarX],
   ['giris-kart-yok', IdCard],

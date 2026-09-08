@@ -222,57 +222,6 @@ function PunchListView({ params }: { params: ReportParams }) {
   );
 }
 
-function PunchByEmployeeView({ params }: { params: ReportParams }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['rep-entries', params],
-    queryFn: () => reportsApi.entries(rangeQ(params)),
-  });
-  const grouped = useMemo(() => {
-    const map = new Map<string, { employee: EmployeeRef; inCount: number; outCount: number; first: string; last: string }>();
-    for (const r of data?.rows ?? []) {
-      const acc = map.get(r.employee.id) ?? { employee: r.employee, inCount: 0, outCount: 0, first: r.date, last: r.date };
-      if (r.type === 'IN') acc.inCount += 1;
-      else acc.outCount += 1;
-      if (r.date < acc.first) acc.first = r.date;
-      if (r.date > acc.last) acc.last = r.date;
-      map.set(r.employee.id, acc);
-    }
-    return Array.from(map.values()).sort((a, b) => a.employee.lastName.localeCompare(b.employee.lastName));
-  }, [data]);
-  const rows = grouped;
-  const onExport = () =>
-    downloadCsv(
-      'kisi-bazinda-giris-cikis.csv',
-      ['Sicil', 'Personel', 'Giriş', 'Çıkış', 'Toplam Kayıt', 'İlk Kayıt', 'Son Kayıt'],
-      rows.map((r) => [r.employee.employeeNo ?? '', person(r.employee), r.inCount, r.outCount, r.inCount + r.outCount, r.first, r.last]),
-    );
-  return (
-    <DataCard
-      title="Kişi Bazında Giriş Çıkış Listesi"
-      description={`${rows.length} personel`}
-      loading={isLoading}
-      error={error ? formatError(error) : null}
-      empty={rows.length === 0}
-      onExport={onExport}
-      exportDisabled={isLoading || rows.length === 0}
-    >
-      <ReportTable
-        rows={rows}
-        keyFn={(r) => r.employee.id}
-        columns={[
-          { header: 'Sicil', className: 'font-mono text-xs text-muted-foreground', render: (r) => r.employee.employeeNo ?? '—' },
-          { header: 'Personel', render: (r) => FULL_NAME(r.employee) },
-          { header: 'Giriş', className: 'text-right', render: (r) => r.inCount },
-          { header: 'Çıkış', className: 'text-right', render: (r) => r.outCount },
-          { header: 'Toplam Kayıt', className: 'text-right font-medium', render: (r) => r.inCount + r.outCount },
-          { header: 'İlk Kayıt', className: 'text-muted-foreground', render: (r) => r.first },
-          { header: 'Son Kayıt', className: 'text-muted-foreground', render: (r) => r.last },
-        ]}
-      />
-    </DataCard>
-  );
-}
-
 function LateListView({ params }: { params: ReportParams }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['rep-late', params],
@@ -287,7 +236,7 @@ function LateListView({ params }: { params: ReportParams }) {
     );
   return (
     <DataCard
-      title="Genel Bazda Geç Kalanlar"
+      title="Geç Kalanlar Listesi"
       description={`${data?.meta.total ?? 0} kayıt · toplam ${data?.meta.totalLateMinutes ?? 0} dk gecikme`}
       loading={isLoading}
       error={error ? formatError(error) : null}
@@ -324,7 +273,7 @@ function EarlyListView({ params }: { params: ReportParams }) {
     );
   return (
     <DataCard
-      title="Genel Bazda Erken Çıkanlar"
+      title="Erken Çıkanlar Listesi"
       description={`${data?.meta.total ?? 0} kayıt · toplam ${data?.meta.totalEarlyMinutes ?? 0} dk erken çıkış`}
       loading={isLoading}
       error={error ? formatError(error) : null}
@@ -343,103 +292,6 @@ function EarlyListView({ params }: { params: ReportParams }) {
           { header: 'Personel', render: (r) => FULL_NAME(r.employee) },
         ]}
       />
-    </DataCard>
-  );
-}
-
-function PerPersonView({
-  data,
-}: {
-  data: { count: number; totalMinutes: number; first: string; last: string; employee: EmployeeRef }[];
-}) {
-  return (
-    <ReportTable
-      rows={data}
-      keyFn={(r) => r.employee.id}
-      columns={[
-        { header: 'Sicil', className: 'font-mono text-xs text-muted-foreground', render: (r) => r.employee.employeeNo ?? '—' },
-        { header: 'Personel', render: (r) => FULL_NAME(r.employee) },
-        { header: 'Kayıt', className: 'text-right', render: (r) => r.count },
-        { header: 'Toplam Süre', className: 'text-right font-medium', render: (r) => durationLabel(r.totalMinutes) },
-        { header: 'İlk', className: 'text-muted-foreground', render: (r) => r.first },
-        { header: 'Son', className: 'text-muted-foreground', render: (r) => r.last },
-      ]}
-    />
-  );
-}
-
-function LateByEmployeeView({ params }: { params: ReportParams }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['rep-late', params],
-    queryFn: () => reportsApi.late(rangeQ(params)),
-  });
-  const groups = useMemo(() => {
-    const map = new Map<string, { employee: EmployeeRef; count: number; totalMinutes: number; first: string; last: string }>();
-    for (const r of data?.rows ?? []) {
-      const acc = map.get(r.employee.id) ?? { employee: r.employee, count: 0, totalMinutes: 0, first: r.date, last: r.date };
-      acc.count += 1;
-      acc.totalMinutes += r.lateMinutes;
-      if (r.date < acc.first) acc.first = r.date;
-      if (r.date > acc.last) acc.last = r.date;
-      map.set(r.employee.id, acc);
-    }
-    return Array.from(map.values()).sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [data]);
-  const onExport = () =>
-    downloadCsv(
-      'kisi-bazinda-gec-kalanlar.csv',
-      ['Sicil', 'Personel', 'Kayıt', 'Toplam Gecikme (dk)', 'İlk', 'Son'],
-      groups.map((r) => [r.employee.employeeNo ?? '', person(r.employee), r.count, r.totalMinutes, r.first, r.last]),
-    );
-  return (
-    <DataCard
-      title="Kişi Bazında Geç Kalanlar"
-      description={`${groups.length} personel`}
-      loading={isLoading}
-      error={error ? formatError(error) : null}
-      empty={groups.length === 0}
-      onExport={onExport}
-      exportDisabled={isLoading || groups.length === 0}
-    >
-      <PerPersonView data={groups} />
-    </DataCard>
-  );
-}
-
-function EarlyByEmployeeView({ params }: { params: ReportParams }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['rep-early', params],
-    queryFn: () => reportsApi.early(rangeQ(params)),
-  });
-  const groups = useMemo(() => {
-    const map = new Map<string, { employee: EmployeeRef; count: number; totalMinutes: number; first: string; last: string }>();
-    for (const r of data?.rows ?? []) {
-      const acc = map.get(r.employee.id) ?? { employee: r.employee, count: 0, totalMinutes: 0, first: r.date, last: r.date };
-      acc.count += 1;
-      acc.totalMinutes += r.earlyMinutes;
-      if (r.date < acc.first) acc.first = r.date;
-      if (r.date > acc.last) acc.last = r.date;
-      map.set(r.employee.id, acc);
-    }
-    return Array.from(map.values()).sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [data]);
-  const onExport = () =>
-    downloadCsv(
-      'kisi-bazinda-erken-cikanlar.csv',
-      ['Sicil', 'Personel', 'Kayıt', 'Toplam Erken (dk)', 'İlk', 'Son'],
-      groups.map((r) => [r.employee.employeeNo ?? '', person(r.employee), r.count, r.totalMinutes, r.first, r.last]),
-    );
-  return (
-    <DataCard
-      title="Kişi Bazında Erken Çıkanlar"
-      description={`${groups.length} personel`}
-      loading={isLoading}
-      error={error ? formatError(error) : null}
-      empty={groups.length === 0}
-      onExport={onExport}
-      exportDisabled={isLoading || groups.length === 0}
-    >
-      <PerPersonView data={groups} />
     </DataCard>
   );
 }
@@ -1401,12 +1253,9 @@ function PayrollGroupView({ params }: { params: ReportParams }) {
 // ─────────────────────────────────────────────────────────────
 
 export const GENEL_REPORTS: ReportDef[] = [
-  { id: 'genel-giris-cikis', section: 'genel', title: 'Genel Bazda Giriş Çıkış Listesi', description: 'Tüm giriş-çıkış hareketleri (kayıt bazlı)', permission: 'attendance:read', kind: 'range', employee: true },
-  { id: 'kisi-giris-cikis', section: 'genel', title: 'Kişi Bazında Giriş Çıkış Listesi', description: 'Personel bazında giriş/çıkış özeti', permission: 'attendance:read', kind: 'range', employee: true },
-  { id: 'genel-gec-kalanlar', section: 'genel', title: 'Genel Bazda Geç Kalanlar Listesi', description: 'Vardiya başlangıcından geç giriş yapanlar', permission: 'attendance:read', kind: 'range', employee: true },
-  { id: 'kisi-gec-kalanlar', section: 'genel', title: 'Kişi Bazında Geç Kalanlar Listesi', description: 'Personel bazında geç kalma özeti', permission: 'attendance:read', kind: 'range', employee: true },
-  { id: 'genel-erken-cikanlar', section: 'genel', title: 'Genel Bazda Erken Çıkanlar Listesi', description: 'Vardiya bitiminden erken çıkanlar', permission: 'attendance:read', kind: 'range', employee: true },
-  { id: 'kisi-erken-cikanlar', section: 'genel', title: 'Kişi Bazında Erken Çıkanlar Listesi', description: 'Personel bazında erken çıkış özeti', permission: 'attendance:read', kind: 'range', employee: true },
+  { id: 'giris-cikis-listesi', section: 'genel', title: 'Giriş Çıkış Listesi', description: 'Giriş-çıkış hareketleri; personel seçerek tek kişi bazında ya da tümüne bakabilirsiniz', permission: 'attendance:read', kind: 'range', employee: true },
+  { id: 'gec-kalanlar-listesi', section: 'genel', title: 'Geç Kalanlar Listesi', description: 'Vardiya başlangıcından geç giriş yapan personeller', permission: 'attendance:read', kind: 'range', employee: true },
+  { id: 'erken-cikanlar-listesi', section: 'genel', title: 'Erken Çıkanlar Listesi', description: 'Vardiya bitiminden erken çıkan personeller', permission: 'attendance:read', kind: 'range', employee: true },
   { id: 'mesai', section: 'genel', title: 'Mesaiye Kalanlar Listesi', description: 'Onaylı mesai saatleri özeti', permission: 'overtime:read', kind: 'range', employee: true },
   { id: 'devamsizlar', section: 'genel', title: 'Devamsızlar Listesi', description: 'İş gününde (Pzt-Cum) hiç giriş yapmayanlar', permission: 'attendance:read', kind: 'range', employee: true },
   { id: 'giris-kart-yok', section: 'genel', title: 'Girişte Kart Kullanmayanlar', description: 'Giriş hareketleri kart dışı kaynaklı olanlar', permission: 'attendance:read', kind: 'range', employee: true, side: 'IN' },
@@ -1443,18 +1292,12 @@ export function ReportView({
   employees: Employee[];
 }) {
   switch (def.id) {
-    case 'genel-giris-cikis':
+    case 'giris-cikis-listesi':
       return <PunchListView params={params} />;
-    case 'kisi-giris-cikis':
-      return <PunchByEmployeeView params={params} />;
-    case 'genel-gec-kalanlar':
+    case 'gec-kalanlar-listesi':
       return <LateListView params={params} />;
-    case 'kisi-gec-kalanlar':
-      return <LateByEmployeeView params={params} />;
-    case 'genel-erken-cikanlar':
+    case 'erken-cikanlar-listesi':
       return <EarlyListView params={params} />;
-    case 'kisi-erken-cikanlar':
-      return <EarlyByEmployeeView params={params} />;
     case 'mesai':
       return <OvertimeView params={params} />;
     case 'devamsizlar':
