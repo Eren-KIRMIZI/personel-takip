@@ -253,7 +253,7 @@ export function PersonelDetailPage() {
         </Link>
 
         {statusMessage && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in dark:text-emerald-300 dark:bg-emerald-950/50">
             <RefreshCw className="size-3 animate-spin" />
             {statusMessage}
           </span>
@@ -359,7 +359,7 @@ export function PersonelDetailPage() {
           </>
         }
       >
-        <div className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900/60">
           ⚠️ Personelin tüm kayıtları (izin, mesai, evrak vb.) ve kullanıcı hesabı da silinecektir.
         </div>
       </Dialog>

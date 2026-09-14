@@ -3,17 +3,17 @@ import { cn } from '@/lib/utils';
 import { useToastStore, type ToastType } from './toast';
 
 const ICONS: Record<ToastType, { icon: typeof CheckCircle2; className: string }> = {
-  success: { icon: CheckCircle2, className: 'text-emerald-600' },
-  error: { icon: AlertCircle, className: 'text-red-600' },
-  info: { icon: Info, className: 'text-sky-600' },
-  warning: { icon: AlertTriangle, className: 'text-amber-600' },
+  success: { icon: CheckCircle2, className: 'text-emerald-600 dark:text-emerald-400' },
+  error: { icon: AlertCircle, className: 'text-red-600 dark:text-red-400' },
+  info: { icon: Info, className: 'text-sky-600 dark:text-sky-400' },
+  warning: { icon: AlertTriangle, className: 'text-amber-600 dark:text-amber-400' },
 };
 
 const RING: Record<ToastType, string> = {
-  success: 'border-emerald-200',
-  error: 'border-red-200',
-  info: 'border-sky-200',
-  warning: 'border-amber-200',
+  success: 'border-emerald-200 dark:border-emerald-900/60',
+  error: 'border-red-200 dark:border-red-900/60',
+  info: 'border-sky-200 dark:border-sky-900/60',
+  warning: 'border-amber-200 dark:border-amber-900/60',
 };
 
 export function Toaster() {

@@ -127,15 +127,15 @@ export function PdksSimulatorPage() {
           {result && (
             <div
               className={`flex flex-col items-center gap-1 rounded-lg border p-5 text-center ${
-                result.ok ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'
+                result.ok ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/50' : 'border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/50'
               }`}
             >
               {result.ok ? (
-                <CheckCircle2 className="size-6 text-emerald-600" />
+                <CheckCircle2 className="size-6 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <XCircle className="size-6 text-red-600" />
+                <XCircle className="size-6 text-red-600 dark:text-red-400" />
               )}
-              <div className={`text-lg font-semibold ${result.ok ? 'text-emerald-700' : 'text-red-700'}`}>
+              <div className={`text-lg font-semibold ${result.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
                 {result.message}
               </div>
               <div className="text-sm text-muted-foreground">{result.detail}</div>

@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
+
   /* --- Radius --- */
   --radius: 0.5rem;
 
@@ -54,6 +56,60 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+}
+
+/* ── Dark Theme Tokens ────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.16 0.015 260);
+  --foreground: oklch(0.93 0.005 250);
+  --card: oklch(0.185 0.015 260);
+  --card-foreground: oklch(0.93 0.005 250);
+  --popover: oklch(0.185 0.015 260);
+  --popover-foreground: oklch(0.93 0.005 250);
+
+  --primary: oklch(0.65 0.19 255);
+  --primary-foreground: oklch(0.15 0.03 260);
+
+  --secondary: oklch(0.235 0.015 260);
+  --secondary-foreground: oklch(0.87 0.005 250);
+  --muted: oklch(0.22 0.015 260);
+  --muted-foreground: oklch(0.64 0.012 255);
+
+  --accent: oklch(0.26 0.02 260);
+  --accent-foreground: oklch(0.9 0.005 250);
+
+  --destructive: oklch(0.64 0.19 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.27 0.015 260);
+  --input: oklch(0.25 0.015 260);
+  --ring: oklch(0.65 0.19 255);
+
+  /* Sidebar zaten koyu; dark'ta hafif daha yumuşak ton */
+  --sidebar: oklch(0.17 0.02 260);
+  --sidebar-foreground: oklch(0.72 0.02 260);
+  --sidebar-foreground-active: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.235 0.025 260);
+  --sidebar-border: oklch(0.24 0.025 260);
+  --sidebar-muted: oklch(0.52 0.02 260);
+  --sidebar-indicator: oklch(0.68 0.15 200);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Dark scrollbar ───────────────────────────────── */
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.32 0.015 260);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0.015 260);
 }
 
 @theme inline {
@@ -196,6 +252,15 @@ aside ::-webkit-scrollbar-thumb:hover {
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.22 0.015 260) 25%,
+    oklch(0.28 0.015 260) 50%,
+    oklch(0.22 0.015 260) 75%
+  );
+}
+
 /* ── Active dot ────────────────────────────────────── */
 .status-dot-active {
   animation: pulse-dot 1.8s ease-in-out infinite;
@@ -218,4 +283,8 @@ aside ::-webkit-scrollbar-thumb:hover {
   background: rgb(255 255 255 / 0.8);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+.dark .glass {
+  background: rgb(17 24 39 / 0.75);
 }

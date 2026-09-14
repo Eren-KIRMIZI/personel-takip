@@ -97,7 +97,7 @@ export function IzinListPage() {
       />
 
       {errorMessage && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-100 animate-fade-in">
+        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-100 animate-fade-in dark:bg-red-950/50 dark:text-red-300 dark:border-red-900/60">
           {errorMessage}
         </div>
       )}
@@ -192,7 +192,7 @@ export function IzinListPage() {
                 <TableCell>
                   <span className="inline-flex items-center gap-1.5 font-medium text-sm">
                     {request.leaveType.color ? (
-                      <span className="size-2 rounded-full" style={{ backgroundColor: request.leaveType.color }} />
+                      <span className="size-2 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/30" style={{ backgroundColor: request.leaveType.color }} />
                     ) : (
                       <span className="size-2 rounded-full bg-border" />
                     )}

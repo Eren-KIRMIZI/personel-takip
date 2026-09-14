@@ -876,9 +876,9 @@ function MonthlyAttendanceView({ params }: { params: ReportParams }) {
     >
       <div>
         <div className="mb-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="size-3 rounded bg-emerald-100 text-center text-[10px] leading-3 text-emerald-700">P</span> Çalıştı</span>
-          <span className="flex items-center gap-1"><span className="size-3 rounded bg-amber-100 text-center text-[10px] leading-3 text-amber-700">İ</span> İzinli</span>
-          <span className="flex items-center gap-1"><span className="size-3 rounded bg-red-100 text-center text-[10px] leading-3 text-red-700">A</span> Devamsız</span>
+          <span className="flex items-center gap-1"><span className="size-3 rounded bg-emerald-100 text-center text-[10px] leading-3 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">P</span> Çalıştı</span>
+          <span className="flex items-center gap-1"><span className="size-3 rounded bg-amber-100 text-center text-[10px] leading-3 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">İ</span> İzinli</span>
+          <span className="flex items-center gap-1"><span className="size-3 rounded bg-red-100 text-center text-[10px] leading-3 text-red-700 dark:bg-red-950/60 dark:text-red-300">A</span> Devamsız</span>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -904,9 +904,9 @@ function MonthlyAttendanceView({ params }: { params: ReportParams }) {
                       key={d.date}
                       className={cn(
                         'px-1 text-center text-[10px] font-medium',
-                        (row.seq[i] ?? ' ') === 'P' && 'bg-emerald-50 text-emerald-700',
-                        (row.seq[i] ?? ' ') === 'A' && 'bg-red-50 text-red-700',
-                        (row.seq[i] ?? ' ') === 'İ' && 'bg-amber-50 text-amber-700',
+                        (row.seq[i] ?? ' ') === 'P' && 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
+                        (row.seq[i] ?? ' ') === 'A' && 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300',
+                        (row.seq[i] ?? ' ') === 'İ' && 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
                       )}
                     >
                       {(row.seq[i] ?? ' ') === ' ' ? '\u00A0' : row.seq[i]}
@@ -979,7 +979,7 @@ function PayrunView({ params }: { params: ReportParams }) {
               <TableCell className="whitespace-nowrap text-right text-muted-foreground">{row.unpaidLeaveDays}</TableCell>
               <TableCell className="whitespace-nowrap text-right">{formatMoney(row.leaveDeduction)}</TableCell>
               <TableCell className="whitespace-nowrap text-right font-medium">{formatMoney(row.grossAmount)}</TableCell>
-              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700">{formatMoney(row.netAmount)}</TableCell>
+              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700 dark:text-emerald-400">{formatMoney(row.netAmount)}</TableCell>
               <TableCell className="whitespace-nowrap text-center text-muted-foreground">{row.workedDays} g · {row.worked}</TableCell>
             </TableRow>
           ))}
@@ -1043,7 +1043,7 @@ function PayrollSummaryView({ params }: { params: ReportParams }) {
               <TableCell className="whitespace-nowrap text-right">{formatMoney(row.bonus ?? 0)}</TableCell>
               <TableCell className="whitespace-nowrap text-right text-muted-foreground">{formatMoney(row.deduction ?? 0)}</TableCell>
               <TableCell className="whitespace-nowrap text-right font-medium">{formatMoney(row.grossAmount)}</TableCell>
-              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700">{formatMoney(row.netAmount)}</TableCell>
+              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700 dark:text-emerald-400">{formatMoney(row.netAmount)}</TableCell>
               <TableCell className="whitespace-nowrap">
                 <Badge variant={PAYROLL_STATUS_META[row.status].variant}>{PAYROLL_STATUS_META[row.status].label}</Badge>
               </TableCell>
@@ -1116,7 +1116,7 @@ function PayrollByEmployeeView({ params }: { params: ReportParams }) {
               <TableCell className="whitespace-nowrap text-right">{formatMoney(row.bonus ?? 0)}</TableCell>
               <TableCell className="whitespace-nowrap text-right text-muted-foreground">{formatMoney(row.deduction ?? 0)}</TableCell>
               <TableCell className="whitespace-nowrap text-right font-medium">{formatMoney(row.grossAmount)}</TableCell>
-              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700">{formatMoney(row.netAmount)}</TableCell>
+              <TableCell className="whitespace-nowrap text-right font-semibold text-emerald-700 dark:text-emerald-400">{formatMoney(row.netAmount)}</TableCell>
               <TableCell className="whitespace-nowrap">
                 <Badge variant={PAYROLL_STATUS_META[row.status].variant}>{PAYROLL_STATUS_META[row.status].label}</Badge>
               </TableCell>
@@ -1168,7 +1168,7 @@ function PayslipView({ params, employees }: { params: ReportParams; employees: E
             <div className="col-span-full">
               <div className="flex items-center justify-between rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/40">
                 <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">NET ÖDENECEK</span>
-                <span className="text-lg font-bold text-emerald-700">{formatMoney(item.netAmount)}</span>
+                <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(item.netAmount)}</span>
               </div>
             </div>
             {item.note && (
@@ -1241,7 +1241,7 @@ function PayrollGroupView({ params }: { params: ReportParams }) {
           { header: 'Mesai ₺', className: 'text-right', render: (r) => formatMoney(r.otAmount) },
           { header: 'İzin Kesintisi', className: 'text-right', render: (r) => formatMoney(r.deduction) },
           { header: 'Toplam Brüt', className: 'text-right font-medium', render: (r) => formatMoney(r.gross) },
-          { header: 'Net', className: 'text-right font-semibold text-emerald-700', render: (r) => formatMoney(r.net) },
+          { header: 'Net', className: 'text-right font-semibold text-emerald-700 dark:text-emerald-400', render: (r) => formatMoney(r.net) },
         ]}
       />
     </DataCard>

@@ -51,36 +51,36 @@ const STATUS_CONFIG: Record<OvertimeStatus, {
     label: 'Beklemede',
     badgeVariant: 'secondary',
     icon: CircleDashed,
-    iconColor: 'text-amber-500',
+    iconColor: 'text-amber-500 dark:text-amber-400',
     borderColor: 'border-l-amber-400',
-    bgColor: 'bg-amber-50/30',
+    bgColor: 'bg-amber-50/30 dark:bg-amber-950/30',
     microcopy: 'Yönetici onayı bekleniyor',
   },
   APPROVED: {
     label: 'Onaylandı',
     badgeVariant: 'success',
     icon: CheckCircle2,
-    iconColor: 'text-emerald-500',
+    iconColor: 'text-emerald-500 dark:text-emerald-400',
     borderColor: 'border-l-emerald-400',
-    bgColor: 'bg-emerald-50/30',
+    bgColor: 'bg-emerald-50/30 dark:bg-emerald-950/30',
     microcopy: 'Onaylandı',
   },
   REJECTED: {
     label: 'Reddedildi',
     badgeVariant: 'destructive',
     icon: AlertTriangle,
-    iconColor: 'text-red-500',
+    iconColor: 'text-red-500 dark:text-red-400',
     borderColor: 'border-l-red-400',
-    bgColor: 'bg-red-50/30',
+    bgColor: 'bg-red-50/30 dark:bg-red-950/30',
     microcopy: 'Reddedildi',
   },
   CANCELLED: {
     label: 'İptal',
     badgeVariant: 'outline',
     icon: Ban,
-    iconColor: 'text-gray-400',
-    borderColor: 'border-l-gray-300',
-    bgColor: 'bg-gray-50/30',
+    iconColor: 'text-gray-400 dark:text-gray-500',
+    borderColor: 'border-l-gray-300 dark:border-l-gray-700',
+    bgColor: 'bg-gray-50/30 dark:bg-gray-900/30',
     microcopy: 'İptal edildi',
   },
 };
@@ -184,7 +184,7 @@ function OvertimeCard({
 
         {/* Rejection Reason */}
         {entry.status === 'REJECTED' && entry.rejectionReason && (
-          <div className="rounded-lg bg-red-50/60 border border-red-100 px-3 py-2 mb-3 text-sm text-red-700">
+          <div className="rounded-lg bg-red-50/60 border border-red-100 px-3 py-2 mb-3 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-900/50 dark:text-red-300">
             <span className="font-medium">Red nedeni:</span> {entry.rejectionReason}
           </div>
         )}
@@ -194,25 +194,25 @@ function OvertimeCard({
           <div className="text-xs text-muted-foreground">
             {entry.status === 'APPROVED' && approverName && entry.approvedAt && (
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                <CheckCircle2 className="size-3.5 text-emerald-500 dark:text-emerald-400" />
                 {approverName} tarafından onaylandı · {formatDateTime(entry.approvedAt)}
               </span>
             )}
             {entry.status === 'PENDING' && (
               <span className="flex items-center gap-1">
-                <Timer className="size-3.5 text-amber-500" />
+                <Timer className="size-3.5 text-amber-500 dark:text-amber-400" />
                 {config.microcopy}
               </span>
             )}
             {entry.status === 'REJECTED' && (
               <span className="flex items-center gap-1">
-                <AlertTriangle className="size-3.5 text-red-500" />
+                <AlertTriangle className="size-3.5 text-red-500 dark:text-red-400" />
                 {config.microcopy}
               </span>
             )}
             {entry.status === 'CANCELLED' && (
               <span className="flex items-center gap-1">
-                <Ban className="size-3.5 text-gray-400" />
+                <Ban className="size-3.5 text-gray-400 dark:text-gray-500" />
                 {config.microcopy}
               </span>
             )}

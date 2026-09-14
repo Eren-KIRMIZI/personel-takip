@@ -117,10 +117,10 @@ export function DashboardPage() {
   const greeting = hour < 12 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar';
 
   const statCards = [
-    { label: 'Toplam Personel', value: data?.employeesTotal,    to: '/personel',     icon: Users,       color: 'text-blue-600',    bgColor: 'bg-blue-50' },
-    { label: 'Departman',       value: data?.departmentsTotal,  to: '/organizasyon', icon: Building2,   color: 'text-violet-600',  bgColor: 'bg-violet-50' },
-    { label: 'Birim',           value: data?.unitsTotal,        to: '/organizasyon', icon: TrendingUp,  color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-    { label: 'Rol Tanımı',      value: data?.rolesTotal,        to: '/roller',       icon: ShieldCheck, color: 'text-orange-600',  bgColor: 'bg-orange-50' },
+    { label: 'Toplam Personel', value: data?.employeesTotal,    to: '/personel',     icon: Users,       color: 'text-blue-600 dark:text-blue-400',       bgColor: 'bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Departman',       value: data?.departmentsTotal,  to: '/organizasyon', icon: Building2,   color: 'text-violet-600 dark:text-violet-400',   bgColor: 'bg-violet-50 dark:bg-violet-950/40' },
+    { label: 'Birim',           value: data?.unitsTotal,        to: '/organizasyon', icon: TrendingUp,  color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Rol Tanımı',      value: data?.rolesTotal,        to: '/roller',       icon: ShieldCheck, color: 'text-orange-600 dark:text-orange-400',   bgColor: 'bg-orange-50 dark:bg-orange-950/40' },
   ];
 
   return (
@@ -172,7 +172,7 @@ export function DashboardPage() {
               value={data.presentToday}
               sub={`${data.employeesActive} aktif personel`}
               to="/giris-cikis"
-              accent="text-emerald-600"
+              accent="text-emerald-600 dark:text-emerald-400"
             />
             <ActivityMetric
               icon={CalendarClock}
@@ -180,7 +180,7 @@ export function DashboardPage() {
               value={data.pendingLeaves}
               sub="onay bekliyor"
               to="/izin"
-              accent="text-amber-600"
+              accent="text-amber-600 dark:text-amber-400"
             />
             <ActivityMetric
               icon={Clock4}
@@ -188,7 +188,7 @@ export function DashboardPage() {
               value={data.pendingOvertimes}
               sub="onay bekliyor"
               to="/mesai"
-              accent="text-blue-600"
+              accent="text-blue-600 dark:text-blue-400"
             />
             <ActivityMetric
               icon={Lightbulb}
@@ -196,7 +196,7 @@ export function DashboardPage() {
               value={data.approvedOvertimeHoursMonth}
               sub="onaylı saat"
               to="/mesai"
-              accent="text-violet-600"
+              accent="text-violet-600 dark:text-violet-400"
             />
           </div>
         </div>

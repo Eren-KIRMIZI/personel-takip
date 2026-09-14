@@ -5,7 +5,10 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './App';
 import { useAuthStore } from './stores/auth';
 import { queryClient } from './lib/query-client';
+import { initTheme } from './stores/theme';
 import './index.css';
+
+initTheme();
 
 // Yeni deployment sonrası eski chunk 404 hatası alınırsa sayfayı temizce yeniler
 window.addEventListener('vite:preloadError', () => {

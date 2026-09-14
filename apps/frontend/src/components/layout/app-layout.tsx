@@ -33,6 +33,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuthStore } from '@/stores/auth';
 import { NotificationDropdown } from './notification-dropdown';
+import { ThemeToggle } from './theme-toggle';
 
 const HOVER_COLORS: Array<{ color: string; glow: string }> = [
   { color: '#fb923c', glow: 'rgba(251, 146, 60, 0.22)' },  // turuncu
@@ -169,7 +170,7 @@ export function AppLayout() {
           style={{ borderBottom: '1px solid var(--sidebar-border)' }}
         >
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Users className="size-3.5 text-white" />
+            <Users className="size-3.5 text-primary-foreground" />
           </div>
           <span
             className="text-sm font-semibold tracking-tight flex-1"
@@ -326,6 +327,8 @@ export function AppLayout() {
             <span className="font-medium text-sm text-foreground hidden sm:block">Personel ve İnsan Kaynakları</span>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="h-5 w-px bg-border" />
             <NotificationDropdown />
             <div className="h-5 w-px bg-border" />
             <Avatar

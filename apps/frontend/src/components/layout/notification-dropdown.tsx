@@ -53,7 +53,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-md border bg-card p-1 shadow-lg ring-1 ring-black/5 z-50">
+        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-md border bg-card p-1 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-50">
           <div className="flex items-center justify-between px-3 py-2 border-b">
             <span className="font-semibold text-sm">Bildirimler</span>
             {unreadCount > 0 && (

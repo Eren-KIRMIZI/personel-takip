@@ -186,7 +186,7 @@ export function PersonelListPage() {
             <SlidersHorizontal className="size-3.5" />
             Filtrele
             {hasActiveFilters && (
-              <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+              <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
                 {[departmentId, unitId, workLocationId, titleId, status].filter(Boolean).length}
               </span>
             )}
@@ -258,8 +258,8 @@ export function PersonelListPage() {
           className={cn(
             'flex items-center justify-between rounded-lg px-4 py-2.5 text-sm',
             bulkResult.startsWith('Hata')
-              ? 'bg-red-50 text-red-700 border border-red-100'
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+              ? 'bg-red-50 text-red-700 border border-red-100 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900/60'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900/60',
           )}
         >
           <span>{bulkResult}</span>

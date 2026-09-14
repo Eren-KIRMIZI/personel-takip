@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 function LogoMark({ className }: { className?: string }) {
   return (
-    <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/25', className)}>
+    <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25', className)}>
       <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
         <path d="M4.5 20.5V6.6a1.6 1.6 0 0 1 1.6-1.6h7.3v15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M13.4 20.5V9.6h4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -228,12 +228,12 @@ export function LoginPage() {
               </div>
 
               {resetMessage && (
-                <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300">
                   {resetMessage}
                 </div>
               )}
               {resetError && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-300">
                   {resetError}
                 </div>
               )}
@@ -348,7 +348,7 @@ export function LoginPage() {
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-300">
                   {error}
                 </div>
               )}
