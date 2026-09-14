@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Banknote,
@@ -33,6 +33,14 @@ import { Avatar } from '@/components/ui/avatar';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuthStore } from '@/stores/auth';
 import { NotificationDropdown } from './notification-dropdown';
+
+const HOVER_COLORS: Array<{ color: string; glow: string }> = [
+  { color: '#fb923c', glow: 'rgba(251, 146, 60, 0.22)' },  // turuncu
+  { color: '#f472b6', glow: 'rgba(244, 114, 182, 0.22)' }, // pembe
+  { color: '#a78bfa', glow: 'rgba(167, 139, 250, 0.22)' }, // mor
+  { color: '#facc15', glow: 'rgba(250, 204, 21, 0.22)' },  // sarı
+  { color: '#4ade80', glow: 'rgba(74, 222, 128, 0.22)' },  // yeşil
+];
 
 const NAV_SECTIONS: Array<{
   title: string;
@@ -133,6 +141,8 @@ export function AppLayout() {
 
   const closeSidebar = () => setSidebarOpen(false);
 
+  let navItemIndex = 0;
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* ── Mobile overlay ──────────────────────────────────── */}
@@ -197,8 +207,10 @@ export function AppLayout() {
                   {section.title}
                 </div>
                 <div className="space-y-0.5">
-                  {visibleItems.map((item) =>
-                    item.soon ? (
+                  {visibleItems.map((item) => {
+                      const hoverSpec = HOVER_COLORS[navItemIndex % HOVER_COLORS.length];
+                      navItemIndex += 1;
+                      return item.soon ? (
                       <div
                         key={item.label}
                         className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs opacity-40"
@@ -214,15 +226,18 @@ export function AppLayout() {
                         end={item.to === '/'}
                         onClick={closeSidebar}
                         className={({ isActive }) => cn(
-                          'group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150',
+                          'nav-item group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium',
+                          isActive && 'nav-item-active',
                           isActive ? '' : 'hover:bg-white/5'
                         )}
                         style={({ isActive }) => ({
-                          color: isActive
+                          '--nav-color': isActive
                             ? 'var(--sidebar-foreground-active)'
                             : 'var(--sidebar-foreground)',
+                          '--nav-hover': hoverSpec.color,
+                          '--nav-hover-glow': hoverSpec.glow,
                           background: isActive ? 'var(--sidebar-accent)' : undefined,
-                        })}
+                        } as CSSProperties)}
                       >
                         {({ isActive }) => (
                           <>
@@ -234,22 +249,15 @@ export function AppLayout() {
                               )}
                               style={{ background: isActive ? 'var(--sidebar-indicator)' : undefined }}
                             />
-                            <span
-                              className="size-4 shrink-0 transition-colors"
-                              style={{
-                                color: isActive
-                                  ? 'var(--sidebar-foreground-active)'
-                                  : 'var(--sidebar-foreground)',
-                              }}
-                            >
+                            <span className="size-4 shrink-0">
                               {item.icon}
                             </span>
                             <span className="truncate">{item.label}</span>
                           </>
                         )}
                       </NavLink>
-                    ),
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             );

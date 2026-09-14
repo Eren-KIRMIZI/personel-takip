@@ -133,6 +133,27 @@ aside ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.32 0 0);
 }
 
+/* ── Sidebar nav-item hover animation ──────────────── */
+.nav-item {
+  color: var(--nav-color, var(--sidebar-foreground));
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 280ms ease,
+    box-shadow 280ms ease,
+    background-color 280ms ease;
+}
+
+.nav-item:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--nav-hover) 30%, transparent),
+    0 4px 16px -4px var(--nav-hover-glow, transparent);
+}
+
+.nav-item:not(.nav-item-active):hover {
+  color: var(--nav-hover);
+}
+
 /* ── Animations ────────────────────────────────────── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
