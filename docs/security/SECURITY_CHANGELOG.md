@@ -142,3 +142,25 @@
   2. `employee-record`, `asset` ve `attendance` (list, daily, qrCodes) sorgularına `100` tavan sayfalama sınırı uygulandı.
 - **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
 
+---
+
+### [FIX-014] SEC-014 — Anında Oturum & Yetki İptali (Immediate Revocation Cache Synchronization)
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/access/access.service.ts`
+- **Yapılan İşlem:**
+  1. `CacheService` entegre edilerek `setUserRoles`, `setUserStatus`, `setRolePermissions`, `updateRole` ve `removeRole` fonksiyonlarına anında önbellek temizleme (cache eviction) eklendi.
+  2. Bir kullanıcının hesabı dondurulduğunda veya yetkisi alındığında Redis'teki oturumu sıfır gecikmeyle geçersiz kılınarak eski yetkilerini kullanması imkansız hale getirildi.
+- **Doğrulama:** Backend ve Frontend derlemeleri 0 hata ile doğrulandı.
+
+---
+
+### [FIX-015] Duyuru (Announcement) Kapsam Denetimi ve Sayfalama Sınırı
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/announcement/announcement.controller.ts`
+  - `apps/backend/src/modules/announcement/announcement.service.ts`
+- **Yapılan İşlem:**
+  1. `GET /announcements` uç noktasına `@CurrentUser() user` enjekte edildi; standart personelin taslak (`DRAFT`) duyuruları veya yayın tarihi gelmemiş duyuruları görmesi engellendi.
+  2. Genel liste ve personel duyuru listelerine 100 tavan sayfalama sınırı uygulandı.
+- **Doğrulama:** Backend ve Frontend derlemeleri 0 hata ile doğrulandı.
+
+

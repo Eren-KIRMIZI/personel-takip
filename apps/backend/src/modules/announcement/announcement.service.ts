@@ -1,20 +1,38 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveScopeKind } from '../../common/scope';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { CreateAnnouncementDto, UpdateAnnouncementDto, AnnouncementListQueryDto } from './dto/announcement.dto';
 
 @Injectable()
 export class AnnouncementService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(query: AnnouncementListQueryDto) {
-    const { status, search, page = 1, pageSize = 20 } = query;
+  async list(query: AnnouncementListQueryDto, actor?: AuthenticatedUser) {
+    const page = query.page ?? 1;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
+    const { status, search } = query;
     const where: Record<string, unknown> = {};
-    if (status) where.status = status;
+
+    if (actor && resolveScopeKind(actor) === 'self') {
+      where.status = 'PUBLISHED';
+      where.AND = [
+        { OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }] },
+      ];
+    } else if (status) {
+      where.status = status;
+    }
+
     if (search) {
-      where.OR = [
+      const searchCondition = [
         { title: { contains: search, mode: 'insensitive' } },
         { content: { contains: search, mode: 'insensitive' } },
       ];
+      if (where.AND) {
+        (where.AND as unknown[]).push({ OR: searchCondition });
+      } else {
+        where.OR = searchCondition;
+      }
     }
 
     const skip = (page - 1) * pageSize;
@@ -36,6 +54,7 @@ export class AnnouncementService {
 
   // Oturumdaki kullanıcının/personelin görebileceği duyurular
   async listForEmployee(employeeId: string, page = 1, pageSize = 20) {
+    const effectivePageSize = Math.min(Math.max(1, pageSize), 100);
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
       select: { departmentId: true, unitId: true },
@@ -66,7 +85,7 @@ export class AnnouncementService {
       ],
     };
 
-    const skip = (page - 1) * pageSize;
+    const skip = (page - 1) * effectivePageSize;
     const [items, total] = await Promise.all([
       this.prisma.announcement.findMany({
         where,
@@ -75,7 +94,7 @@ export class AnnouncementService {
         },
         orderBy: { publishAt: 'desc' },
         skip,
-        take: pageSize,
+        take: effectivePageSize,
       }),
       this.prisma.announcement.count({ where }),
     ]);
@@ -84,7 +103,7 @@ export class AnnouncementService {
       items: items.map((a) => ({ ...a, isRead: a.reads.length > 0, readAt: a.reads[0]?.readAt ?? null })),
       total,
       page,
-      pageSize,
+      pageSize: effectivePageSize,
     };
   }
 

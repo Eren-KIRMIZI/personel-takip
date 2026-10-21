@@ -121,3 +121,12 @@
 - **Konum:** `document.service.ts`, `task.service.ts`, `asset.service.ts`, `attendance.service.ts`, `employee-record.service.ts`
 - **Teknik Açıklama:** `pageSize` için üst sınır belirlenmemiştir, 10.000 gibi yüksek değerler veritabanını aşırı yükleyebilir.
 
+---
+
+### [SEC-014] Yetki İptali ve Oturum Desenkronizasyonu (Session & Permission Revocation Cache Desync)
+- **Seviye:** YÜKSEK (P1)
+- **Konum:** `apps/backend/src/modules/access/access.service.ts`
+- **Teknik Açıklama:** Kullanıcı durumu devre dışı bırakıldığında (`setUserStatus -> DISABLED`), kullanıcının rolleri değiştirildiğinde (`setUserRoles`) veya bir rolün yetkileri güncellendiğinde (`setRolePermissions`), Redis'teki önbelleğe alınmış kullanıcı oturumları (`auth:user:${authId}`) ve yetki token'ları otomatik temizlenmiyordu. Bu durum, işten çıkarılan veya yetkisi alınan bir kullanıcının Redis TTL süresi boyunca (3 dakika) yetkili işlemleri sürdürmesine yol açabilirdi.
+- **OWASP:** ASVS 3.3.1 (Session Revocation) & API5:2023 (Broken Function Level Authorization)
+
+

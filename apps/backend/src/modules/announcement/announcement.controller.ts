@@ -14,8 +14,8 @@ export class AnnouncementController {
   /** Yönetici listesi: tüm duyurular */
   @Get()
   @RequirePermissions('announcement:read')
-  list(@Query() query: AnnouncementListQueryDto) {
-    return this.announcementService.list(query);
+  list(@Query() query: AnnouncementListQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.announcementService.list(query, user);
   }
 
   /** Personel akışı: sadece kendisine yönelik yayında duyurular */

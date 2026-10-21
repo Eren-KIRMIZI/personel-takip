@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys } from '../../common/cache/cache.keys';
 import { CreateRoleDto, SetRolePermissionsDto, SetUserRolesDto, SetUserStatusDto, UpdateRoleDto } from './dto/access.dto';
 
 const roleInclude = {
@@ -15,6 +17,7 @@ export class AccessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly cache: CacheService,
   ) {}
 
   // ------------------------------------------------------------
@@ -91,6 +94,7 @@ export class AccessService {
       before,
       after: role,
     });
+    await this.cache.delByPrefix(CacheKeys.authPrefix());
     return this.serializeRole(role);
   }
 
@@ -117,6 +121,7 @@ export class AccessService {
       before,
       after: { permissionIds: dto.permissionIds },
     });
+    await this.cache.delByPrefix(CacheKeys.authPrefix());
     return this.serializeRole(role);
   }
 
@@ -132,6 +137,7 @@ export class AccessService {
       entityId: id,
       before,
     });
+    await this.cache.delByPrefix(CacheKeys.authPrefix());
     return { id };
   }
 
@@ -175,6 +181,9 @@ export class AccessService {
       before,
       after: { roleIds: dto.roleIds },
     });
+    if (before.authId) {
+      await this.cache.del(CacheKeys.authUser(before.authId));
+    }
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       include: {
@@ -203,6 +212,9 @@ export class AccessService {
       before,
       after: updated,
     });
+    if (before.authId) {
+      await this.cache.del(CacheKeys.authUser(before.authId));
+    }
     return updated;
   }
 
