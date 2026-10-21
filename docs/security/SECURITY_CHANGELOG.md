@@ -163,4 +163,27 @@
   2. Genel liste ve personel duyuru listelerine 100 tavan sayfalama sınırı uygulandı.
 - **Doğrulama:** Backend ve Frontend derlemeleri 0 hata ile doğrulandı.
 
+---
+
+### [FIX-016] Vardiya Atamaları (Shift Assignments) BOLA Yetkilendirmesi
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/shift/shift.controller.ts`
+  - `apps/backend/src/modules/shift/shift.service.ts`
+- **Yapılan İşlem:**
+  1. `GET /shifts/assignments` uç noktasına `@CurrentUser() user: AuthenticatedUser` enjekte edildi.
+  2. `listAssignments` sorgusu `employeeScopedWhere(actor, base)` ile filtrelendi; personelin yalnızca kendi vardiya atamalarını, birim amirinin yalnızca kendi birimini görmesi sağlandı.
+- **Doğrulama:** Backend ve Frontend derlemeleri 0 hata ile doğrulandı.
+
+---
+
+### [FIX-017] Denetim Günlüğü ve Organizasyon Sayfalama Tavanları (DoS Koruması)
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/audit/audit.controller.ts`
+  - `apps/backend/src/modules/organization/organization.service.ts`
+- **Yapılan İşlem:**
+  1. `audit-logs` uç noktasında `pageSize` maksimum 100 ile sınırlandırıldı.
+  2. `organization` listeleme metodunda `pageSize` maksimum 250 ile sınırlandırılarak önbellek ve sunucu bellek tükenmeleri engellendi.
+- **Doğrulama:** Backend ve Frontend derlemeleri 0 hata ile doğrulandı.
+
+
 

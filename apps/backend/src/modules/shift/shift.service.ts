@@ -4,6 +4,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
+import { employeeScopedWhere } from '../../common/scope';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { AssignShiftDto, BulkAssignShiftDto, CreateShiftDto, ShiftAssignmentListDto } from './dto/shift.dto';
 
 @Injectable()
@@ -59,11 +61,13 @@ export class ShiftService {
     return shift;
   }
 
-  async listAssignments(query: ShiftAssignmentListDto) {
-    const where: Prisma.ShiftAssignmentWhereInput = {};
-    if (query.employeeId) where.employeeId = query.employeeId;
-    if (query.shiftId) where.shiftId = query.shiftId;
-    if (query.day) where.day = query.day;
+  async listAssignments(query: ShiftAssignmentListDto, actor?: AuthenticatedUser) {
+    const base: Record<string, unknown> = {};
+    if (query.employeeId) base.employeeId = query.employeeId;
+    if (query.shiftId) base.shiftId = query.shiftId;
+    if (query.day) base.day = query.day;
+
+    const where = actor ? employeeScopedWhere(actor, base) : base;
 
     return this.prisma.shiftAssignment.findMany({
       where,

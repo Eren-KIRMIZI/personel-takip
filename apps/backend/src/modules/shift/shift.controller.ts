@@ -32,8 +32,8 @@ export class ShiftController {
 
   @Get('assignments')
   @RequirePermissions('shift:read')
-  listAssignments(@Query() query: ShiftAssignmentListDto) {
-    return this.shift.listAssignments(query);
+  listAssignments(@Query() query: ShiftAssignmentListDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.shift.listAssignments(query, user);
   }
 
   @Post('assignments')

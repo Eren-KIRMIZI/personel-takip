@@ -52,7 +52,7 @@ export class OrganizationService {
 
   async list(model: OrgModel, query: ListQueryDto, actor: { userId: string }) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 250);
 
     const where: Record<string, unknown> = {};
     if (query.isActive !== undefined) {

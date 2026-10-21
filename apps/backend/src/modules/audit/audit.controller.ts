@@ -44,7 +44,7 @@ export class AuditController {
   @RequirePermissions('audit:read')
   list(@Query() query: AuditListQueryDto) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 50), 100);
     const where: Record<string, string> = {};
     if (query.action) where.action = query.action;
     if (query.entityType) where.entityType = query.entityType;
