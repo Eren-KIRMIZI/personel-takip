@@ -41,6 +41,7 @@ export function QrKodlarPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['qr-codes'] }),
       queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+      queryClient.invalidateQueries({ queryKey: ['attendance-daily'] }),
     ]);
   };
 

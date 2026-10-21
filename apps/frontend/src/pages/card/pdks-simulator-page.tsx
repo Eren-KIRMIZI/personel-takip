@@ -53,7 +53,11 @@ export function PdksSimulatorPage() {
         readerId: readerId === 'no-device' ? undefined : readerId,
       }),
     onSuccess: (res) => {
-      void queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-daily'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
+      ]);
       const inOut = res.type === 'IN' ? 'Giriş' : 'Çıkış';
       const at = new Date(res.timestamp).toLocaleTimeString('tr-TR');
       setResult({

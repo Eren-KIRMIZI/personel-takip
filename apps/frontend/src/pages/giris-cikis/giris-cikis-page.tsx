@@ -72,6 +72,7 @@ export function GirisCikisPage() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-daily'] }),
         queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
       ]);
       setPunchOpen(false);
@@ -85,6 +86,7 @@ export function GirisCikisPage() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-daily'] }),
         queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
       ]);
       setEditTarget(null);
