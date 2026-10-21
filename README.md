@@ -1718,10 +1718,57 @@ Personel ve İnsan Kaynakları modülünün genel ekran yapısı aşağıdaki ş
 * Kullanıcılar
 * QR Kod Yönetimi
 * İşlem Logları
+* KVKK & Gizlilik Merkezi
+
+---
+
+## KVKK ve Kişisel Veri Güvenliği Yönetimi (2026 Standartları)
+
+Personel Takip Sistemi, çalışanların kimlik, iletişim, özlük, izin, mesai, devamsızlık, maaş/ücret, vardiya ve QR kodlu giriş-çıkış hareketleri gibi yüksek hassasiyetli verilerini işlemektedir. Bu doğrultuda sistem, **6698 sayılı Kişisel Verilerin Korunması Kanunu**, **2024 Reformu (m. 9 Yurt Dışı Aktarımı)** ve **2026 yılı güncel Kurul İlke Kararları** ile tam uyumlu olarak yapılandırılmıştır.
+
+### 1. Kurul İlke Kararları ile Uyum
+
+* **2026/347 Sayılı İlke Kararı (Aydınlatma & Açık Rıza Ayrımı):**
+  * Aydınlatma yükümlülüğü bir bilgilendirme işlemidir ve açık rızaya veya onay kutusuna (checkbox) bağlanamaz.
+  * Giriş ekranında ve sistem içinde çalışanlara şeffaf aydınlatma sunulmuş; iş sözleşmesi (m. 5/2-c) ve hukuki yükümlülük (m. 5/2-ç) kapsamındaki veri işlemeler için zorunlu onay şartı kaldırılmıştır.
+* **2026/921 Sayılı İlke Kararı (PDKS Biyometrik Veri Yasağı Taahhüdü):**
+  * Çalışan mesai ve giriş-çıkış takibinde **parmak izi, yüz tanıma, avuç içi veya iris taraması gibi biyometrik veriler kesinlikle işlenmemektedir**.
+  * PDKS süreçleri ölçülülük ilkesi gereği **dinamik QR kod**, RFID kart/anahtarlık ve amir onay mekanizmaları ile yürütülür.
+* **2024 KVKK m. 9 Yurt Dışı Veri Aktarımı Reformu & SCC:**
+  * Supabase PostgreSQL (Frankfurt / eu-central-1), Upstash Redis ve Vercel Edge ile veri işleme sözleşmeleri (DPA) ve Kişisel Verileri Koruma Kurulu'nun yayımladığı **Standart Sözleşmeler (Standard Contractual Clauses - SCC)** güvenceleri uygulanmaktadır.
+
+### 2. Veri Envanteri ve Saklama Standartları
+
+Sistemdeki 36 Prisma veri tablosunun 25'i doğrudan kişisel veri içermektedir (`docs/kvkk/VERI_ISLEME_ENVANTERI.md`):
+
+| Veri Kategorisi | Veritabanı Modelleri | Yasal Dayanak | Saklama Süresi | İmha / Tahliye |
+|---|---|---|---|---|
+| **Kimlik & Özlük** | `Employee`, `EmployeeHistory`, `Title` | 4857 s. İş Kanunu m. 75, TBK m. 146 | İşten Ayrılma + 10 Yıl | Anonimleştirme / Silme |
+| **Bordro & Finans** | `PayrollItem`, `Salary`, `Bonus`, `Advance` | 213 s. VUK m. 253, 6102 s. TTK m. 82 | 10 Yıl | Kriptografik Silme |
+| **İzin & Devamsızlık** | `LeaveRequest`, `LeaveType` | 4857 s. İş Kanunu m. 53-60 | 5 Yıl | Veritabanından Silme |
+| **Giriş-Çıkış (PDKS)** | `AttendanceRecord`, `CardCredential` | İşyeri Güvenliği & Çalışma Süreleri | 2 Yıl | Periyodik İmha |
+| **QR Kodlar** | `QrCode` | Dinamik Oturum Güvenliği | 24 Saat | Otomatik Expire |
+| **Önbellek Verileri** | Upstash Redis | Performans / TTL | 3 Dakika - 24 Saat | Bellekten Tahliye (TTL) |
+
+### 3. İlgili Kişi Hakları ve 30 Günlük SLA Takibi (KVKK m. 11 & m. 13)
+
+* **Taşınabilirlik (Verilerimi İndir):** Çalışanlar sol menüdeki **"KVKK & Gizlilik"** merkezinden tek tıklamayla adlarına kayıtlı kimlik, oturum ve sistem dökümlerini `JSON` formatında indirebilir.
+* **Talep Yönetimi & 30 Günlük SLA:** Çalışanlar bilgi alma (m.11/1-b), düzeltme (m.11/1-d), silme (m.11/1-e) ve aktarılan kişileri öğrenme (m.11/1-ç) taleplerini sistem üzerinden resmi başvuru olarak iletebilir. Her başvuru için kanuni **30 günlük SLA geri sayım sayacı** işletilir.
+
+### 4. Ayrıntılı KVKK Belgeleri (`docs/kvkk/`)
+
+Kurum içi denetim ve resmi yazışmalarda kullanılmak üzere oluşturulmuş doküman paketi:
+1. [`docs/kvkk/AYDINLATMA_METNI.md`](docs/kvkk/AYDINLATMA_METNI.md) — 2026/347 & 2026/921 uyumlu resmi çalışan aydınlatma metni.
+2. [`docs/kvkk/VERI_ISLEME_ENVANTERI.md`](docs/kvkk/VERI_ISLEME_ENVANTERI.md) — Tüm Prisma tablolarının VERBİS uyumlu veri envanteri matrisi.
+3. [`docs/kvkk/SAKLAMA_VE_IMHA_POLITIKASI.md`](docs/kvkk/SAKLAMA_VE_IMHA_POLITIKASI.md) — Yasal saklama süreleri, periyodik imha ve anonimleştirme prosedürleri.
+4. [`docs/kvkk/YURT_DISI_AKTARIM_POLITIKASI.md`](docs/kvkk/YURT_DISI_AKTARIM_POLITIKASI.md) — Supabase, Upstash Redis ve Vercel için SCC taahhütleri.
+5. [`docs/kvkk/ILGILI_KISI_BASVURU_REHBERI.md`](docs/kvkk/ILGILI_KISI_BASVURU_REHBERI.md) — 30 günlük yasal başvuru yönetimi iş akışı.
+6. [`docs/kvkk/VERI_IHLALI_PROSEDURU.md`](docs/kvkk/VERI_IHLALI_PROSEDURU.md) — 72 saatlik Kişisel Verileri Koruma Kurulu bildirim prosedürü.
 
 ---
 
 ## Notlar
 
 * Ayrıntılı mimari bilgisi için `docs/ARCHITECTURE.md`, rol-yetki katalogu için `docs/RBAC.md` dosyalarına bakınız.
+* Yasal veri koruma ve KVKK prosedürleri için `docs/kvkk/` altındaki belgelere başvurunuz.
 * Şema değişiklikleri `prisma/migrations` altında tutulur; prodüksiyonda göçler `prisma migrate deploy` ile uygulanır.

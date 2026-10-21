@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import {
   Users, Lock, Mail, Eye, EyeOff, Check, ArrowRight,
-  CalendarDays, QrCode, Wallet, Clock,
+  CalendarDays, QrCode, Wallet, Clock, ShieldCheck, FileText,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 function LogoMark({ className }: { className?: string }) {
@@ -50,6 +51,7 @@ export function LoginPage() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
+  const [kvkkOpen, setKvkkOpen] = useState(false);
   const session     = useAuthStore((s) => s.session);
   const initialized = useAuthStore((s) => s.initialized);
   const signIn      = useAuthStore((s) => s.signIn);
@@ -158,12 +160,25 @@ export function LoginPage() {
           </div>
 
           {/* Alt bilgi */}
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-blue-100/40">© 2026 Personel Takip Sistemi</p>
-            <span className="flex items-center gap-1.5 text-xs text-blue-100/40">
-              <span className="size-1.5 rounded-full bg-emerald-400" />
-              Güvenli kimlik doğrulama
-            </span>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-blue-100/60">
+              <p>© 2026 Personel Takip Sistemi</p>
+              <button
+                type="button"
+                onClick={() => setKvkkOpen(true)}
+                className="flex items-center gap-1 text-blue-200/80 hover:text-white underline underline-offset-2 transition-colors"
+              >
+                <ShieldCheck className="size-3.5" />
+                KVKK Aydınlatma
+              </button>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-blue-100/40">
+              <span className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-400" />
+                Güvenli kimlik doğrulama
+              </span>
+              <span>2026/347 & 2026/921 Uyumlu</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -318,11 +333,92 @@ export function LoginPage() {
             </form>
           )}
 
-          <p className="text-center text-xs text-muted-foreground">
-            © 2026 Personel Takip Sistemi · Kurum içi kullanım içindir
-          </p>
+          <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+            <p>© 2026 Personel Takip Sistemi · Kurum içi kullanım içindir</p>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setKvkkOpen(true)}
+                className="font-medium text-primary hover:underline underline-offset-2 flex items-center gap-1"
+              >
+                <ShieldCheck className="size-3.5" />
+                KVKK Aydınlatma Metni
+              </button>
+              <span>·</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">Biyometrik Veri İşlenmez (2026/921)</span>
+              <span>·</span>
+              <span>SLA: 30 Gün</span>
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* KVKK 2026 Aydınlatma Dialog */}
+      <Dialog
+        open={kvkkOpen}
+        onClose={() => setKvkkOpen(false)}
+        title="KVKK Çalışan Aydınlatma Metni"
+        description="6698 Sayılı Kanun ve 2026 Güncel Kurul İlke Kararları Uyarınca Bilgilendirme"
+        footer={
+          <Button onClick={() => setKvkkOpen(false)} className="px-6">
+            Anladım, Kapat
+          </Button>
+        }
+      >
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1 text-xs leading-relaxed text-foreground/90">
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-800 dark:text-emerald-300">
+            <p className="font-semibold flex items-center gap-1.5">
+              <ShieldCheck className="size-4" />
+              2026/347 İlke Kararı Güvencesi:
+            </p>
+            <p className="mt-1 text-[11px]">
+              Bu aydınlatma metni bilgilendirme amaçlıdır. Sisteme girişiniz zorunlu bir açık rıza onay kutusuna (checkbox) bağlanmamıştır.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm text-foreground">1. Veri Sorumlusu</h4>
+            <p className="mt-1 text-muted-foreground">
+              6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca, çalışanlarımızın kişisel verileri veri sorumlusu sıfatıyla Kurum İnsan Kaynakları Yönetimi tarafından işlenmektedir.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm text-foreground">2. İşlenen Veri Kategorileri</h4>
+            <ul className="mt-1.5 list-disc list-inside space-y-1 text-muted-foreground">
+              <li><strong>Kimlik & Özlük:</strong> Ad, soyad, T.C. kimlik numarası, sicil no, departman, unvan, işe giriş tarihi.</li>
+              <li><strong>İletişim:</strong> Kurumsal ve şahsi e-posta, telefon numarası.</li>
+              <li><strong>Puantaj & Giriş-Çıkış:</strong> QR kodlu PDKS hareket kayıtları, vardiya ve fazla mesai saatleri.</li>
+              <li><strong>İzin & Rapor:</strong> Yıllık izin, mazeret izni ve SGK istirahat raporları.</li>
+              <li><strong>Finans & Bordro:</strong> IBAN numarası, brüt/net ücret ve yasal kesintiler.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-blue-900 dark:text-blue-200">
+            <h4 className="font-bold text-xs flex items-center gap-1.5">
+              <FileText className="size-3.5" />
+              Biyometrik Veri İşlenmez (2026/921 Sayılı İlke Kararı)
+            </h4>
+            <p className="mt-1 text-[11px] leading-normal">
+              Mesai takibinde parmak izi, yüz tanıma veya avuç içi taraması gibi biyometrik yöntemler <strong>kesinlikle kullanılmamaktadır</strong>. Giriş-çıkışlar dinamik QR kod ve kart/şifre mekanizmalarıyla ölçülmektedir.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm text-foreground">3. Veri İşlemenin Hukuki Sebepleri</h4>
+            <p className="mt-1 text-muted-foreground">
+              Verileriniz, 4857 sayılı İş Kanunu, 5510 sayılı Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu ve 6698 sayılı KVKK m. 5/2-c (sözleşmenin ifası), m. 5/2-ç (hukuki yükümlülüğün yerine getirilmesi) ve m. 5/2-e (bir hakkın tesisi ve korunması) maddeleri kapsamında işlenmektedir.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm text-foreground">4. İlgili Kişi Hakları & Başvuru (m. 11)</h4>
+            <p className="mt-1 text-muted-foreground">
+              Veri sahibi olarak sistemde kayıtlı kişisel verilerinizi öğrenme, düzeltme, aktarılan üçüncü kişileri bilme ve silinmesini talep etme hakkınız mevcuttur. Sisteme giriş yaptıktan sonra sol menüdeki <strong>"KVKK & Gizlilik"</strong> merkezinden verilerinizi JSON formatında indirebilir veya resmi başvuru oluşturabilirsiniz. Başvurularınız yasal <strong>30 günlük süre</strong> içinde sonuçlandırılır.
+            </p>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   Package,
   QrCode,
   ScrollText,
+  Shield,
   ShieldCheck,
   Scale,
   Timer,
@@ -120,6 +121,7 @@ const NAV_SECTIONS: Array<{
       { to: '/roller',        label: 'Roller ve Yetkiler', icon: <ShieldCheck />, permission: 'role:read' },
       { to: '/kullanicilar',  label: 'Kullanıcılar',       icon: <UserCog />,     permission: 'user:read' },
       { to: '/islem-loglari', label: 'İşlem Logları',      icon: <ScrollText />,  permission: 'audit:read' },
+      { to: '/kvkk',          label: 'KVKK & Gizlilik',    icon: <Shield /> },
     ],
   },
 ];

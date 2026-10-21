@@ -138,6 +138,9 @@ const KullanicilarPage = lazy(() =>
 const IslemLoglariPage = lazy(() =>
   import('@/pages/loglar/islem-loglari-page').then((m) => ({ default: m.IslemLoglariPage })),
 );
+const KvkkPage = lazy(() =>
+  import('@/pages/kvkk/kvkk-page').then((m) => ({ default: m.KvkkPage })),
+);
 
 function PageFallback() {
   return (
@@ -319,6 +322,10 @@ export const router = createBrowserRouter([
       {
         path: 'islem-loglari',
         element: <SuspenseWrap><IslemLoglariPage /></SuspenseWrap>,
+      },
+      {
+        path: 'kvkk',
+        element: <SuspenseWrap><KvkkPage /></SuspenseWrap>,
       },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
