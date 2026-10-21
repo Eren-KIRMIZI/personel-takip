@@ -20,14 +20,14 @@ export class EmployeesController {
 
   @Get(':id/history')
   @RequirePermissions('employee:read')
-  history(@Param('id') id: string) {
-    return this.employees.history(id);
+  history(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.employees.history(id, user);
   }
 
   @Get(':id')
   @RequirePermissions('employee:read')
-  find(@Param('id') id: string) {
-    return this.employees.find(id);
+  find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.employees.find(id, user);
   }
 
   @Post()

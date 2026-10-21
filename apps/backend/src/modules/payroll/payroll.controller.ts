@@ -20,8 +20,11 @@ export class PayrollController {
 
   @Get('employees/:employeeId/salary')
   @RequirePermissions('payroll:read')
-  getEmployeeSalary(@Param('employeeId', ParseUUIDPipe) employeeId: string) {
-    return this.payroll.getEmployeeSalary(employeeId);
+  getEmployeeSalary(
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.payroll.getEmployeeSalary(employeeId, user);
   }
 
   @Post('employees/:employeeId/salary')

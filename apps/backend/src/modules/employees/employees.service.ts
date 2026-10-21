@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -7,7 +7,7 @@ import { CacheService } from '../../common/cache/cache.service';
 import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import { CreateEmployeeDto, EmployeeListQueryDto, UpdateEmployeeDto } from './dto/employees.dto';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeEntityScopedWhere } from '../../common/scope';
+import { employeeEntityScopedWhere, getScope } from '../../common/scope';
 
 // Listede kullanılan hafif include — user/roles JOIN'i yok
 const listInclude = {
@@ -55,8 +55,8 @@ export class EmployeesService {
   ) {}
 
   async list(query: EmployeeListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const base: Record<string, unknown> = {};
     if (query.search) {
@@ -107,37 +107,69 @@ export class EmployeesService {
     return result;
   }
 
-  async find(id: string) {
-    const cacheKey = CacheKeys.employeeDetail(id);
-    const cached = await this.cache.get<unknown>(cacheKey);
-    if (cached) return cached;
-
-    const employee = await this.prisma.employee.findUnique({
-      where: { id },
-      include: {
-        ...employeeInclude,
-        history: {
-          orderBy: { effectiveDate: 'desc' },
-          take: 50,
-        },
-      },
-    });
-    if (!employee) {
-      throw new NotFoundException('Personel bulunamadı.');
+  async find(id: string, actor?: AuthenticatedUser) {
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && actor.employeeId !== id) {
+        throw new ForbiddenException('Yalnızca kendi personel detayınızı görüntüleyebilirsiniz.');
+      }
     }
-    await this.cache.set(cacheKey, employee, CacheTTL.EMPLOYEE_DETAIL);
+
+    const cacheKey = CacheKeys.employeeDetail(id);
+    const cached = await this.cache.get<any>(cacheKey);
+    let employee = cached;
+
+    if (!employee) {
+      employee = await this.prisma.employee.findUnique({
+        where: { id },
+        include: {
+          ...employeeInclude,
+          history: {
+            orderBy: { effectiveDate: 'desc' },
+            take: 50,
+          },
+        },
+      });
+      if (!employee) {
+        throw new NotFoundException('Personel bulunamadı.');
+      }
+      await this.cache.set(cacheKey, employee, CacheTTL.EMPLOYEE_DETAIL);
+    }
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'department' && employee.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu personelin detaylarını görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     return employee;
   }
 
-  async history(id: string) {
+  async history(id: string, actor?: AuthenticatedUser) {
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && actor.employeeId !== id) {
+        throw new ForbiddenException('Yalnızca kendi geçmiş kayıtlarınızı görüntüleyebilirsiniz.');
+      }
+    }
+
+    const employee = await this.prisma.employee.findUnique({ where: { id }, select: { id: true, departmentId: true } });
+    if (!employee) {
+      throw new NotFoundException('Personel bulunamadı.');
+    }
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'department' && employee.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu personelin geçmiş kayıtlarını görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     const cacheKey = CacheKeys.employeeHistory(id);
     const cached = await this.cache.get<unknown[]>(cacheKey);
     if (cached) return cached;
 
-    const employee = await this.prisma.employee.findUnique({ where: { id }, select: { id: true } });
-    if (!employee) {
-      throw new NotFoundException('Personel bulunamadı.');
-    }
     const result = await this.prisma.employeeHistory.findMany({
       where: { employeeId: id },
       orderBy: { effectiveDate: 'desc' },

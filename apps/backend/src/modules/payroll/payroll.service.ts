@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EmploymentStatus, PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, resolveScopeKind } from '../../common/scope';
 import { CreatePayrollDto, PayrollListQueryDto, SetSalaryDto, UpdatePayrollDto } from './dto/payroll.dto';
 
 const payrollInclude = {
@@ -33,8 +33,8 @@ export class PayrollService {
   }
 
   async list(query: PayrollListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
     const base: Prisma.PayrollItemWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
     if (query.periodYear) base.periodYear = query.periodYear;
@@ -69,7 +69,13 @@ export class PayrollService {
     };
   }
 
-  async getEmployeeSalary(employeeId: string) {
+  async getEmployeeSalary(employeeId: string, actor: AuthenticatedUser) {
+    const scopeKind = resolveScopeKind(actor);
+    const isHrOrAdmin = scopeKind === 'all';
+    if (!isHrOrAdmin && actor.employeeId !== employeeId) {
+      throw new ForbiddenException('Yalnızca kendi maaş bilginizi görüntüleyebilirsiniz.');
+    }
+
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
     const last = await this.prisma.payrollItem.findFirst({

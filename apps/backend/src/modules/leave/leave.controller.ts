@@ -58,8 +58,8 @@ export class LeaveController {
 
   @Get('leave-requests/:id')
   @RequirePermissions('leave:read')
-  find(@Param('id') id: string) {
-    return this.leave.findRequest(id);
+  find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.leave.findRequest(id, user);
   }
 
   @Post('leave-requests')

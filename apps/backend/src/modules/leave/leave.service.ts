@@ -1,11 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { LeaveDayPart, LeaveStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { CacheKeys, CacheTTL } from '../../common/cache/cache.keys';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, getScope, resolveScopeKind } from '../../common/scope';
 import {
   CreateLeaveRequestDto,
   CreateLeaveTypeDto,
@@ -104,8 +104,8 @@ export class LeaveService {
   // ------------------------------------------------------------
 
   async listRequests(query: LeaveListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const base: Prisma.LeaveRequestWhereInput = {};
     if (query.status) base.status = query.status;
@@ -134,17 +134,39 @@ export class LeaveService {
     return result;
   }
 
-  async findRequest(id: string) {
+  async findRequest(id: string, actor?: AuthenticatedUser) {
     const request = await this.prisma.leaveRequest.findUnique({
       where: { id },
-      include: requestInclude,
+      include: {
+        ...requestInclude,
+        employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true, departmentId: true } },
+      },
     });
     if (!request) throw new NotFoundException('İzin talebi bulunamadı.');
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && request.employeeId !== actor.employeeId) {
+        throw new ForbiddenException('Yalnızca kendi izin taleplerinizi görüntüleyebilirsiniz.');
+      }
+      if (scope.kind === 'department' && request.employee?.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu izin talebini görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     return request;
   }
 
   async createRequest(dto: CreateLeaveRequestDto, actor: AuthenticatedUser) {
     const actorUserId = actor.userId;
+    const scopeKind = resolveScopeKind(actor);
+    const isHrOrAdmin = scopeKind === 'all';
+
+    // Başkası adına yetkisiz izin açmayı engelle (Impersonation prevention)
+    if (!isHrOrAdmin && actor.employeeId && dto.employeeId !== actor.employeeId) {
+      throw new ForbiddenException('Yalnızca kendi adınıza izin talebi oluşturabilirsiniz.');
+    }
+
     const isAdmin = actor.roles.includes('ADMIN');
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
