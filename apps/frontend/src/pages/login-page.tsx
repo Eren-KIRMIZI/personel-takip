@@ -127,9 +127,9 @@ export function LoginPage() {
           <div className="flex items-center gap-3">
             <LogoMark className="shadow-none shadow-primary/30" />
             <div>
-              <p className="font-display text-xl font-bold tracking-tight">Personel ve İK</p>
+              <p className="font-display text-xl font-bold tracking-tight">Personel Takip Sistemi</p>
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-blue-200/70">
-                İnsan Kaynakları Yönetim Sistemi
+                Yenişehir Belediyesi
               </p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export function LoginPage() {
 
           {/* Alt bilgi */}
           <div className="flex items-center justify-between">
-            <p className="text-xs text-blue-100/40">© 2026 Personel ve İK</p>
+            <p className="text-xs text-blue-100/40">© 2026 Personel Takip Sistemi</p>
             <span className="flex items-center gap-1.5 text-xs text-blue-100/40">
               <span className="size-1.5 rounded-full bg-emerald-400" />
               Güvenli kimlik doğrulama
@@ -175,8 +175,8 @@ export function LoginPage() {
           <div className="flex flex-col items-center gap-3 text-center lg:hidden">
             <LogoMark />
             <div>
-              <p className="font-display text-xl font-bold tracking-tight text-foreground">Personel ve İK</p>
-              <p className="text-xs text-muted-foreground">İnsan Kaynakları Yönetim Sistemi</p>
+              <p className="font-display text-xl font-bold tracking-tight text-foreground">Personel Takip Sistemi</p>
+              <p className="text-xs text-muted-foreground">Yenişehir Belediyesi</p>
             </div>
           </div>
 
@@ -319,7 +319,7 @@ export function LoginPage() {
           )}
 
           <p className="text-center text-xs text-muted-foreground">
-            © 2026 Personel ve İK · Kurum içi kullanım içindir
+            © 2026 Personel Takip Sistemi · Kurum içi kullanım içindir
           </p>
         </div>
       </main>
