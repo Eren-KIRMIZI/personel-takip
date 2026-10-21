@@ -26,6 +26,7 @@ import { AnnouncementModule } from './modules/announcement/announcement.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { BonusModule } from './modules/bonus/bonus.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -60,6 +61,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     NotificationModule,
     BonusModule,
     UploadModule,
+    MonitoringModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

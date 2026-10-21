@@ -105,6 +105,9 @@ const PERMISSIONS: Array<{ module: string; code: string; name: string; descripti
   { module: 'erişim', code: 'user:read', name: 'Kullanıcı görüntüleme' },
   { module: 'erişim', code: 'user:write', name: 'Kullanıcı düzenleme' },
   { module: 'denetim', code: 'audit:read', name: 'İşlem loglarını görüntüleme' },
+  // Sistem İzleme
+  { module: 'izleme', code: 'monitoring:read', name: 'Sistem sağlığı görüntüleme' },
+  { module: 'izleme', code: 'monitoring:write', name: 'Olay yönetimi (acknowledge/resolve)' },
 ];
 
 async function seedPermissions() {

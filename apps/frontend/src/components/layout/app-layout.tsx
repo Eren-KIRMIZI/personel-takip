@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
+  Activity,
   Banknote,
   Briefcase,
   Building2,
@@ -119,8 +120,9 @@ const NAV_SECTIONS: Array<{
     title: 'Yönetim',
     items: [
       { to: '/roller',        label: 'Roller ve Yetkiler', icon: <ShieldCheck />, permission: 'role:read' },
-      { to: '/kullanicilar',  label: 'Kullanıcılar',       icon: <UserCog />,     permission: 'user:read' },
-      { to: '/islem-loglari', label: 'İşlem Logları',      icon: <ScrollText />,  permission: 'audit:read' },
+      { to: '/kullanicilar',  label: 'Kullanıcılar',       icon: <UserCog />,    permission: 'user:read' },
+      { to: '/islem-loglari', label: 'İşlem Logları',      icon: <ScrollText />, permission: 'audit:read' },
+      { to: '/sistem-sagligi',label: 'Sistem Sağlığı',     icon: <Activity />,   permission: 'monitoring:read' },
       { to: '/kvkk',          label: 'KVKK & Gizlilik',    icon: <Shield /> },
     ],
   },

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowRight,
   Building2,
   CalendarClock,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Users,
+  XCircle,
   Zap,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/stores/auth';
 import { reportsApi } from '@/features/raporlar/api';
+import { monitoringApi } from '@/features/monitoring/api';
 import { cn } from '@/lib/utils';
 
 /* ── Stat card ──────────────────────────────── */
@@ -87,6 +90,66 @@ function ActivityMetric({ icon: Icon, label, value, sub, to, accent = 'text-prim
         <p className="text-xs text-muted-foreground">{sub}</p>
       </div>
       <ArrowRight className="size-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+/* ── Monitoring Mini Card ────────────────────── */
+function MonitoringMiniCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['monitoring-summary'],
+    queryFn: () => monitoringApi.summary(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  if (isLoading) return <Skeleton className="h-20 w-full rounded-xl" />;
+  if (!data) return null;
+
+  const hasCritical = data.criticalCount > 0;
+  const hasError = data.errorCount > 0;
+
+  return (
+    <Link
+      to="/sistem-sagligi"
+      className={cn(
+        'group flex items-center gap-4 rounded-xl border p-4 transition-all duration-200 hover:-translate-y-0.5',
+        hasCritical
+          ? 'border-red-500/40 bg-red-500/5 hover:bg-red-500/10'
+          : hasError
+            ? 'border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10'
+            : 'border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10',
+      )}
+    >
+      <div className={cn(
+        'flex size-10 shrink-0 items-center justify-center rounded-xl',
+        hasCritical ? 'bg-red-500/20' : hasError ? 'bg-purple-500/20' : 'bg-emerald-500/20',
+      )}>
+        {hasCritical
+          ? <XCircle className="size-5 text-red-400" />
+          : hasError
+            ? <AlertTriangle className="size-5 text-purple-400" />
+            : <CheckCircle2 className="size-5 text-emerald-400" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground">Sistem Sağlığı</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {hasCritical
+            ? `${data.criticalCount} kritik olay — acil inceleme gerekiyor`
+            : hasError
+              ? `${data.errorCount} hata, ${data.warningCount} uyarı mevcut`
+              : 'Tüm servisler normal çalışıyor'}
+        </p>
+      </div>
+      {data.openCount > 0 && (
+        <span className={cn(
+          'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold',
+          hasCritical ? 'bg-red-500 text-white' : 'bg-purple-500 text-white',
+        )}>
+          {data.openCount} açık
+        </span>
+      )}
+      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 shrink-0" />
     </Link>
   );
 }
@@ -230,6 +293,9 @@ export function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Sistem Sağlığı Özeti (monitoring:read izni varsa) ── */}
+      {hasPermission('monitoring:read') && <MonitoringMiniCard />}
 
       {/* ── Permissions overview ─────────────────────── */}
       {profile?.permissions?.length ? (

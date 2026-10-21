@@ -998,3 +998,123 @@ model Notification {
   @@index([createdAt])
   @@map("notifications")
 }
+
+// ---------------------------------------------------------------------------
+// Sistem Sağlığı ve Olay İzleme
+// ---------------------------------------------------------------------------
+
+enum IncidentSeverity {
+  CRITICAL  // Kırmızı — sistem geneli kesinti
+  ERROR     // Mor — modül/endpoint bozuk
+  WARNING   // Sarı — risk var, henüz kesinti yok
+  HEALTHY   // Yeşil — sorun yok
+}
+
+enum IncidentStatus {
+  OPEN        // Açık — inceleme bekliyor
+  ACKNOWLEDGED // İnceleniyor
+  RESOLVED    // Çözüldü
+  CLOSED      // Kapatıldı
+}
+
+enum IncidentCategory {
+  AVAILABILITY      // Site/servis erişilebilirliği
+  PERFORMANCE       // Gecikme, timeout
+  FUNCTIONAL_ERROR  // Modül/iş akışı hatası
+  SECURITY          // Yetkisiz erişim, veri bütünlüğü
+  DATABASE          // DB bağlantı, sorgu hataları
+  CACHE             // Redis hataları
+  EXTERNAL_SERVICE  // Harici servis (Supabase, vb.)
+  CLIENT_ERROR      // Frontend JS hataları
+  MONITORING        // İzleme sistemi kendisi
+}
+
+model Incident {
+  id               String           @id @default(uuid()) @db.Uuid
+  incidentCode     String           @unique // INC-2026-00001
+  severity         IncidentSeverity
+  status           IncidentStatus   @default(OPEN)
+  category         IncidentCategory
+  service          String           // "frontend", "backend", "database", "redis", "external"
+  module           String?          // etkilenen modül (opsiyonel)
+  endpoint         String?          // etkilenen endpoint (opsiyonel)
+  environment      String           @default("production")
+  title            String
+  summary          String           @db.Text
+  affectedScope    String?          // "all-users", "single-user", "module", vb.
+  occurrenceCount  Int              @default(1)
+  firstSeenAt      DateTime         @default(now())
+  lastSeenAt       DateTime         @default(now())
+  resolvedAt       DateTime?
+  lastSuccessfulAt DateTime?        // Son başarılı kontrol zamanı
+  correlationId    String?
+  appVersion       String?
+  evidence         Json?            // Kanıtlar (maskelenmiş)
+  notificationStatus String         @default("pending") // pending | sent | failed | skipped
+  notifiedAt       DateTime?
+  resolvedBy       String?          // "auto-recovery" | "manual"
+  closedAt         DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  occurrences   IncidentOccurrence[]
+  notifications IncidentNotification[]
+
+  @@index([severity, status])
+  @@index([firstSeenAt])
+  @@index([service])
+  @@index([category])
+  @@map("incidents")
+}
+
+model IncidentOccurrence {
+  id           String   @id @default(uuid()) @db.Uuid
+  incidentId   String   @db.Uuid
+  occurredAt   DateTime @default(now())
+  errorCode    String?
+  errorSummary String?  // Maskelenmiş hata özeti
+  httpStatus   Int?
+  latencyMs    Int?
+  source       String?  // "health-check" | "client-error" | "api-monitor"
+  metadata     Json?    // Ek güvenli meta veri
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([occurredAt])
+  @@map("incident_occurrences")
+}
+
+model HealthCheckResult {
+  id          String   @id @default(uuid()) @db.Uuid
+  service     String   // "backend", "database", "redis", "frontend"
+  status      String   // "ok" | "degraded" | "down" | "unknown"
+  latencyMs   Int?
+  checkedAt   DateTime @default(now())
+  details     Json?    // Güvenli detaylar (kimlik bilgisi yok)
+  errorCode   String?
+  checkSource String   @default("internal") // "internal" | "external" | "heartbeat"
+
+  @@index([service, checkedAt])
+  @@index([checkedAt])
+  @@map("health_check_results")
+}
+
+model IncidentNotification {
+  id           String   @id @default(uuid()) @db.Uuid
+  incidentId   String   @db.Uuid
+  channel      String   // "email" | "slack" | "webhook"
+  recipient    String   // Maskelenmiş alıcı
+  status       String   @default("pending") // pending | sent | failed
+  sentAt       DateTime?
+  failedAt     DateTime?
+  errorSummary String?
+  retryCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([status])
+  @@map("incident_notifications")
+}

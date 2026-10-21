@@ -108,6 +108,20 @@ Tek sayfalık katalog yapısı: Genel (19) ve Hesap (5) raporları, arama, tarih
 
 Rol ve yetki tanımları, kullanıcı yönetimi (durum, rol atama), denetim logları ekranı.
 
+### Sistem Sağlığı ve Otomatik Olay İzleme
+
+Sistem bileşenlerini ve modüllerini gerçek zamanlı takip eden gözlemleme mekanizması. Temel prensibi **"müdahalesiz izleme"**dir; sistem ve veri bütünlüğüne otomatik müdahale yapmaz, sorunları tespit edip sınıflandırarak yazılım ekibine yönlendirir.
+
+* **Kritiklik Düzeyleri ve Renk Tasarımı:**
+  * 🔴 **Kritik Hata (KIRMIZI)**: Sistem genelini veya ana modülleri engelleyen, acil müdahale gerektiren yüksek öncelikli olaylar (en üstte acil durum banner'ı ile gösterilir).
+  * 🟣 **Hata (MOR)**: Belirli bir modülde işlem akışını kesintiye uğratan fonksiyonel hatalar.
+  * 🟡 **Uyarı (SARI)**: Yüksek gecikme, bellek/kaynak kullanım eşiği veya yavaşlayan servis uyarıları.
+  * 🟢 **Problem Yok / Sağlıklı (YEŞİL)**: Sağlıklı çalışan bileşenler ve servisler.
+* **Sağlık Kontrolleri:** PostgreSQL veritabanı yanıt süresi, Upstash Redis önbellek bağlantısı, Node.js heap belleği, event loop gecikmesi.
+* **İstemci Hata Raporlama:** Frontend'de yakalanan beklenmedik hatalar anında `/api/monitoring/client-error` uç noktasıyla merkezi havuza aktarılır.
+* **Admin Dashboard Kartı:** Yönetici ana panelinde kompakt durum göstergesi ve kritik olay sayısı rozeti.
+* **Aksiyonlar:** Olayları incelemeye alma (`acknowledge`), çözüldü olarak işaretleme (`resolve`), hata sıklığı/sayacı (`occurrenceCount`) ve yığın izi (`stack trace`) analizi.
+
 ---
 
 ## Teknoloji Yığını
@@ -281,11 +295,12 @@ Uygulama ilk açıldığında Phoenix boot screen gösterilir ve Smart Warm-Up E
 | `/roller` | Rol ve yetki yönetimi |
 | `/kullanicilar` | Kullanıcı yönetimi |
 | `/islem-loglari` | Denetim logları |
+| `/sistem-sagligi` | Sistem Sağlığı ve Olay İzleme (canlı radar, kritik banner, olay inceleme) |
 | `*` | Bilinmeyen rota → anasayfaya yönlendirme |
 
 ### Menü Yapısı
 
-Koyu tema sidebar üzerinde 8 bölüm, 23 menü öğesi. Her öğe ilgili yetkiye göre görünür:
+Koyu tema sidebar üzerinde 8 bölüm, 24 menü öğesi. Her öğe ilgili yetkiye göre görünür:
 
 * **Genel** — Panel
 * **Personel** — Personel Listesi, Personel Ekle
@@ -294,7 +309,7 @@ Koyu tema sidebar üzerinde 8 bölüm, 23 menü öğesi. Her öğe ilgili yetkiy
 * **Raporlar** — Raporlar (çoklu yetki: `report:view` + ilgili modül yetkilerinden herhangi biri)
 * **Ödeme** — Maaş / Bordro, Avanslar, Prim
 * **İş Süreçleri** — Mesai, Mesai Ekle, Görev, Zimmet, Evrak, Disiplin ve Teşvik, Duyurular
-* **Yönetim** — Roller ve Yetkiler, Kullanıcılar, İşlem Logları
+* **Yönetim** — Roller ve Yetkiler, Kullanıcılar, İşlem Logları, Sistem Sağlığı
 
 Üst bar bildirim çekmecesi, 30 saniyede bir okunmamış bildirimleri kontrol eder; tekil ve toplu okundu işaretleme desteklenir.
 
@@ -302,7 +317,7 @@ Koyu tema sidebar üzerinde 8 bölüm, 23 menü öğesi. Her öğe ilgili yetkiy
 
 ## Backend: API Modülleri
 
-Backend'de 21 iş modülü bulunur:
+Backend'de 22 iş modülü bulunur:
 
 | Modül | Rota | Sorumluluk |
 |---|---|---|
@@ -327,6 +342,7 @@ Backend'de 21 iş modülü bulunur:
 | `upload` | `/api/uploads` | Dosya yükleme (Supabase Storage) |
 | `access` | `/api/permissions`, `/roles`, `/users` | Rol-yetki ve kullanıcı yönetimi |
 | `audit` | `/api/audit-logs` | Denetim kayıtları |
+| `monitoring` | `/api/monitoring...` | Sistem sağlığı kontrolleri, olay izleme, client-error raporlama ve ekip bildirimleri |
 
 ### Dikkat Çeken İş Mantığı
 
@@ -420,16 +436,16 @@ User --< UserRole >-- Role --< RolePermission >-- Permission
 
 ### Seed Verileri
 
-Seed betiği toplam **68 yetki** ve **4 rol** tanımlar:
+Seed betiği toplam **70 yetki** ve **4 rol** tanımlar:
 
 | Rol | Kapsam |
 |---|---|
-| Admin | 68 yetkinin tamamı |
-| İK Uzmanı | 68 yetkinin tamamı |
+| Admin | 70 yetkinin tamamı |
+| İK Uzmanı | 70 yetkinin tamamı |
 | Birim Yöneticisi | Personel, izin onay/red, mesai onay/red, puantaj, görev, vardiya, avans/prim onay, zimmet, evrak okuma, rapor, bildirim |
 | Personel | İzin açma/okuma, mesai açma/okuma, puantaj okuma, görev okuma, vardiya okuma, avans açma, prim okuma, zimmet, evrak okuma, duyuru, bildirim |
 
-Yetki kataloğu modüle göre şu kodlardan oluşur: `employee:read/write/delete`, `employee-record:read/write/delete`, `leave:read/create/approve/reject/write`, `overtime:read/create/approve/reject`, `payroll:read/write/approve`, `advance:read/write/approve`, `bonus:read/write/approve`, `asset:read/write/return/approve/delete`, `task:read/write/create/assign`, `document:read/write/create`, `announcement:read/write/create/publish`, `notification:read`, `report:view/create/export`, `attendance:read/write`, `qr:read/write/report`, `shift:read/write`, `company/department/unit/location/title/position:read/write`, `role:read/write`, `user:read/write`, `audit:read`.
+Yetki kataloğu modüle göre şu kodlardan oluşur: `employee:read/write/delete`, `employee-record:read/write/delete`, `leave:read/create/approve/reject/write`, `overtime:read/create/approve/reject`, `payroll:read/write/approve`, `advance:read/write/approve`, `bonus:read/write/approve`, `asset:read/write/return/approve/delete`, `task:read/write/create/assign`, `document:read/write/create`, `announcement:read/write/create/publish`, `notification:read`, `report:view/create/export`, `attendance:read/write`, `qr:read/write/report`, `shift:read/write`, `company/department/unit/location/title/position:read/write`, `role:read/write`, `user:read/write`, `audit:read`, `monitoring:read/write`.
 
 Ayrıca seed, örnek organizasyon verisi (1 kurum, 4 departman, 1 lokasyon, unvan ve pozisyonlar) ve 5 izin türü (yıllık 14 gün, mazeret 3 gün, rapor 5 gün, ücretsiz, süt izni) oluşturur.
 
@@ -437,7 +453,7 @@ Ayrıca seed, örnek organizasyon verisi (1 kurum, 4 departman, 1 lokasyon, unva
 
 ## Veritabanı (Prisma)
 
-Prisma 6 ile Supabase PostgreSQL'e bağlanılır. Şemada **36 model** bulunur:
+Prisma 6 ile Supabase PostgreSQL'e bağlanılır. Şemada **40 model** bulunur:
 
 **Organizasyon:** Company, Department, Unit, WorkLocation, Shift, ShiftAssignment, Title, Position
 
@@ -457,7 +473,9 @@ Prisma 6 ile Supabase PostgreSQL'e bağlanılır. Şemada **36 model** bulunur:
 
 **Denetim:** AuditLog
 
-Önemli enum'lar: `PunchType` (IN/OUT), `PunchSource` (PDKS/QR/MANUAL/CARD), `EmploymentStatus` (ACTIVE/PASSIVE/SUSPENDED), `PayrollStatus` (DRAFT/APPROVED/PAID/CANCELLED), `AssetStatus` (ASSIGNED/PENDING_APPROVAL/REJECTED/RETURNED/RETURN_PENDING/LOST/DAMAGED/SERVICING), `LeaveStatus`, `OvertimeStatus`, `AdvanceStatus`, `BonusStatus`, `TaskPriority`, `TaskStatus`, `DocumentPriority`, `DocumentStatus`, `AnnouncementStatus`, `AnnouncementTargetType`, `ShiftDay`, `LeaveDayPart` (MORNING/AFTERNOON), `EmployeeRecordCategory`, `EmployeeRecordType`, `UserStatus`, `AuditResult`.
+**İzleme ve Sistem Sağlığı:** Incident, IncidentOccurrence, HealthCheckResult, IncidentNotification
+
+Önemli enum'lar: `PunchType` (IN/OUT), `PunchSource` (PDKS/QR/MANUAL/CARD), `EmploymentStatus` (ACTIVE/PASSIVE/SUSPENDED), `PayrollStatus` (DRAFT/APPROVED/PAID/CANCELLED), `AssetStatus` (ASSIGNED/PENDING_APPROVAL/REJECTED/RETURNED/RETURN_PENDING/LOST/DAMAGED/SERVICING), `LeaveStatus`, `OvertimeStatus`, `AdvanceStatus`, `BonusStatus`, `TaskPriority`, `TaskStatus`, `DocumentPriority`, `DocumentStatus`, `AnnouncementStatus`, `AnnouncementTargetType`, `ShiftDay`, `LeaveDayPart` (MORNING/AFTERNOON), `EmployeeRecordCategory`, `EmployeeRecordType`, `UserStatus`, `AuditResult`, `IncidentSeverity` (CRITICAL/ERROR/WARNING/INFO), `IncidentStatus` (OPEN/ACKNOWLEDGED/RESOLVED).
 
 ### Bağlantı Yapılandırması (Connection Pooler)
 

@@ -141,6 +141,9 @@ const IslemLoglariPage = lazy(() =>
 const KvkkPage = lazy(() =>
   import('@/pages/kvkk/kvkk-page').then((m) => ({ default: m.KvkkPage })),
 );
+const SistemSagligiPage = lazy(() =>
+  import('@/pages/sistem-sagligi/sistem-sagligi-page').then((m) => ({ default: m.SistemSagligiPage })),
+);
 
 function PageFallback() {
   return (
@@ -326,6 +329,10 @@ export const router = createBrowserRouter([
       {
         path: 'kvkk',
         element: <SuspenseWrap><KvkkPage /></SuspenseWrap>,
+      },
+      {
+        path: 'sistem-sagligi',
+        element: <SuspenseWrap><SistemSagligiPage /></SuspenseWrap>,
       },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
