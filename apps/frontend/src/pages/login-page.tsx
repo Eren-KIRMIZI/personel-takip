@@ -1,12 +1,11 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import {
-  Users, Lock, Mail, Sparkles, Database, Eye, EyeOff, Check, ArrowRight,
+  Users, Lock, Mail, Eye, EyeOff, Check, ArrowRight,
   CalendarDays, QrCode, Wallet, Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
-import { prefetchWarmupChunks, prefetchEverything, type ProgressState } from '@/lib/prefetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,25 +50,17 @@ export function LoginPage() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
-  const [progress, setProgress] = useState<ProgressState | null>(null);
   const session     = useAuthStore((s) => s.session);
   const initialized = useAuthStore((s) => s.initialized);
   const signIn      = useAuthStore((s) => s.signIn);
   const navigate    = useNavigate();
 
-  // 1. Supabase warm-up & 2. Arka plan chunk ön yükleme
+  // Supabase baglantisini ogretme istegi (connection pool isi)
   useEffect(() => {
     supabase.from('departments').select('id').limit(1).then(() => {});
-
-    // Kullanıcı henüz şifresini yazarken Dashboard ve Layout JS parçaları sessizce indirilir
-    const timer = setTimeout(() => {
-      prefetchWarmupChunks();
-    }, 400);
-
-    return () => clearTimeout(timer);
   }, []);
 
-  if (initialized && session && !progress) {
+  if (initialized && session) {
     return <Navigate to="/" replace />;
   }
 
@@ -79,17 +70,10 @@ export function LoginPage() {
     setLoading(true);
     try {
       await signIn(email.trim(), password, remember);
-
-      // Başarılı girişten sonra 15 saniyelik derinlemesine ön yükleme ve ısınma motorunu çalıştır
-      await prefetchEverything((state) => {
-        setProgress(state);
-      }, 15000); // 15 saniyelik tam ısıtma ve önbellekleme süresi
-
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Giriş başarısız.');
+      setError(err instanceof Error ? err.message : 'Giris basarisiz.');
       setLoading(false);
-      setProgress(null);
     }
   };
 
@@ -250,41 +234,6 @@ export function LoginPage() {
                 Giriş ekranına dön
               </button>
             </form>
-          ) : progress ? (
-            <div className="space-y-6 py-2 text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="size-7" />
-              </div>
-
-              <div className="space-y-1.5">
-                <h3 className="font-display text-base font-semibold text-foreground">
-                  Çalışma Alanınız Hazırlanıyor
-                </h3>
-                <p className="flex min-h-[40px] items-center justify-center text-sm text-muted-foreground">
-                  {progress.message}
-                </p>
-              </div>
-
-              {/* İlerleme çubuğu */}
-              <div className="space-y-2">
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary shadow-sm"
-                    style={{ width: `${progress.percent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs font-medium text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Database className="size-3 text-primary" /> Sistem Isıtılıyor
-                  </span>
-                  <span>%{progress.percent}</span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground/80">
-                Giriş sonrası maksimum hız için veritabanı ve sayfalar önbelleğe alınıyor.
-              </p>
-            </div>
           ) : (
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="space-y-1.5">

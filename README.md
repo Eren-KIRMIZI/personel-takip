@@ -10,7 +10,9 @@ Proje `npm workspaces` tabanlı bir monorepo'dur:
 * `prisma` — Veritabanı şeması ve migration'lar
 * `docs` — Mimari ve RBAC dokümanları
 
-Uygulama Vercel üzerinde yayındadır; kimlik doğrulama, veritabanı, dosya depolama ve image depolama altyapısı Supabase tarafından sağlanır.
+Uygulama Vercel üzerinde yayındadır; kimlik doğrulama, veritabanı, dosya depolama altyapısı Supabase (Frankfurt / eu-central-1), önbellek altyapısı Upstash Redis tarafından sağlanır.
+
+**Canlı URL:** https://personel-takip-sigma.vercel.app
 
 ## İçindekiler
 
@@ -375,6 +377,21 @@ Supabase istemcisi seçilen depolama ile yeniden kurulur.
 
 Giriş ekranındaki akış `supabase.auth.resetPasswordForEmail()` ile sıfırlama bağlantısı gönderir (e-posta şablonu ve SMTP Supabase projesinde yapılandırılmış olmalıdır).
 
+### Test ve Demo Giriş Bilgileri
+
+Sistemde test ve video çekimlerinde kullanılmak üzere tüm modülleri dolu hazır kullanıcı hesapları:
+
+| Rol | Ad Soyad | E-Posta / Kullanıcı Adı | Şifre | Görev / Yetki Tanımı |
+|---|---|---|---|---|
+| **Admin (Tam Yetki)** | **Eren KIRMIZI** | `eren.kirmizi@yenisehir.bel.tr` | `Bld.Admin2026!` | Bilgi İşlem / Tüm sistem yetkileri |
+| **İK Uzmanı** | Fatma Demir | `fatma.demir@yenisehir.bel.tr` | `Bld.IK2026!` | İnsan Kaynakları Uzmanı (68 yetki) |
+| **Birim Yöneticisi** | Mehmet Kaya | `mehmet.kaya@yenisehir.bel.tr` | `Bld.Mudur2026!` | Fen İşleri Müdürü (Birim onay yetkileri) |
+| **Birim Yöneticisi** | Ayşe Şahin | `ayse.sahin@yenisehir.bel.tr` | `Bld.Mudur2026!` | Park ve Bahçeler Müdürü |
+| **Standart Personel** | Ali Çelik | `ali.celik@yenisehir.bel.tr` | `Bld.Prsnl2026!` | Fen İşleri / Saha Teknikeri |
+| **Standart Personel** | Zeynep Arslan | `zeynep.arslan@yenisehir.bel.tr` | `Bld.Prsnl2026!` | Fen İşleri / İnşaat Mühendisi |
+
+> **Not:** Sistemdeki tüm standart personeller (Ali Çelik, Zeynep Arslan, Hasan Öztürk, Merve Kılıç, Emre Yıldız, Seda Güler, Kadir Aydın, Elif Çetin) için ortak şifre `Bld.Prsnl2026!` olarak belirlenmiştir.
+
 ---
 
 ## Yetkilendirme (RBAC)
@@ -391,12 +408,12 @@ User --< UserRole >-- Role --< RolePermission >-- Permission
 
 ### Seed Verileri
 
-Seed betiği toplam **57 yetki** ve **4 rol** tanımlar:
+Seed betiği toplam **68 yetki** ve **4 rol** tanımlar:
 
 | Rol | Kapsam |
 |---|---|
-| Admin | 57 yetkinin tamamı |
-| IK Uzmanı | 57 yetkinin tamamı |
+| Admin | 68 yetkinin tamamı |
+| İK Uzmanı | 68 yetkinin tamamı |
 | Birim Yöneticisi | Personel, izin onay/red, mesai onay/red, puantaj, görev, vardiya, avans/prim onay, zimmet, evrak okuma, rapor, bildirim |
 | Personel | İzin açma/okuma, mesai açma/okuma, puantaj okuma, görev okuma, vardiya okuma, avans açma, prim okuma, zimmet, evrak okuma, duyuru, bildirim |
 
@@ -456,7 +473,7 @@ datasource db {
 * **Upstash Redis:** JWT token doğrulama sonucu ve kullanıcının rol/yetki kümesi 3 dakika cache'lenir; her istekte iç Supabase çağrısı yapılmaz. Son giriş zamanı güncellemesi en fazla 1 saatte bir yazılır.
 * **TanStack Query staleTime politikası:** Organizasyon verileri 30 dk, liste verileri 3 dk, detay verileri 5 dk, kısa vadeli veriler 1 dk; hassas veriler (maaş vb.) cache'lenmez. Sayfa değişiminde süregelen istekler AbortController ile iptal edilir.
 * **Code-splitting ve prefetch:** Tüm sayfalar `React.lazy` ile ayrı chunk'tır. Giriş ekranı yüklenirken layout/dashboard chunk'ları önceden indirilir; girişten sonra 15 saniyelik derin ön yükleme uygulanır.
-* **Migrasyon yoksa bile şema:** Bölge `ap-southeast-1`; migration üretimi ve uygulaması `DIRECT_URL` üzerinden yapılır.
+* **Supabase bölgesi:** `eu-central-1` (Frankfurt, Almanya) — Türkiye kullanıcılarına en yakın Supabase bölgesi. Migration üretimi ve uygulaması `DIRECT_URL` üzerinden yapılır.
 
 ---
 
@@ -516,6 +533,18 @@ Local ortamda backend `.env` dosyasında yukarıdaki backend değişkenleri, fro
 
 ## Altyapı ve Deployment (Vercel)
 
+### Canlı URL'ler
+
+| URL | |
+|-----|---|
+| **https://personel-takip-app.vercel.app** | ⭐ Ana URL |
+| https://personel-takip-tr.vercel.app | ✅ |
+| https://personel-takip-v2.vercel.app | ✅ |
+| https://personel-yonetim.vercel.app | ✅ |
+| https://personel-sistemi.vercel.app | ✅ |
+
+### Altyapı
+
 * Frontend statik dosyalar olarak `apps/frontend/dist` çıktısından sunulur.
 * Backend, `/api/*` istekleri için tek bir serverless fonksiyon olarak çalışır (`api/index.js`); ilk istekte Nest uygulaması hazırlanıp önbelleğe alınır. Azami süre 30 saniyedir.
 * `vercel.json` içindeki rewrite kuralı: `/api/(.*)` backend fonksiyonuna, `/assets/(.*)` statik dosyalara, diğer tüm yollar `index.html`'e gider (SPA fallback).
@@ -525,6 +554,12 @@ Local ortamda backend `.env` dosyasında yukarıdaki backend değişkenleri, fro
 Prodüksiyon ortamında veritabanı şeması `DIRECT_URL` üzerinden yönetilir. Yeni migration gerektiğinde göç dosyası üretilir ve `prisma migrate deploy` ile uygulanır; `prisma migrate dev` prodüksiyonda kullanılmaz.
 
 Ortam değişkenleri Vercel proje ayarlarında tanımlanır (backend + frontend değişkenleri birlikte; `VITE_*` öneki Vercel tarafında derleme anında frontend'e gömülür).
+
+### Supabase Bölgesi
+
+Veritabanı `eu-central-1` (Frankfurt, Almanya) bölgesindedir — Türkiye kullanıcıları için Singapore bölgesine kıyasla belirgin şekilde daha düşük latency sağlar.
+
+Pooler host: `aws-1-eu-central-1.pooler.supabase.com`
 
 ---
 
