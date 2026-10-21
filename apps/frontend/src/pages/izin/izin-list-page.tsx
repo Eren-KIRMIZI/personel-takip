@@ -220,7 +220,7 @@ export function IzinListPage() {
                       <a
                         href={request.documentUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >

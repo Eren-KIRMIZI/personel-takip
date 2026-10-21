@@ -187,7 +187,7 @@ export function IzinCreatePage() {
                 <a
                   href={documentUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   <FileText className="size-4" /> Belge yüklendi
