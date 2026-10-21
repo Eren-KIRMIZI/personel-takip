@@ -16,12 +16,12 @@ window.addEventListener('vite:preloadError', () => {
   window.location.reload();
 });
 
-// Auth oturumunu hemen başlat (BootScreen 10 saniye çalışırken arka planda session çözümlenir)
+// Auth oturumunu hemen başlat (BootScreen 15 saniye çalışırken arka planda session çözümlenir)
 void useAuthStore.getState().initialize();
 
 /**
  * Smart Warm-Up Orchestrator
- * - BootScreen (10 saniye, görkemli Phoenix ve aşamalı warm-up kontrol listesi)
+ * - BootScreen (15 saniye, görkemli Phoenix ve aşamalı warm-up kontrol listesi)
  *   en üst katmanda (z-index 99999) render edilir.
  * - RouterProvider arka planda kesintisiz çalışarak sayfayı ve bileşenleri hazırlar.
  * - %100 tamamlanınca yumuşak bir çözünme (cross-fade) ile doğrudan giriş ekranı açılır.

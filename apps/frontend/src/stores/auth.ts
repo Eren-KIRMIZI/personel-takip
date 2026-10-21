@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, configureAuthStorage } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { tokenStore } from '@/lib/token';
+import { prefetchAllCoreData } from '@/lib/warm-up-engine';
 
 const REMEMBER_KEY = 'pik_remember_session';
 
@@ -78,6 +79,7 @@ function bindAuthStateListener(store: AuthStoreApi) {
     if (nextSession) {
       store.get().refreshProfile();
       startIdleTimer(() => void store.get().signOut());
+      void prefetchAllCoreData();
     } else {
       stopIdleTimer();
       store.set({ profile: null });
@@ -102,6 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const profile = await fetchProfile();
         set({ profile });
         startIdleTimer(() => void get().signOut());
+        void prefetchAllCoreData();
       } catch {
         // Profil çekilemezse oturum geçersiz demektir
         await get().signOut();

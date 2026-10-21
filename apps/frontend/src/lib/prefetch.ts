@@ -5,7 +5,13 @@
  * Eski prefetchEverything() ve prefetchWarmupChunks() cagrilan yerler
  * geriye donuk uyumluluk icin korunmustur.
  */
-export { prefetchCoreData as prefetchEverything, logPerformanceSummary } from './warm-up-engine';
+export {
+  prefetchCoreData as prefetchEverything,
+  prefetchAllCoreData,
+  prefetchAllChunks,
+  prefetchRoute,
+  logPerformanceSummary,
+} from './warm-up-engine';
 
 export type { WarmUpProgress as ProgressState } from './warm-up-engine';
 

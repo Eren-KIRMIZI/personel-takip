@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
+import { prefetchAllCoreData } from '@/lib/warm-up-engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,6 +73,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await signIn(email.trim(), password, remember);
+      void prefetchAllCoreData();
       navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Giris basarisiz.');

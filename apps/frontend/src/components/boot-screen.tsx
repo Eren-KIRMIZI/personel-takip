@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { prefetchAllChunks, prefetchAllCoreData } from '@/lib/warm-up-engine';
+import { supabase } from '@/lib/supabase';
 
 const phoenixImg = '/phoenix.jpg';
 
@@ -13,38 +15,39 @@ interface CheckItem {
   status: 'pending' | 'running' | 'done';
 }
 
+// 15 Saniyelik Akıllı Warm-Up Sekansı: 3.5s x 4 faz (14s) + 400ms tamamlanma + 600ms pürüzsüz cross-fade = Tam 15.0 saniye
 const PHASES = [
   {
     targetPercent: 25,
-    durationMs: 2600,
-    stepText: 'Kimlik doğrulama yapılıyor...',
+    durationMs: 3500,
+    stepText: 'Kimlik doğrulama ve oturum çözümleniyor...',
     activeCheckId: 'auth',
   },
   {
     targetPercent: 50,
-    durationMs: 2600,
-    stepText: 'Kullanıcı yetkileri taranıyor...',
+    durationMs: 3500,
+    stepText: 'Kullanıcı yetkileri ve modüller taranıyor...',
     activeCheckId: 'permissions',
   },
   {
     targetPercent: 75,
-    durationMs: 2800,
-    stepText: 'Sistem bileşenleri hazırlanıyor...',
+    durationMs: 3500,
+    stepText: 'Sistem bileşenleri ve sayfalar önbelleğe alınıyor...',
     activeCheckId: 'components',
   },
   {
     targetPercent: 100,
-    durationMs: 2800,
-    stepText: 'Sayfa verileri önbelleğe alınıyor...',
+    durationMs: 3500,
+    stepText: 'Sayfa verileri hazırlandı, önbellek etkin...',
     activeCheckId: 'data',
   },
 ];
 
 const INITIAL_CHECKS: CheckItem[] = [
-  { id: 'auth',        label: 'Kimlik doğrulama',   color: '#38bdf8', status: 'running' },
-  { id: 'permissions', label: 'Kullanıcı yetkileri', color: '#a855f7', status: 'pending' },
-  { id: 'components',  label: 'Sistem bileşenleri',  color: '#ec4899', status: 'pending' },
-  { id: 'data',        label: 'Sayfa verileri',     color: '#f97316', status: 'pending' },
+  { id: 'auth',        label: 'Kimlik doğrulama',       color: '#38bdf8', status: 'running' },
+  { id: 'permissions', label: 'Kullanıcı yetkileri',     color: '#a855f7', status: 'pending' },
+  { id: 'components',  label: 'Sistem bileşenleri',      color: '#ec4899', status: 'pending' },
+  { id: 'data',        label: 'Sayfa verileri & önbellek', color: '#f97316', status: 'pending' },
 ];
 
 export function BootScreen({ onComplete }: BootScreenProps) {
@@ -59,26 +62,11 @@ export function BootScreen({ onComplete }: BootScreenProps) {
   useEffect(() => {
     let isCancelled = false;
 
-    // Arka planda tüm kritik sayfa, modül ve API chunk'larını V8 engine önbelleğine al
-    void Promise.allSettled([
-      import('@/pages/login-page'),
-      import('@/components/layout/app-layout'),
-      import('@/pages/dashboard-page'),
-      import('@/pages/personel/personel-list-page'),
-      import('@/pages/personel/personel-create-page'),
-      import('@/pages/personel/personel-detail-page'),
-      import('@/pages/izin/izin-list-page'),
-      import('@/pages/giris-cikis/giris-cikis-page'),
-      import('@/pages/vardiya/vardiyalar-page'),
-      import('@/pages/maas/maas-page'),
-      import('@/pages/raporlar/raporlar-page'),
-      import('@/pages/mesai/mesai-list-page'),
-      import('@/pages/zimmet/zimmet-list-page'),
-      import('@/pages/card/pdks-simulator-page'),
-      import('@/features/personel/api'),
-      import('@/features/izin/api'),
-      import('@/features/giris-cikis/api'),
-    ]);
+    // 1. Arka planda tüm uygulama sayfaları, modülleri ve API chunk'larını V8 motoruna yükle
+    void prefetchAllChunks();
+
+    // 2. Veritabanı connection pool'unu ısıt
+    void supabase.from('departments').select('id').limit(1).then(() => {});
 
     const runTimeline = async () => {
       let currentPct = 0;
@@ -97,9 +85,14 @@ export function BootScreen({ onComplete }: BootScreenProps) {
           }),
         );
 
+        // Faz 3 başladığında (oturum ve yetkiler çözülmüşken) gerçek API sorgularını arka planda RAM'e al
+        if (i === 2) {
+          void prefetchAllCoreData();
+        }
+
         const startPct = currentPct;
         const targetPct = phase.targetPercent;
-        const steps = 30;
+        const steps = 35;
         const stepTime = phase.durationMs / steps;
         const pctDelta = (targetPct - startPct) / steps;
 
@@ -118,8 +111,8 @@ export function BootScreen({ onComplete }: BootScreenProps) {
       setStepText('Sistem hazır!');
       setPercent(100);
 
-      // %100 durumunda 450ms bekle, ardından pürüzsüz cross-fade başlat
-      await new Promise((r) => setTimeout(r, 450));
+      // %100 durumunda 400ms bekle, ardından pürüzsüz cross-fade başlat
+      await new Promise((r) => setTimeout(r, 400));
       if (isCancelled) return;
       setIsExiting(true);
 

@@ -1,4 +1,5 @@
 import { queryClient, STALE } from './query-client';
+import { tokenStore } from './token';
 
 // Esikler
 const THRESHOLD = {
@@ -271,39 +272,338 @@ function scheduleIdlePhase(tasks: WarmUpTask[]) {
   next();
 }
 
-export async function prefetchCoreData(): Promise<void> {
-  const [{ orgApi }, { reportsApi }] = await Promise.all([
-    import('@/features/organizasyon/api'),
-    import('@/features/raporlar/api'),
-  ]);
+export async function prefetchAllCoreData(): Promise<void> {
+  const token = tokenStore.get();
+  // Oturum yoksa API istekleri 401 hatası vermemesi için veri sorgulamalarını atla
+  if (!token) return;
 
-  await Promise.allSettled([
-    queryClient.prefetchQuery({
-      queryKey: ['departments-all'],
-      queryFn: () => timedFetch('org/departments', () => orgApi.list('departments', { pageSize: 200 })),
-      staleTime: STALE.ORG_DATA,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: ['units-all'],
-      queryFn: () => timedFetch('org/units', () => orgApi.list('units', { pageSize: 200 })),
-      staleTime: STALE.ORG_DATA,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: ['locations-all'],
-      queryFn: () => timedFetch('org/locations', () => orgApi.list('work-locations', { pageSize: 200 })),
-      staleTime: STALE.ORG_DATA,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: ['titles-all'],
-      queryFn: () => timedFetch('org/titles', () => orgApi.list('titles', { pageSize: 200 })),
-      staleTime: STALE.ORG_DATA,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: ['raporlar', 'summary'],
-      queryFn: () => timedFetch('reports/summary', () => reportsApi.summary()),
-      staleTime: STALE.SHORT_DATA,
-    }),
+  try {
+    const [
+      { orgApi },
+      { reportsApi },
+      { monitoringApi },
+      { employeesApi },
+      { leaveApi },
+      { shiftApi },
+      { attendanceApi },
+      { overtimeApi },
+    ] = await Promise.all([
+      import('@/features/organizasyon/api'),
+      import('@/features/raporlar/api'),
+      import('@/features/monitoring/api'),
+      import('@/features/personel/api'),
+      import('@/features/izin/api'),
+      import('@/features/vardiya/api'),
+      import('@/features/giris-cikis/api'),
+      import('@/features/mesai/api'),
+    ]);
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    await Promise.allSettled([
+      // ── 1. Organizasyon Şeması ──
+      queryClient.prefetchQuery({
+        queryKey: ['departments-all'],
+        queryFn: () => timedFetch('org/departments', () => orgApi.list('departments', { pageSize: 200 })),
+        staleTime: STALE.ORG_DATA,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['units-all'],
+        queryFn: () => timedFetch('org/units', () => orgApi.list('units', { pageSize: 200 })),
+        staleTime: STALE.ORG_DATA,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['locations-all'],
+        queryFn: () => timedFetch('org/locations', () => orgApi.list('work-locations', { pageSize: 200 })),
+        staleTime: STALE.ORG_DATA,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['titles-all'],
+        queryFn: () => timedFetch('org/titles', () => orgApi.list('titles', { pageSize: 200 })),
+        staleTime: STALE.ORG_DATA,
+      }),
+
+      // ── 2. Dashboard ve Sistem Durumu ──
+      queryClient.prefetchQuery({
+        queryKey: ['raporlar', 'summary'],
+        queryFn: () => timedFetch('reports/summary', () => reportsApi.summary()),
+        staleTime: STALE.SHORT_DATA,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['monitoring-summary'],
+        queryFn: () => timedFetch('monitoring/summary', () => monitoringApi.summary()),
+        staleTime: 30_000,
+      }),
+
+      // ── 3. Personel Listesi (1. Sayfa) ──
+      queryClient.prefetchQuery({
+        queryKey: [
+          'employees',
+          { page: 1, pageSize: 20, search: '', departmentId: '', unitId: '', workLocationId: '', titleId: '', status: '' },
+        ],
+        queryFn: () => timedFetch('employees/page1', () => employeesApi.list({ page: 1, pageSize: 20 })),
+        staleTime: STALE.LIST_DATA,
+      }),
+
+      // ── 4. İzin Türleri & Talepler ──
+      queryClient.prefetchQuery({
+        queryKey: ['leave-types'],
+        queryFn: () => timedFetch('leave/types', () => leaveApi.types()),
+        staleTime: STALE.ORG_DATA,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['leave-requests', '', '', 1],
+        queryFn: () => timedFetch('leave/requests-p1', () => leaveApi.list({ page: 1, pageSize: 15 })),
+        staleTime: STALE.LIST_DATA,
+      }),
+
+      // ── 5. Vardiyalar ve Çalışma Düzenleri ──
+      queryClient.prefetchQuery({
+        queryKey: ['shifts'],
+        queryFn: () => timedFetch('shifts/all', () => shiftApi.list({ includeInactive: true })),
+        staleTime: STALE.ORG_DATA,
+      }),
+
+      // ── 6. Günlük Giriş-Çıkış Özeti ──
+      queryClient.prefetchQuery({
+        queryKey: ['attendance-daily', today, 1],
+        queryFn: () => timedFetch('attendance/daily', () => attendanceApi.daily(today, { page: 1, pageSize: 100 })),
+        staleTime: STALE.SHORT_DATA,
+      }),
+
+      // ── 7. Mesai Talepleri ──
+      queryClient.prefetchQuery({
+        queryKey: ['overtimes', '', '', '', 1],
+        queryFn: () => timedFetch('overtimes/page1', () => overtimeApi.list({ page: 1, pageSize: 15 })),
+        staleTime: STALE.LIST_DATA,
+      }),
+    ]);
+  } catch (err) {
+    console.warn('[WarmUpEngine] Veri onbellekleme sessizce atlandi:', err);
+  }
+}
+
+/** Geriye dönük uyumluluk takma adı */
+export const prefetchCoreData = prefetchAllCoreData;
+
+/**
+ * Uygulamanın tüm sayfa ve modül chunk'larını arka planda tarayıcı önbelleğine alır.
+ */
+export function prefetchAllChunks(): Promise<PromiseSettledResult<unknown>[]> {
+  return Promise.allSettled([
+    // Core Layout & Auth
+    import('@/components/layout/app-layout'),
+    import('@/pages/login-page'),
+    import('@/pages/dashboard-page'),
+
+    // Personel Modülü
+    import('@/pages/personel/personel-list-page'),
+    import('@/pages/personel/personel-create-page'),
+    import('@/pages/personel/personel-detail-page'),
+    import('@/pages/personel/personel-edit-page'),
+
+    // Organizasyon
+    import('@/pages/organizasyon/organizasyon-page'),
+
+    // İzin ve Puantaj
+    import('@/pages/izin/izin-list-page'),
+    import('@/pages/izin/izin-create-page'),
+    import('@/pages/giris-cikis/giris-cikis-page'),
+    import('@/pages/giris-cikis/qr-kodlar-page'),
+    import('@/pages/giris-cikis/qr-okut-page'),
+    import('@/pages/card/pdks-simulator-page'),
+    import('@/pages/card/kart-yonetimi-page'),
+    import('@/pages/card/cihaz-yonetimi-page'),
+    import('@/pages/vardiya/vardiyalar-page'),
+    import('@/pages/vardiya/vardiya-atama-page'),
+    import('@/pages/vardiya/calisma-planlari-page'),
+
+    // Raporlar & Ödeme
+    import('@/pages/raporlar/raporlar-page'),
+    import('@/pages/maas/maas-page'),
+    import('@/pages/avans/avanslar-page'),
+    import('@/pages/prim/prim-list-page'),
+
+    // İş Süreçleri
+    import('@/pages/mesai/mesai-list-page'),
+    import('@/pages/mesai/mesai-create-page'),
+    import('@/pages/gorevler/gorev-list-page'),
+    import('@/pages/gorevler/gorev-create-page'),
+    import('@/pages/zimmet/zimmet-list-page'),
+    import('@/pages/zimmet/zimmet-create-page'),
+    import('@/pages/evrak/evrak-list-page'),
+    import('@/pages/evrak/evrak-create-page'),
+    import('@/pages/cza-odul/cza-odul-page'),
+    import('@/pages/duyurular/duyuru-list-page'),
+    import('@/pages/duyurular/duyuru-create-page'),
+
+    // Yönetim
+    import('@/pages/erişim/roller-page'),
+    import('@/pages/erişim/kullanicilar-page'),
+    import('@/pages/loglar/islem-loglari-page'),
+    import('@/pages/sistem-sagligi/sistem-sagligi-page'),
+    import('@/pages/kvkk/kvkk-page'),
+
+    // API Modülleri
+    import('@/features/personel/api'),
+    import('@/features/organizasyon/api'),
+    import('@/features/izin/api'),
+    import('@/features/giris-cikis/api'),
+    import('@/features/raporlar/api'),
+    import('@/features/monitoring/api'),
+    import('@/features/vardiya/api'),
+    import('@/features/mesai/api'),
   ]);
+}
+
+const prefetchedRoutes = new Set<string>();
+
+/**
+ * Kullanıcı menüde veya kartta bir linkin üzerine geldiğinde (hover)
+ * ilgili sayfanın bileşenini ve verisini kullanıcı henüz tıklamadan
+ * (150-200ms'lik insan reaksiyon süresinde) hazır eder.
+ */
+export function prefetchRoute(to: string) {
+  if (!to || prefetchedRoutes.has(to)) return;
+  prefetchedRoutes.add(to);
+
+  switch (to) {
+    case '/':
+      void import('@/pages/dashboard-page');
+      break;
+    case '/personel':
+      void import('@/pages/personel/personel-list-page');
+      void import('@/features/personel/api').then(({ employeesApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: [
+            'employees',
+            { page: 1, pageSize: 20, search: '', departmentId: '', unitId: '', workLocationId: '', titleId: '', status: '' },
+          ],
+          queryFn: () => employeesApi.list({ page: 1, pageSize: 20 }),
+          staleTime: STALE.LIST_DATA,
+        });
+      });
+      break;
+    case '/personel/yeni':
+      void import('@/pages/personel/personel-create-page');
+      break;
+    case '/organizasyon':
+      void import('@/pages/organizasyon/organizasyon-page');
+      void import('@/features/organizasyon/api').then(({ orgApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['departments-all'],
+          queryFn: () => orgApi.list('departments', { pageSize: 200 }),
+          staleTime: STALE.ORG_DATA,
+        });
+      });
+      break;
+    case '/izin':
+      void import('@/pages/izin/izin-list-page');
+      void import('@/features/izin/api').then(({ leaveApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['leave-requests', '', '', 1],
+          queryFn: () => leaveApi.list({ page: 1, pageSize: 15 }),
+          staleTime: STALE.LIST_DATA,
+        });
+        void queryClient.prefetchQuery({
+          queryKey: ['leave-types'],
+          queryFn: () => leaveApi.types(),
+          staleTime: STALE.ORG_DATA,
+        });
+      });
+      break;
+    case '/izin/yeni':
+      void import('@/pages/izin/izin-create-page');
+      break;
+    case '/giris-cikis':
+      void import('@/pages/giris-cikis/giris-cikis-page');
+      void import('@/features/giris-cikis/api').then(({ attendanceApi }) => {
+        const today = new Date().toISOString().slice(0, 10);
+        void queryClient.prefetchQuery({
+          queryKey: ['attendance-daily', today, 1],
+          queryFn: () => attendanceApi.daily(today, { page: 1, pageSize: 100 }),
+          staleTime: STALE.SHORT_DATA,
+        });
+      });
+      break;
+    case '/giris-cikis/qr':
+      void import('@/pages/giris-cikis/qr-kodlar-page');
+      break;
+    case '/kart-sistemi':
+      void import('@/pages/card/pdks-simulator-page');
+      break;
+    case '/vardiya':
+      void import('@/pages/vardiya/vardiyalar-page');
+      void import('@/features/vardiya/api').then(({ shiftApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['shifts'],
+          queryFn: () => shiftApi.list({ includeInactive: true }),
+          staleTime: STALE.ORG_DATA,
+        });
+      });
+      break;
+    case '/calisma-planlari':
+      void import('@/pages/vardiya/calisma-planlari-page');
+      break;
+    case '/raporlar':
+      void import('@/pages/raporlar/raporlar-page');
+      void import('@/features/raporlar/api').then(({ reportsApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['raporlar', 'summary'],
+          queryFn: () => reportsApi.summary(),
+          staleTime: STALE.SHORT_DATA,
+        });
+      });
+      break;
+    case '/maas':
+      void import('@/pages/maas/maas-page');
+      break;
+    case '/avans':
+      void import('@/pages/avans/avanslar-page');
+      break;
+    case '/prim':
+      void import('@/pages/prim/prim-list-page');
+      break;
+    case '/mesai':
+      void import('@/pages/mesai/mesai-list-page');
+      void import('@/features/mesai/api').then(({ overtimeApi }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['overtimes', '', '', '', 1],
+          queryFn: () => overtimeApi.list({ page: 1, pageSize: 15 }),
+          staleTime: STALE.LIST_DATA,
+        });
+      });
+      break;
+    case '/mesai/yeni':
+      void import('@/pages/mesai/mesai-create-page');
+      break;
+    case '/gorevler':
+      void import('@/pages/gorevler/gorev-list-page');
+      break;
+    case '/zimmet':
+      void import('@/pages/zimmet/zimmet-list-page');
+      break;
+    case '/evrak':
+      void import('@/pages/evrak/evrak-list-page');
+      break;
+    case '/roller':
+      void import('@/pages/erişim/roller-page');
+      break;
+    case '/kullanicilar':
+      void import('@/pages/erişim/kullanicilar-page');
+      break;
+    case '/islem-loglari':
+      void import('@/pages/loglar/islem-loglari-page');
+      break;
+    case '/sistem-sagligi':
+      void import('@/pages/sistem-sagligi/sistem-sagligi-page');
+      break;
+    case '/kvkk':
+      void import('@/pages/kvkk/kvkk-page');
+      break;
+    default:
+      break;
+  }
 }
 
 export function logPerformanceSummary() {

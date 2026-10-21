@@ -36,6 +36,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useAuthStore } from '@/stores/auth';
 import { NotificationDropdown } from './notification-dropdown';
 import { ThemeToggle } from './theme-toggle';
+import { prefetchRoute } from '@/lib/warm-up-engine';
 
 const HOVER_COLORS: Array<{ color: string; glow: string }> = [
   { color: '#fb923c', glow: 'rgba(251, 146, 60, 0.22)' },  // turuncu
@@ -230,6 +231,9 @@ export function AppLayout() {
                         to={item.to!}
                         end={item.to === '/'}
                         onClick={closeSidebar}
+                        onMouseEnter={() => item.to && prefetchRoute(item.to)}
+                        onFocus={() => item.to && prefetchRoute(item.to)}
+                        onTouchStart={() => item.to && prefetchRoute(item.to)}
                         className={({ isActive }) => cn(
                           'nav-item group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium',
                           isActive && 'nav-item-active',

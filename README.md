@@ -244,17 +244,21 @@ personel-takip/
 
 Tüm rotalar `createBrowserRouter` ile tanımlanmış, sayfalar `React.lazy` ile code-split edilmiştir. Korumasız tek rota giriş ekranıdır; geri kalan tüm rotalar `ProtectedRoute` altındadır.
 
-### Açılış Sekansı (Smart Warm-Up Engine)
+### Açılış Sekansı (Smart Warm-Up Engine v3 — 15 Saniye)
 
-Uygulama ilk açıldığında Phoenix boot screen gösterilir ve Smart Warm-Up Engine üç fazda çalışır:
+Uygulama ilk açıldığında Phoenix boot screen gösterilir ve Smart Warm-Up Engine dört aşamalı (15 saniye) tam donanımlı önbellekleme ve prefetch protokolü uygular:
 
-| Faz | İçerik | Süre |
-|---|---|---|
-| Phase 1 | Auth session kontrolü + layout/dashboard chunk'ları | ~0–0.6s |
-| Phase 2 | Rol bazlı temel sayfalar (personel, izin, giriş-çıkış) | ~0.6–2s |
-| Phase 3 | Ağır sayfalar `requestIdleCallback` ile arka planda | Uygulama açıldıktan sonra |
+| Faz | İçerik | Hedef İlerleme | Süre |
+|---|---|---|---|
+| Faz 1 | Kimlik doğrulama, oturum çözümlenmesi & DB bağlantı havuzu ısınması | %0 – %25 | 3.5s |
+| Faz 2 | Kullanıcı yetkileri/roller taranması & tüm sayfa modül bundle'larının V8 motoruna alınması | %25 – %50 | 3.5s |
+| Faz 3 | Sistem bileşenlerinin derlenmesi & çekirdek veri API prefetch motorunun tetiklenmesi | %50 – %75 | 3.5s |
+| Faz 4 | Sayfa verilerinin React Query RAM önbelleğine basılması (Organizasyon, Personel, İzin, Vardiya vb.) | %75 – %100 | 3.5s |
 
-**Performans takibi:** Her sayfa yüklenişinin süresi (`p95`) `localStorage`'da saklanır. `FAST < 500ms`, `SLOW 500–1800ms`, `CRITICAL > 1800ms`. Bir sonraki açılışta CRITICAL sayfalar Phase 2'ye yükseltilir.
+*Tamamlanma:* %100'de 400ms son kontrol + 600ms pürüzsüz cross-fade çıkış geçişi (Toplam: 15.0 saniye).  
+*Anlık Gezinme (Hover Prefetch):* Sol menüdeki herhangi bir linkin üzerine fare ile gelindiğinde (150-200ms insan reaksiyon süresinde) ilgili sayfanın React Query verisi ve chunk'ı anında önceden çekilerek 0ms geçiş hızı sağlanır.
+
+**Performans takibi:** Her sayfa yüklenişinin süresi (`p95`) `localStorage`'da saklanır. `FAST < 500ms`, `SLOW 500–1800ms`, `CRITICAL > 1800ms`.
 
 | Rota | Ekran |
 |---|---|
