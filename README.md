@@ -203,7 +203,7 @@ personel-takip/
 |   |   |   |-- features/         # API istemcileri (modül başına)
 |   |   |   |-- components/       # layout + ui bileşenleri
 |   |   |   |-- stores/           # Zustand store'ları (auth)
-|   |   |   |-- lib/              # api, supabase, prefetch, query-client, token
+|   |   |   |-- lib/              # api, supabase, prefetch, warm-up-engine, query-client, token
 |   |-- backend/                  # NestJS API
 |       |-- api/index.ts          # TypeScript serverless adaptör
 |       |-- src/
@@ -229,6 +229,18 @@ personel-takip/
 ## Ön Yüz: Rotalar ve Ekranlar
 
 Tüm rotalar `createBrowserRouter` ile tanımlanmış, sayfalar `React.lazy` ile code-split edilmiştir. Korumasız tek rota giriş ekranıdır; geri kalan tüm rotalar `ProtectedRoute` altındadır.
+
+### Açılış Sekansı (Smart Warm-Up Engine)
+
+Uygulama ilk açıldığında Phoenix boot screen gösterilir ve Smart Warm-Up Engine üç fazda çalışır:
+
+| Faz | İçerik | Süre |
+|---|---|---|
+| Phase 1 | Auth session kontrolü + layout/dashboard chunk'ları | ~0–0.6s |
+| Phase 2 | Rol bazlı temel sayfalar (personel, izin, giriş-çıkış) | ~0.6–2s |
+| Phase 3 | Ağır sayfalar `requestIdleCallback` ile arka planda | Uygulama açıldıktan sonra |
+
+**Performans takibi:** Her sayfa yüklenişinin süresi (`p95`) `localStorage`'da saklanır. `FAST < 500ms`, `SLOW 500–1800ms`, `CRITICAL > 1800ms`. Bir sonraki açılışta CRITICAL sayfalar Phase 2'ye yükseltilir.
 
 | Rota | Ekran |
 |---|---|
