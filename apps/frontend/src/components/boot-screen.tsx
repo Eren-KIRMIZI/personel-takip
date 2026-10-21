@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { prefetchAllChunks, prefetchAllCoreData } from '@/lib/warm-up-engine';
-import { supabase } from '@/lib/supabase';
+import {
+  prefetchAllChunks,
+  prefetchAllCoreData,
+  wakeUpBackendAndDatabase,
+} from '@/lib/warm-up-engine';
 
 const phoenixImg = '/phoenix.jpg';
 
@@ -62,11 +65,11 @@ export function BootScreen({ onComplete }: BootScreenProps) {
   useEffect(() => {
     let isCancelled = false;
 
-    // 1. Arka planda tüm uygulama sayfaları, modülleri ve API chunk'larını V8 motoruna yükle
-    void prefetchAllChunks();
+    // 1. Arka planda derin cold start uyandırması (Vercel Serverless + Prisma PostgreSQL + Supabase)
+    void wakeUpBackendAndDatabase();
 
-    // 2. Veritabanı connection pool'unu ısıt
-    void supabase.from('departments').select('id').limit(1).then(() => {});
+    // 2. Tüm uygulama sayfaları, modülleri ve API chunk'larını V8 motoruna yükle
+    void prefetchAllChunks();
 
     const runTimeline = async () => {
       let currentPct = 0;

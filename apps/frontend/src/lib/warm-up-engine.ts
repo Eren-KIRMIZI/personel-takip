@@ -272,6 +272,26 @@ function scheduleIdlePhase(tasks: WarmUpTask[]) {
   next();
 }
 
+/**
+ * Cold Start Uyandırma (Derin Isıtma):
+ * Vercel Serverless container'ı ve Prisma/Supabase PostgreSQL bağlantı havuzunu
+ * açılış anında (0. milisaniyede) uykudan uyandırır.
+ */
+export async function wakeUpBackendAndDatabase(): Promise<void> {
+  try {
+    await Promise.allSettled([
+      // 1. NestJS + Prisma + PostgreSQL havuzunu uyandır (SELECT 1)
+      fetch('/api/auth/warmup', { method: 'GET', cache: 'no-store' }),
+      // 2. Supabase PostgREST doğrudan bağlantı havuzunu uyandır
+      import('@/lib/supabase').then(({ supabase }) =>
+        supabase.from('departments').select('id').limit(1)
+      ),
+    ]);
+  } catch {
+    // Cold start uyandırma sessiz arka plan işlemidir
+  }
+}
+
 export async function prefetchAllCoreData(): Promise<void> {
   const token = tokenStore.get();
   // Oturum yoksa API istekleri 401 hatası vermemesi için veri sorgulamalarını atla

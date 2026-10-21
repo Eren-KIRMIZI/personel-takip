@@ -15,6 +15,12 @@ export class AuthController {
     return { status: 'ok' };
   }
 
+  @Public()
+  @Get('warmup')
+  async warmup() {
+    return this.authService.warmupDatabase();
+  }
+
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Oturumdaki kullanıcı bilgisi' })
   @Get('me')

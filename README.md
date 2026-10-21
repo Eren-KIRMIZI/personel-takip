@@ -256,7 +256,10 @@ Uygulama ilk açıldığında Phoenix boot screen gösterilir ve Smart Warm-Up E
 | Faz 4 | Sayfa verilerinin React Query RAM önbelleğine basılması (Organizasyon, Personel, İzin, Vardiya vb.) | %75 – %100 | 3.5s |
 
 *Tamamlanma:* %100'de 400ms son kontrol + 600ms pürüzsüz cross-fade çıkış geçişi (Toplam: 15.0 saniye).  
-*Anlık Gezinme (Hover Prefetch):* Sol menüdeki herhangi bir linkin üzerine fare ile gelindiğinde (150-200ms insan reaksiyon süresinde) ilgili sayfanın React Query verisi ve chunk'ı anında önceden çekilerek 0ms geçiş hızı sağlanır.
+*Anlık Gezinme (Hover Prefetch):* Sol menüdeki herhangi bir linkin üzerine fare ile gelindiğinde (150-200ms insan reaksiyon süresinde) ilgili sayfanın React Query verisi ve chunk'ı anında önceden çekilerek 0ms geçiş hızı sağlanır.  
+*Cold-Start Kalkanı & Vercel Cron:* 
+- **Ön Cephe (Phoenix 0. Saniye):** Site açıldığı an paralel olarak `/api/auth/warmup` ve Supabase PostgREST tetiklenir; NestJS Vercel container'ı ve Prisma/PostgreSQL bağlantı havuzu ilk 3 saniyede uyanır.
+- **Arka Plan Bekçisi (Vercel Cron):** `vercel.json` içindeki günlük cron (`0 6 * * *`) ile sistem 24 saatte bir otomatik dürtülür; Supabase'in uykuya geçmesi veya duraklaması engellenir.
 
 **Performans takibi:** Her sayfa yüklenişinin süresi (`p95`) `localStorage`'da saklanır. `FAST < 500ms`, `SLOW 500–1800ms`, `CRITICAL > 1800ms`.
 

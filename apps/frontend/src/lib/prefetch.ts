@@ -10,6 +10,7 @@ export {
   prefetchAllCoreData,
   prefetchAllChunks,
   prefetchRoute,
+  wakeUpBackendAndDatabase,
   logPerformanceSummary,
 } from './warm-up-engine';
 

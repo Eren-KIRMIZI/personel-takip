@@ -193,6 +193,20 @@ export class AuthService {
     }
     return `user_${authId.slice(0, 8)}`;
   }
+
+  /**
+   * Cold start uyandırma mikro sorgusu.
+   * Vercel Serverless container'ını ve Prisma/Supabase PostgreSQL bağlantı havuzunu ısıtır.
+   */
+  async warmupDatabase(): Promise<{ status: string; latencyMs: number; timestamp: string }> {
+    const t0 = Date.now();
+    await this.prisma.$queryRaw`SELECT 1`;
+    return {
+      status: 'hot',
+      latencyMs: Date.now() - t0,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 const userInclude = {
