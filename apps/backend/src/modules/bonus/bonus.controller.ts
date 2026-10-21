@@ -22,8 +22,8 @@ export class BonusController {
 
   @Get(':id')
   @RequirePermissions('bonus:read')
-  async find(@Param('id') id: string) {
-    return this.bonusService.find(id);
+  async find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bonusService.find(id, user);
   }
 
   @Post()

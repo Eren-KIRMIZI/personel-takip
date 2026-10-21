@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, getScope } from '../../common/scope';
 import { CreateBonusDto, UpdateBonusDto, UpdateBonusStatusDto, BonusListQueryDto } from './dto/bonus.dto';
 import { BonusStatus } from '@prisma/client';
 
@@ -19,8 +19,8 @@ export class BonusService {
   };
 
   async list(query: BonusListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const base: any = {};
     if (query.employeeId) base.employeeId = query.employeeId;
@@ -42,9 +42,26 @@ export class BonusService {
     return { items, total, page, pageSize };
   }
 
-  async find(id: string) {
-    const item = await this.prisma.bonus.findUnique({ where: { id }, include: this.includeEmployee });
+  async find(id: string, actor?: AuthenticatedUser) {
+    const item = await this.prisma.bonus.findUnique({
+      where: { id },
+      include: {
+        ...this.includeEmployee,
+        employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true, departmentId: true } },
+      },
+    });
     if (!item) throw new NotFoundException('Prim kaydı bulunamadı.');
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && item.employeeId !== actor.employeeId) {
+        throw new ForbiddenException('Yalnızca kendi prim kayıtlarınızı görüntüleyebilirsiniz.');
+      }
+      if (scope.kind === 'department' && item.employee?.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu prim kaydını görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     return item;
   }
 

@@ -20,7 +20,7 @@ export class AdvanceController {
   @Post()
   @RequirePermissions('advance:write')
   create(@Body() dto: CreateAdvanceDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.advance.create(dto, user.userId);
+    return this.advance.create(dto, user);
   }
 
   @Patch(':id/approve')

@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { OvertimeStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, getScope, resolveScopeKind } from '../../common/scope';
 import { CreateOvertimeDto, OvertimeListQueryDto } from './dto/overtime.dto';
 
 const overtimeInclude = {
@@ -19,8 +19,8 @@ export class OvertimeService {
   ) {}
 
   async list(query: OvertimeListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const base: Prisma.OvertimeWhereInput = {};
     if (query.status) base.status = query.status;
@@ -47,13 +47,36 @@ export class OvertimeService {
     return { items, total, page, pageSize };
   }
 
-  async find(id: string) {
-    const overtime = await this.prisma.overtime.findUnique({ where: { id }, include: overtimeInclude });
+  async find(id: string, actor?: AuthenticatedUser) {
+    const overtime = await this.prisma.overtime.findUnique({
+      where: { id },
+      include: {
+        ...overtimeInclude,
+        employee: { select: { id: true, firstName: true, lastName: true, employeeNo: true, departmentId: true } },
+      },
+    });
     if (!overtime) throw new NotFoundException('Mesai kaydı bulunamadı.');
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && overtime.employeeId !== actor.employeeId) {
+        throw new ForbiddenException('Yalnızca kendi mesai kayıtlarınızı görüntüleyebilirsiniz.');
+      }
+      if (scope.kind === 'department' && overtime.employee?.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu mesai kaydını görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     return overtime;
   }
 
-  async create(dto: CreateOvertimeDto, actorUserId: string) {
+  async create(dto: CreateOvertimeDto, actor: AuthenticatedUser) {
+    const scopeKind = resolveScopeKind(actor);
+    const isHrOrAdmin = scopeKind === 'all';
+    if (!isHrOrAdmin && actor.employeeId && dto.employeeId !== actor.employeeId) {
+      throw new ForbiddenException('Yalnızca kendi adınıza mesai talebi oluşturabilirsiniz.');
+    }
+
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
     if (dto.hours <= 0) throw new BadRequestException('Süre pozitif olmalıdır.');
@@ -70,7 +93,7 @@ export class OvertimeService {
       include: overtimeInclude,
     });
     await this.audit.log({
-      actorUserId,
+      actorUserId: actor.userId,
       action: 'overtime.create',
       entityType: 'overtime',
       entityId: overtime.id,

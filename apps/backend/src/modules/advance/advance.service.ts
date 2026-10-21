@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AdvanceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, resolveScopeKind } from '../../common/scope';
 import { AdvanceListQueryDto, CreateAdvanceDto, RejectAdvanceDto } from './dto/advance.dto';
 
 const advanceInclude = {
@@ -19,8 +19,8 @@ export class AdvanceService {
   ) {}
 
   async list(query: AdvanceListQueryDto, actor: AuthenticatedUser) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
     const base: Prisma.AdvanceWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
     if (query.periodYear) base.periodYear = query.periodYear;
@@ -46,7 +46,13 @@ export class AdvanceService {
     return { ...item, amount: Number(item.amount) };
   }
 
-  async create(dto: CreateAdvanceDto, actorUserId: string) {
+  async create(dto: CreateAdvanceDto, actor: AuthenticatedUser) {
+    const scopeKind = resolveScopeKind(actor);
+    const isHrOrAdmin = scopeKind === 'all';
+    if (!isHrOrAdmin && actor.employeeId && dto.employeeId !== actor.employeeId) {
+      throw new ForbiddenException('Yalnızca kendi adınıza avans talebi oluşturabilirsiniz.');
+    }
+
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
     const amount = Number(dto.amount);
@@ -68,7 +74,7 @@ export class AdvanceService {
       include: advanceInclude,
     });
     await this.audit.log({
-      actorUserId,
+      actorUserId: actor.userId,
       action: 'advance.create',
       entityType: 'advance',
       entityId: item.id,

@@ -51,3 +51,37 @@
   - `apps/backend/src/modules/leave/leave.service.ts`
 - **Yapılan İşlem:** `pageSize` sorgu parametrelerine `Math.min(Math.max(1, query.pageSize ?? 20), 100)` tavan sınır koyularak veritabanı bellek ve CPU tükenmelerinin (DoS) önüne geçildi.
 - **Doğrulama:** Backend ve frontend monorepo derlemeleri başarıyla tamamlandı.
+
+---
+
+### [FIX-006] SEC-003b & SEC-004b — Mesai (Overtime) BOLA ve Yetkisiz Kayıt Engeli
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/overtime/overtime.controller.ts`
+  - `apps/backend/src/modules/overtime/overtime.service.ts`
+- **Yapılan İşlem:**
+  1. `find(id)` çağrısında kullanıcının talep sahibi, birim amiri veya İK/Admin olup olmadığı denetlendi (BOLA koruması).
+  2. `create` metodunda Admin/İK olmayan personelin başkası adına (`dto.employeeId !== actor.employeeId`) yetkisiz mesai talebi açması engellendi.
+  3. `pageSize` sorgu parametresine `100` tavan sınırı uygulandı.
+- **Doğrulama:** Backend build (`nest build`) 0 hata ile doğrulandı.
+
+---
+
+### [FIX-007] SEC-004c — Avans (Advance) Yetkisiz Talep Engeli & Sayfalama Sınırı
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/advance/advance.controller.ts`
+  - `apps/backend/src/modules/advance/advance.service.ts`
+- **Yapılan İşlem:**
+  1. `create` metodunda Admin/İK olmayan personelin başkası adına avans talebi oluşturması engellendi (`dto.employeeId === actor.employeeId` kuralı).
+  2. `pageSize` sorgu parametresine `100` tavan sınırı uygulandı.
+- **Doğrulama:** Backend build (`nest build`) 0 hata ile doğrulandı.
+
+---
+
+### [FIX-008] SEC-001b — Prim (Bonus) BOLA Kapsam Koruması & Sayfalama Sınırı
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/bonus/bonus.controller.ts`
+  - `apps/backend/src/modules/bonus/bonus.service.ts`
+- **Yapılan İşlem:**
+  1. `find(id)` çağrısında `getScope(actor)` ile birim ve sahip kontrolü sağlandı.
+  2. `pageSize` sorgu parametresine `100` tavan sınırı uygulandı.
+- **Doğrulama:** Backend build (`nest build`) 0 hata ile doğrulandı.

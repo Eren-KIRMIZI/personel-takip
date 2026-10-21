@@ -20,8 +20,8 @@ export class OvertimeController {
 
   @Get(':id')
   @RequirePermissions('overtime:read')
-  find(@Param('id') id: string) {
-    return this.overtime.find(id);
+  find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.overtime.find(id, user);
   }
 
   @Post()
@@ -31,7 +31,7 @@ export class OvertimeController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ) {
-    return this.overtime.create(dto, user.userId);
+    return this.overtime.create(dto, user);
   }
 
   @Patch(':id/approve')
