@@ -1,448 +1,840 @@
-import { useEffect, useState } from 'react';
-import type { WarmUpProgress, CheckItem } from '@/lib/warm-up-engine';
+import { useEffect, useState, useRef } from 'react';
 
-// Phoenix SVG path data (wings spread, pixel-dissolve base)
-const PHOENIX_PATHS = {
-  body: `M 200 140 C 195 155 190 175 192 200 C 194 225 200 250 200 280 
-         C 200 310 195 340 200 360 C 205 340 210 310 208 280 
-         C 208 250 206 225 208 200 C 210 175 205 155 200 140 Z`,
-  leftWing: `M 200 180 C 180 170 155 165 130 155 C 105 145 80 140 60 148 
-             C 40 156 30 175 35 195 C 40 215 60 228 85 230 
-             C 110 232 140 220 165 205 C 185 193 198 183 200 180 Z`,
-  rightWing: `M 200 180 C 220 170 245 165 270 155 C 295 145 320 140 340 148 
-              C 360 156 370 175 365 195 C 360 215 340 228 315 230 
-              C 290 232 260 220 235 205 C 215 193 202 183 200 180 Z`,
-  leftFan: `M 60 148 C 40 135 25 120 20 100 C 15 80 20 60 30 50 
-            C 50 60 65 80 75 100 C 85 120 80 140 60 148 Z`,
-  rightFan: `M 340 148 C 360 135 375 120 380 100 C 385 80 380 60 370 50 
-             C 350 60 335 80 325 100 C 315 120 320 140 340 148 Z`,
-  tail: `M 200 360 C 185 375 170 395 165 420 C 160 445 165 465 175 475 
-         C 185 455 195 435 200 415 C 205 435 215 455 225 475 
-         C 235 465 240 445 235 420 C 230 395 215 375 200 360 Z`,
-  head: `M 200 140 C 190 125 188 110 192 95 C 196 80 205 72 215 70 
-         C 225 68 232 75 235 85 C 238 95 232 110 225 120 C 218 130 208 138 200 140 Z`,
-  beak: `M 215 70 C 222 65 235 60 242 55 C 238 65 230 72 215 70 Z`,
-};
-
-// Piksel grid ayarlari
-const GRID_COLS = 18;
-const GRID_ROWS = 22;
-
-interface PixelCell {
-  col: number;
-  row: number;
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-  color: string;
+export interface BootCheck {
+  id: string;
+  label: string;
+  sublabel: string;
+  status: 'pending' | 'running' | 'done';
 }
 
-const PIXEL_COLORS = [
-  '#60a5fa', '#818cf8', '#a78bfa', '#c084fc',
-  '#e879f9', '#f472b6', '#fb7185', '#f97316',
-  '#facc15', '#4ade80', '#34d399', '#22d3ee',
+interface BootScreenProps {
+  onComplete: () => void;
+}
+
+const PHASES: Array<{
+  targetPercent: number;
+  durationMs: number;
+  title: string;
+  detail: string;
+  activeCheckId: string;
+}> = [
+  {
+    targetPercent: 18,
+    durationMs: 1800,
+    title: 'Sistem Çekirdeği Başlatılıyor...',
+    detail: 'Güvenlik katmanı ve kimlik doğrulama protokolleri doğrulanıyor',
+    activeCheckId: 'security',
+  },
+  {
+    targetPercent: 38,
+    durationMs: 2000,
+    title: 'Veritabanı Havuzu Kontrol Ediliyor...',
+    detail: 'Supabase PostgreSQL (eu-central-1) bağlantı oturumu kuruluyor',
+    activeCheckId: 'database',
+  },
+  {
+    targetPercent: 58,
+    durationMs: 2000,
+    title: 'Upstash Redis Önbellek Eşitleniyor...',
+    detail: 'Dağıtık bellek katmanı ve sorgu optimizasyonları senkronize ediliyor',
+    activeCheckId: 'redis',
+  },
+  {
+    targetPercent: 78,
+    durationMs: 2200,
+    title: 'Temel Modüller ve Şemalar Yükleniyor...',
+    detail: 'Personel, İzin, PDKS, Vardiya ve Bordro paketleri önbelleğe alınıyor',
+    activeCheckId: 'modules',
+  },
+  {
+    targetPercent: 94,
+    durationMs: 1800,
+    title: 'Arayüz ve Yetki Matrisi Hazırlanıyor...',
+    detail: 'Kullanıcı profili ve rol tabanlı erişim denetimleri derlendi',
+    activeCheckId: 'ui',
+  },
+  {
+    targetPercent: 100,
+    durationMs: 1200,
+    title: 'Sistem Hazır!',
+    detail: 'Tüm kontroller tamamlandı, giriş ekranına aktarılıyor...',
+    activeCheckId: 'ready',
+  },
 ];
 
-function buildPixelGrid(progress: number): PixelCell[] {
-  const cells: PixelCell[] = [];
-  const svgW = 400;
-  const svgH = 500;
-  const cellW = svgW / GRID_COLS;
-  const cellH = svgH / GRID_ROWS;
-  const size = Math.min(cellW, cellH) * 0.85;
+const INITIAL_CHECKS: BootCheck[] = [
+  { id: 'security', label: 'Güvenlik ve Kimlik Doğrulama', sublabel: 'JWT & Token Yönetimi', status: 'running' },
+  { id: 'database', label: 'Veritabanı ve Oturum Havuzu', sublabel: 'PostgreSQL / PgBouncer', status: 'pending' },
+  { id: 'redis',    label: 'Dağıtık Önbellek Katmanı', sublabel: 'Upstash Redis Cache', status: 'pending' },
+  { id: 'modules',  label: 'Temel Modül Paketleri', sublabel: 'Personel, İzin, PDKS, Maaş', status: 'pending' },
+  { id: 'ui',       label: 'Arayüz ve Yetki Matrisi', sublabel: 'Rol ve İzin Yapılandırması', status: 'pending' },
+];
 
-  // bottom-to-top fill: progress 0-100
-  // row 0 is top, row GRID_ROWS-1 is bottom
-  // fill from bottom => unlocked rows = progress * GRID_ROWS / 100
-  const unlockedRows = Math.floor((progress / 100) * GRID_ROWS);
+export function BootScreen({ onComplete }: BootScreenProps) {
+  const [percent, setPercent] = useState(0);
+  const [currentTitle, setCurrentTitle] = useState(PHASES[0].title);
+  const [currentDetail, setCurrentDetail] = useState(PHASES[0].detail);
+  const [checks, setChecks] = useState<BootCheck[]>(INITIAL_CHECKS);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  for (let row = 0; row < GRID_ROWS; row++) {
-    for (let col = 0; col < GRID_COLS; col++) {
-      // bottom-to-top: row GRID_ROWS-1 fills first
-      const fromBottom = GRID_ROWS - 1 - row;
-      if (fromBottom < unlockedRows) {
-        const cx = col * cellW + cellW / 2;
-        const cy = row * cellH + cellH / 2;
-        const colorIdx = (col + row * 3) % PIXEL_COLORS.length;
-        const delay = (fromBottom / GRID_ROWS) * 0.3 + (col % 4) * 0.04;
-        cells.push({ col, row, x: cx, y: cy, size, delay, color: PIXEL_COLORS[colorIdx] });
+  useEffect(() => {
+    let isCancelled = false;
+
+    // Arka planda sayfa chunk'larını prefetch et
+    void Promise.allSettled([
+      import('@/pages/login-page'),
+      import('@/components/layout/app-layout'),
+      import('@/pages/dashboard-page'),
+      import('@/pages/personel/personel-list-page'),
+      import('@/pages/izin/izin-list-page'),
+      import('@/pages/giris-cikis/giris-cikis-page'),
+    ]);
+
+    const runTimeline = async () => {
+      let currentPct = 0;
+
+      for (let i = 0; i < PHASES.length; i++) {
+        if (isCancelled) return;
+        const phase = PHASES[i];
+
+        setCurrentTitle(phase.title);
+        setCurrentDetail(phase.detail);
+
+        // Checklist durumlarını güncelle
+        setChecks((prev) =>
+          prev.map((c, idx) => {
+            if (idx < i) return { ...c, status: 'done' };
+            if (idx === i) return { ...c, status: 'running' };
+            return { ...c, status: 'pending' };
+          }),
+        );
+
+        // İlerlemeyi pürüzsüz animasyonla hedefe ulaştır
+        const startPct = currentPct;
+        const targetPct = phase.targetPercent;
+        const steps = 30;
+        const stepTime = phase.durationMs / steps;
+        const pctDelta = (targetPct - startPct) / steps;
+
+        for (let s = 1; s <= steps; s++) {
+          if (isCancelled) return;
+          await new Promise((r) => setTimeout(r, stepTime));
+          currentPct = Math.min(Math.round(startPct + pctDelta * s), targetPct);
+          setPercent(currentPct);
+        }
       }
-    }
-  }
-  return cells;
-}
 
-// ─── Check List ───────────────────────────────────────────────────────────────
-function CheckList({ checks }: { checks: CheckItem[] }) {
+      if (isCancelled) return;
+
+      // Tüm checklist öğelerini 'done' yap
+      setChecks((prev) => prev.map((c) => ({ ...c, status: 'done' })));
+      setPercent(100);
+
+      // 400ms 100% göster, sonra yumuşak çıkış başlat
+      await new Promise((r) => setTimeout(r, 400));
+      if (isCancelled) return;
+      setIsExiting(true);
+
+      // 600ms fade-out ardından DOM'dan kaldır
+      await new Promise((r) => setTimeout(r, 600));
+      if (isCancelled) return;
+      setIsDone(true);
+      onCompleteRef.current();
+    };
+
+    void runTimeline();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  if (isDone) return null;
+
   return (
-    <div className="boot-checks">
-      {checks.map((c, i) => (
-        <div key={i} className={`boot-check-item ${c.done ? 'done' : 'pending'}`}>
-          <span className="boot-check-icon">
-            {c.done ? (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="7" fill="url(#cg)" />
-                <path d="M3.5 7L6 9.5L10.5 5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <defs>
-                  <linearGradient id="cg" x1="0" y1="0" x2="14" y2="14" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#60a5fa" />
-                    <stop offset="1" stopColor="#c084fc" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="6" stroke="rgba(148,163,184,0.4)" strokeWidth="1.5" />
-              </svg>
-            )}
-          </span>
-          <span className="boot-check-label">{c.label}</span>
+    <div className={`phoenix-boot-overlay ${isExiting ? 'fade-exit' : ''}`}>
+      <style>{BOOT_STYLES}</style>
+
+      {/* Arka plan derin uzay ve parlama efektleri */}
+      <div className="phoenix-bg-glow" />
+      <div className="phoenix-bg-grid" />
+
+      {/* Yükselen köz / ateş parçacıkları */}
+      <div className="phoenix-embers">
+        {[...Array(14)].map((_, i) => (
+          <span key={i} className={`ember ember-${i + 1}`} />
+        ))}
+      </div>
+
+      <div className="phoenix-boot-card">
+        {/* İhtişamlı Phoenix Görseli */}
+        <div className="phoenix-emblem-wrap">
+          <PhoenixVector percent={percent} />
         </div>
-      ))}
+
+        {/* Kurumsal Başlık ve Etiket */}
+        <div className="phoenix-header">
+          <div className="phoenix-badge">
+            <span className="phoenix-badge-dot" />
+            YENİŞEHİR BELEDİYESİ • SMART WARM-UP ENGINE
+          </div>
+          <h1 className="phoenix-title">Personel Yönetim Sistemi</h1>
+          <p className="phoenix-subtitle">Bulut Altyapısı ve Dağıtık Önbellek Sistemi</p>
+        </div>
+
+        {/* Canlı İlerleme Çubuğu */}
+        <div className="phoenix-progress-box">
+          <div className="phoenix-progress-meta">
+            <span className="phoenix-status-text">{currentTitle}</span>
+            <span className="phoenix-percent-val">{percent}%</span>
+          </div>
+          <div className="phoenix-bar-track">
+            <div
+              className="phoenix-bar-fill"
+              style={{ width: `${percent}%` }}
+            >
+              <div className="phoenix-bar-head" />
+            </div>
+          </div>
+          <p className="phoenix-detail-text">{currentDetail}</p>
+        </div>
+
+        {/* Canlı Kontrol Listesi */}
+        <div className="phoenix-checklist">
+          {checks.map((c) => (
+            <div key={c.id} className={`phoenix-check-row status-${c.status}`}>
+              <div className="check-icon-col">
+                {c.status === 'done' && (
+                  <svg className="check-svg done" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+                {c.status === 'running' && (
+                  <div className="check-spinner" />
+                )}
+                {c.status === 'pending' && (
+                  <div className="check-dot" />
+                )}
+              </div>
+              <div className="check-text-col">
+                <span className="check-main-label">{c.label}</span>
+                <span className="check-sub-label">{c.sublabel}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Ana Boot Screen ──────────────────────────────────────────────────────────
-interface BootScreenProps {
-  progress: WarmUpProgress;
-  onComplete: () => void;
-}
-
-export function BootScreen({ progress, onComplete }: BootScreenProps) {
-  const [visible, setVisible] = useState(true);
-  const [exiting, setExiting] = useState(false);
-
-  // %100 olunca cikis animasyonu
-  useEffect(() => {
-    if (progress.percent >= 100 && !exiting) {
-      setExiting(true);
-      const t = setTimeout(() => {
-        setVisible(false);
-        onComplete();
-      }, 700);
-      return () => clearTimeout(t);
-    }
-  }, [progress.percent, exiting, onComplete]);
-
-  const pct = Math.min(progress.percent, 100);
-  const pixels = buildPixelGrid(pct);
-
-  if (!visible) return null;
+// ─── İhtişamlı Phoenix SVG Vektörü ───────────────────────────────────────────
+function PhoenixVector({ percent }: { percent: number }) {
+  const intensity = Math.min(1, Math.max(0.4, percent / 100));
 
   return (
-    <>
-      <style>{BOOT_CSS}</style>
-      <div className={`boot-overlay ${exiting ? 'boot-exiting' : ''}`}>
-        {/* Arka plan gradyan */}
-        <div className="boot-bg" />
+    <div className="phoenix-svg-container">
+      {/* Arkadaki kor ateşi aurası */}
+      <div
+        className="phoenix-fire-halo"
+        style={{
+          opacity: 0.6 + intensity * 0.4,
+          transform: `scale(${0.92 + intensity * 0.12})`,
+        }}
+      />
 
-        {/* Merkez kart */}
-        <div className="boot-card">
-          {/* Phoenix SVG */}
-          <div className="boot-phoenix-wrapper">
-            <svg
-              viewBox="0 0 400 500"
-              className="boot-phoenix-svg"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="phGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#f97316" />
-                  <stop offset="35%" stopColor="#e879f9" />
-                  <stop offset="65%" stopColor="#818cf8" />
-                  <stop offset="100%" stopColor="#60a5fa" />
-                </linearGradient>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-                <mask id="pixelMask">
-                  {/* Piksel hucreler maskeyi seffaf acıyor */}
-                  <rect width="400" height="500" fill="black" />
-                  {pixels.map((p, i) => (
-                    <rect
-                      key={i}
-                      x={p.x - p.size / 2}
-                      y={p.y - p.size / 2}
-                      width={p.size}
-                      height={p.size}
-                      rx="2"
-                      fill="white"
-                      style={{
-                        opacity: 0,
-                        animation: `pixelFadeIn 0.25s ease-out ${p.delay}s forwards`,
-                      }}
-                    />
-                  ))}
-                </mask>
-                <mask id="outlineMask">
-                  <rect width="400" height="500" fill="white" />
-                  {pixels.map((p, i) => (
-                    <rect
-                      key={i}
-                      x={p.x - p.size / 2}
-                      y={p.y - p.size / 2}
-                      width={p.size}
-                      height={p.size}
-                      rx="2"
-                      fill="black"
-                      style={{
-                        opacity: 0,
-                        animation: `pixelFadeIn 0.25s ease-out ${p.delay}s forwards`,
-                      }}
-                    />
-                  ))}
-                </mask>
-              </defs>
+      <svg
+        viewBox="0 0 440 360"
+        className="phoenix-svg-element"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          {/* Gövde ve Kanat Ateş Gradyanı */}
+          <linearGradient id="phxFlame" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="#b91c1c" />
+            <stop offset="25%" stopColor="#ea580c" />
+            <stop offset="55%" stopColor="#f59e0b" />
+            <stop offset="85%" stopColor="#fbbf24" />
+            <stop offset="100%" stopColor="#fef08a" />
+          </linearGradient>
 
-              {/* Phoenix outline (her zaman gorünür, hafif) */}
-              <g mask="url(#outlineMask)" opacity="0.18" filter="url(#glow)">
-                <path d={PHOENIX_PATHS.leftFan} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.rightFan} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.leftWing} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.rightWing} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.body} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.tail} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.head} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.beak} fill="#facc15" />
-              </g>
+          {/* Dış Kanat Mor/Elektrik Turuncu Gradyanı */}
+          <linearGradient id="phxWingOuter" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#7c3aed" />
+            <stop offset="35%" stopColor="#db2777" />
+            <stop offset="70%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#fde047" />
+          </linearGradient>
 
-              {/* Phoenix renkli katman — pikseller acildikca gorünür */}
-              <g mask="url(#pixelMask)" filter="url(#glow)">
-                <path d={PHOENIX_PATHS.leftFan} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.rightFan} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.leftWing} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.rightWing} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.body} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.tail} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.head} fill="url(#phGrad)" />
-                <path d={PHOENIX_PATHS.beak} fill="#facc15" />
-              </g>
+          {/* İç Kanat Akkor Altın Gradyanı */}
+          <linearGradient id="phxGoldCore" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fff" />
+            <stop offset="40%" stopColor="#fde047" />
+            <stop offset="100%" stopColor="#f97316" />
+          </linearGradient>
 
-              {/* Piksel parcacikciklari (dekoratif, progress arttikca disariya dagiliyor) */}
-              {pixels.filter((_, i) => i % 7 === 0 && pct < 95).map((p, i) => (
-                <rect
-                  key={'scatter-' + i}
-                  x={p.x + (Math.sin(i * 1.7) * 35)}
-                  y={p.y + (Math.cos(i * 2.3) * 30)}
-                  width={Math.max(2, p.size * 0.35)}
-                  height={Math.max(2, p.size * 0.35)}
-                  rx="1"
-                  fill={p.color}
-                  opacity="0.5"
-                  style={{
-                    animation: `pixelFloat ${1.5 + (i % 3) * 0.5}s ease-in-out ${i * 0.1}s infinite alternate`,
-                  }}
-                />
-              ))}
-            </svg>
-          </div>
+          {/* Kuyruk Şeritleri Gradyanı */}
+          <linearGradient id="phxTailGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor="#f59e0b" />
+            <stop offset="40%" stopColor="#ea580c" />
+            <stop offset="80%" stopColor="#c026d3" />
+            <stop offset="100%" stopColor="#4f46e5" />
+          </linearGradient>
 
-          {/* Baslik */}
-          <div className="boot-title">Personel Yönetim Sistemi</div>
-          <div className="boot-subtitle">Yenişehir Belediyesi</div>
+          {/* Parlama Filtresi */}
+          <filter id="phxGlow" x="-25%" y="-25%" width="150%" height="150%">
+            <feGaussianBlur stdDeviation="4.5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-          {/* Durum mesaji */}
-          <div className="boot-step">{progress.step}</div>
+        {/* ── Kuyruk Ateş Şeritleri (Arka Katman) ── */}
+        <g filter="url(#phxGlow)" opacity="0.9">
+          {/* Sol Dış Kuyruk Şeridi */}
+          <path
+            d="M 210 215 C 190 245 155 275 130 320 C 145 285 180 255 205 225 Z"
+            fill="url(#phxTailGrad)"
+          />
+          {/* Sol İç Kuyruk Şeridi */}
+          <path
+            d="M 212 215 C 198 250 178 285 168 335 C 182 295 204 260 214 225 Z"
+            fill="url(#phxTailGrad)"
+          />
+          {/* Merkez Uzun Kuyruk Alevi */}
+          <path
+            d="M 220 215 C 215 260 218 305 220 355 C 222 305 225 260 220 215 Z"
+            fill="url(#phxFlame)"
+          />
+          {/* Sağ İç Kuyruk Şeridi */}
+          <path
+            d="M 228 215 C 242 250 262 285 272 335 C 258 295 236 260 226 225 Z"
+            fill="url(#phxTailGrad)"
+          />
+          {/* Sağ Dış Kuyruk Şeridi */}
+          <path
+            d="M 230 215 C 250 245 285 275 310 320 C 295 285 260 255 235 225 Z"
+            fill="url(#phxTailGrad)"
+          />
+        </g>
 
-          {/* Progress bar */}
-          <div className="boot-bar-track">
-            <div className="boot-bar-fill" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="boot-percent">{pct}%</div>
+        {/* ── Sol Kanat Ana Tüy Katmanları ── */}
+        <g filter="url(#phxGlow)">
+          {/* Sol Üst Ana Kanat Bıçağı (En tepeye kıvrılan) */}
+          <path
+            d="M 210 135 C 175 105 115 65 45 60 C 80 88 125 125 185 155 Z"
+            fill="url(#phxWingOuter)"
+          />
+          {/* Sol İkinci Tüy Bıçağı */}
+          <path
+            d="M 195 150 C 150 128 95 105 35 110 C 72 132 118 160 175 180 Z"
+            fill="url(#phxWingOuter)"
+          />
+          {/* Sol Üçüncü Tüy Bıçağı */}
+          <path
+            d="M 185 175 C 145 158 90 150 42 165 C 80 180 120 195 175 202 Z"
+            fill="url(#phxFlame)"
+          />
+          {/* Sol Dördüncü Alt Tüy */}
+          <path
+            d="M 175 200 C 140 195 100 200 68 220 C 102 222 135 218 178 212 Z"
+            fill="url(#phxFlame)"
+          />
 
-          {/* Check listesi */}
-          <CheckList checks={progress.checks} />
-        </div>
-      </div>
-    </>
+          {/* Sol İç Işıltılı Kanat Katmanı (Derinlik ve Altın Parlaklık) */}
+          <path
+            d="M 210 145 C 180 125 140 100 95 95 C 122 115 152 142 195 165 Z"
+            fill="url(#phxGoldCore)"
+            opacity="0.85"
+          />
+          <path
+            d="M 195 165 C 160 148 120 132 82 138 C 112 152 144 172 185 188 Z"
+            fill="url(#phxGoldCore)"
+            opacity="0.75"
+          />
+        </g>
+
+        {/* ── Sağ Kanat Ana Tüy Katmanları (Sayısal Simetri) ── */}
+        <g filter="url(#phxGlow)">
+          {/* Sağ Üst Ana Kanat Bıçağı */}
+          <path
+            d="M 230 135 C 265 105 325 65 395 60 C 360 88 315 125 255 155 Z"
+            fill="url(#phxWingOuter)"
+          />
+          {/* Sağ İkinci Tüy Bıçağı */}
+          <path
+            d="M 245 150 C 290 128 345 105 405 110 C 368 132 322 160 265 180 Z"
+            fill="url(#phxWingOuter)"
+          />
+          {/* Sağ Üçüncü Tüy Bıçağı */}
+          <path
+            d="M 255 175 C 295 158 350 150 398 165 C 360 180 320 195 265 202 Z"
+            fill="url(#phxFlame)"
+          />
+          {/* Sağ Dördüncü Alt Tüy */}
+          <path
+            d="M 265 200 C 300 195 340 200 372 220 C 338 222 305 218 262 212 Z"
+            fill="url(#phxFlame)"
+          />
+
+          {/* Sağ İç Işıltılı Kanat Katmanı */}
+          <path
+            d="M 230 145 C 260 125 300 100 345 95 C 318 115 288 142 245 165 Z"
+            fill="url(#phxGoldCore)"
+            opacity="0.85"
+          />
+          <path
+            d="M 245 165 C 280 148 320 132 358 138 C 328 152 296 172 255 188 Z"
+            fill="url(#phxGoldCore)"
+            opacity="0.75"
+          />
+        </g>
+
+        {/* ── Gövde, Taç ve Baş (Ön Katman) ── */}
+        <g filter="url(#phxGlow)">
+          {/* Gövde Silüeti */}
+          <path
+            d="M 220 115 
+               C 205 130 200 155 204 185 
+               C 208 210 216 230 220 238 
+               C 224 230 232 210 236 185 
+               C 240 155 235 130 220 115 Z"
+            fill="url(#phxFlame)"
+          />
+
+          {/* Baş Silüeti ve Gaga */}
+          <path
+            d="M 220 115 
+               C 214 105 212 92 216 80 
+               C 220 68 228 62 235 60 
+               C 242 66 238 78 232 88 
+               C 228 98 225 108 220 115 Z"
+            fill="url(#phxGoldCore)"
+          />
+          {/* Gaga */}
+          <polygon points="235,63 246,67 234,73" fill="#fef08a" />
+
+          {/* Baş Tepesi Taç Alevleri (Üçlü Alev Tacı) */}
+          <path
+            d="M 222 75 C 215 52 218 35 220 25 C 224 38 226 55 224 75 Z"
+            fill="url(#phxGoldCore)"
+          />
+          <path
+            d="M 218 80 C 205 65 198 48 195 38 C 205 48 212 65 218 80 Z"
+            fill="url(#phxFlame)"
+          />
+          <path
+            d="M 225 78 C 236 65 244 48 248 38 C 238 48 232 65 225 78 Z"
+            fill="url(#phxFlame)"
+          />
+
+          {/* Göğüsteki Akkor Kalp Kristali (Enerji Çekirdeği) */}
+          <circle cx="220" cy="165" r="10" fill="#ffffff" />
+          <polygon
+            points="220,148 228,165 220,182 212,165"
+            fill="url(#phxGoldCore)"
+            opacity="0.9"
+          />
+          <circle cx="220" cy="165" r="4" fill="#ffffff" />
+
+          {/* Göz */}
+          <circle cx="227" cy="72" r="1.8" fill="#1e1b4b" />
+          <circle cx="227.4" cy="71.6" r="0.7" fill="#ffffff" />
+        </g>
+      </svg>
+    </div>
   );
 }
 
-// ─── CSS ───────────────────────────────────────────────────────────────────────
-const BOOT_CSS = `
-@keyframes pixelFadeIn {
-  from { opacity: 0; transform: scale(0.5); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes pixelFloat {
-  from { transform: translateY(0px) rotate(0deg); opacity: 0.4; }
-  to   { transform: translateY(-6px) rotate(8deg); opacity: 0.7; }
-}
-
-@keyframes bootFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes bootFadeOut {
-  from { opacity: 1; transform: scale(1); }
-  to   { opacity: 0; transform: scale(1.03); }
-}
-
-@keyframes barShimmer {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.7; }
-  50%       { opacity: 1; }
-}
-
-.boot-overlay {
+// ─── CSS Tasarım Sistemi (Süper Premium Glassmorphism & Neon Aura) ───────────────
+const BOOT_STYLES = `
+.phoenix-boot-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #060d1a;
-  animation: bootFadeIn 0.3s ease-out forwards;
+  background: #050811;
+  color: #f8fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.boot-overlay.boot-exiting {
-  animation: bootFadeOut 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.phoenix-boot-overlay.fade-exit {
+  opacity: 0;
+  transform: scale(1.02);
   pointer-events: none;
 }
 
-.boot-bg {
+/* Arka Plan Parlama Efektleri */
+.phoenix-bg-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 70% 70% at 50% 30%, rgba(99,102,241,0.12) 0%, transparent 70%),
-              radial-gradient(ellipse 50% 40% at 20% 80%, rgba(249,115,22,0.07) 0%, transparent 60%),
-              radial-gradient(ellipse 50% 40% at 80% 80%, rgba(236,72,153,0.07) 0%, transparent 60%);
+  pointer-events: none;
+  background: 
+    radial-gradient(circle at 50% 28%, rgba(249, 115, 22, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 20% 75%, rgba(124, 58, 237, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, rgba(219, 39, 119, 0.10) 0%, transparent 45%);
 }
 
-.boot-card {
+.phoenix-bg-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+}
+
+/* Yükselen Köz Parçacıkları */
+.phoenix-embers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ember {
+  position: absolute;
+  bottom: -20px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f97316, 0 0 14px #fbbf24;
+  animation: floatEmber 6s linear infinite;
+  opacity: 0;
+}
+
+.ember-1  { left: 15%; animation-duration: 7s;   animation-delay: 0.3s; width: 2px; height: 2px; }
+.ember-2  { left: 28%; animation-duration: 5.5s; animation-delay: 1.2s; width: 3px; height: 3px; background: #fb7185; }
+.ember-3  { left: 38%; animation-duration: 6.8s; animation-delay: 2.1s; width: 4px; height: 4px; }
+.ember-4  { left: 45%; animation-duration: 5.2s; animation-delay: 0.7s; width: 2px; height: 2px; }
+.ember-5  { left: 52%; animation-duration: 6.2s; animation-delay: 1.8s; width: 3px; height: 3px; background: #fde047; }
+.ember-6  { left: 60%; animation-duration: 7.5s; animation-delay: 0.2s; width: 2px; height: 2px; }
+.ember-7  { left: 70%; animation-duration: 5.8s; animation-delay: 2.5s; width: 4px; height: 4px; }
+.ember-8  { left: 82%; animation-duration: 6.5s; animation-delay: 1.1s; width: 2px; height: 2px; background: #fb7185; }
+.ember-9  { left: 22%; animation-duration: 8.0s; animation-delay: 3.2s; width: 3px; height: 3px; }
+.ember-10 { left: 48%; animation-duration: 6.0s; animation-delay: 3.8s; width: 2px; height: 2px; }
+.ember-11 { left: 65%; animation-duration: 7.2s; animation-delay: 2.9s; width: 3px; height: 3px; }
+.ember-12 { left: 75%; animation-duration: 5.9s; animation-delay: 4.1s; width: 2px; height: 2px; }
+.ember-13 { left: 33%; animation-duration: 6.7s; animation-delay: 4.6s; width: 3px; height: 3px; }
+.ember-14 { left: 55%; animation-duration: 5.4s; animation-delay: 4.9s; width: 4px; height: 4px; background: #fde047; }
+
+@keyframes floatEmber {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.6;
+    transform: translateY(-80vh) translateX(25px) scale(1);
+  }
+  100% {
+    transform: translateY(-105vh) translateX(45px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Ana Kart */
+.phoenix-boot-card {
   position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 40px 48px 36px;
-  max-width: 420px;
-  width: 90vw;
+  max-width: 520px;
+  width: 92vw;
+  padding: 32px 36px 30px;
+  border-radius: 28px;
+  background: rgba(10, 16, 32, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 24px 60px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-.boot-phoenix-wrapper {
-  width: 200px;
-  height: 250px;
+/* Phoenix Görsel Kapsayıcı */
+.phoenix-emblem-wrap {
+  position: relative;
+  width: 260px;
+  height: 190px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
-.boot-phoenix-svg {
+.phoenix-svg-container {
+  position: relative;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 20px rgba(129,140,248,0.3));
-}
-
-.boot-title {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  background: linear-gradient(90deg, #60a5fa, #c084fc, #f472b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-align: center;
-  line-height: 1.3;
-}
-
-.boot-subtitle {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(148,163,184,0.7);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-top: -6px;
-}
-
-.boot-step {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 13px;
-  color: rgba(148,163,184,0.8);
-  min-height: 18px;
-  text-align: center;
-  animation: pulse-soft 2s ease-in-out infinite;
-  margin-top: 4px;
-}
-
-.boot-bar-track {
-  width: 100%;
-  height: 4px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 2px;
-}
-
-.boot-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, #60a5fa, #818cf8, #c084fc, #f472b6, #60a5fa);
-  background-size: 200% 100%;
-  animation: barShimmer 1.8s linear infinite;
-  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.boot-percent {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(148,163,184,0.5);
-  letter-spacing: 0.08em;
-  margin-top: -4px;
-}
-
-.boot-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-  width: 100%;
-  padding: 0 8px;
-}
-
-.boot-check-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  justify-content: center;
+  animation: phoenixHover 4s ease-in-out infinite;
+}
+
+@keyframes phoenixHover {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+.phoenix-fire-halo {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.45) 0%, rgba(219, 39, 119, 0.25) 45%, transparent 70%);
+  filter: blur(22px);
+  pointer-events: none;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.phoenix-svg-element {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 8px 24px rgba(234, 88, 12, 0.35));
+}
+
+/* Başlık Grubu */
+.phoenix-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.phoenix-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #fb923c;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.phoenix-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f97316;
+  box-shadow: 0 0 8px #f97316;
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.phoenix-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  background: linear-gradient(135deg, #ffffff 30%, #fed7aa 75%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.phoenix-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(148, 163, 184, 0.75);
+  letter-spacing: 0.04em;
+}
+
+/* İlerleme Çubuğu Alanı */
+.phoenix-progress-box {
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.phoenix-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.phoenix-status-text {
   font-size: 12.5px;
-  transition: opacity 0.3s ease;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
 }
 
-.boot-check-item.pending {
-  opacity: 0.4;
+.phoenix-percent-val {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f97316;
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
 }
 
-.boot-check-item.done {
+.phoenix-bar-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.phoenix-bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c3aed 0%, #db2777 35%, #f97316 70%, #fde047 100%);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
+  transition: width 0.12s linear;
+}
+
+.phoenix-bar-head {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: #ffffff;
+  box-shadow: 0 0 10px #ffffff;
+  border-radius: 999px;
   opacity: 0.85;
 }
 
-.boot-check-icon {
-  flex-shrink: 0;
+.phoenix-detail-text {
+  margin: 7px 0 0;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.65);
+  line-height: 1.4;
+  min-height: 16px;
+}
+
+/* Kontrol Listesi */
+.phoenix-checklist {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.phoenix-check-row {
   display: flex;
   align-items: center;
+  gap: 11px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
 }
 
-.boot-check-label {
-  color: rgba(226,232,240,0.9);
+.phoenix-check-row.status-running {
+  background: rgba(249, 115, 22, 0.08);
 }
 
-.boot-check-item.done .boot-check-label {
-  color: rgba(226,232,240,0.95);
+.check-icon-col {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.check-svg.done {
+  width: 16px;
+  height: 16px;
+  color: #34d399;
+  filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.5));
+}
+
+.check-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(249, 115, 22, 0.25);
+  border-top-color: #f97316;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.check-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.check-text-col {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+}
+
+.check-main-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.9);
+  transition: color 0.2s ease;
+}
+
+.status-pending .check-main-label {
+  color: rgba(148, 163, 184, 0.45);
+}
+
+.status-running .check-main-label {
+  color: #fdba74;
+}
+
+.status-done .check-main-label {
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.check-sub-label {
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.45);
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 `;
