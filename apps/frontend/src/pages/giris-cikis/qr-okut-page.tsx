@@ -28,7 +28,11 @@ export function QrOkutPage() {
     onSuccess: async (data) => {
       setResult(data);
       setScanState('success');
-      await queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-daily'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance-summary'] }),
+      ]);
       setTimeout(() => {
         setResult(null);
         setScanState('scanning');
