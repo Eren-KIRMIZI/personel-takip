@@ -42,7 +42,10 @@ export class CardService {
     if (!credential) throw new BadRequestException('Bu kart hiçbir personele tanımlı değil.');
     if (!credential.isActive) throw new BadRequestException('Bu kart pasif durumda.');
 
-    const employeeId = dto.employeeId ?? credential.employeeId;
+    if (dto.employeeId && dto.employeeId !== credential.employeeId) {
+      throw new ForbiddenException('Okutulan kart belirtilen personele ait değil.');
+    }
+    const employeeId = credential.employeeId;
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException('Personel bulunamadı.');
 
@@ -109,7 +112,7 @@ export class CardService {
   // ---------------------------------------------------------------------------
   async listCredentials(query: { page?: number; pageSize?: number; employeeId?: string }, user: AuthenticatedUser) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 50), 100);
 
     const base: Prisma.CardCredentialWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
@@ -205,7 +208,7 @@ export class CardService {
   // ---------------------------------------------------------------------------
   async listReaders(query: { page?: number; pageSize?: number }) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 50), 100);
 
     const [items, total] = await Promise.all([
       this.prisma.cardReader.findMany({

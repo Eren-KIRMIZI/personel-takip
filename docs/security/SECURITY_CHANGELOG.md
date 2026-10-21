@@ -85,3 +85,60 @@
   1. `find(id)` çağrısında `getScope(actor)` ile birim ve sahip kontrolü sağlandı.
   2. `pageSize` sorgu parametresine `100` tavan sınırı uygulandı.
 - **Doğrulama:** Backend build (`nest build`) 0 hata ile doğrulandı.
+
+---
+
+### [FIX-009] SEC-009 & PERF-002 — Evrak (Document) BOLA Yetkilendirmesi & Sayfalama Tavanı
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/document/document.controller.ts`
+  - `apps/backend/src/modules/document/document.service.ts`
+- **Yapılan İşlem:**
+  1. `find(id)` metoduna `@CurrentUser() user: AuthenticatedUser` eklendi. Yöneticilerin yalnızca kendi birimlerine ait evrakları, çalışanların ise yalnızca kendilerine ait evrakları okuyabilmesi sağlandı (`ForbiddenException`).
+  2. `pageSize` parametresi maksimum `100` ile sınırlandırıldı.
+- **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
+
+---
+
+### [FIX-010] SEC-010 & PERF-003 — Görevler (Tasks) BOLA Scoping & Sayfalama Tavanı
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/task/task.controller.ts`
+  - `apps/backend/src/modules/task/task.service.ts`
+- **Yapılan İşlem:**
+  1. `find(id)` metoduna `@CurrentUser() user: AuthenticatedUser` eklendi. Kullanıcının görevin sahibi, oluşturanı veya departman amiri olduğu doğrulandı; yetkisiz erişimler engellendi.
+  2. `pageSize` parametresi maksimum `100` ile sınırlandırıldı.
+- **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
+
+---
+
+### [FIX-011] SEC-011 — Raporlama Uçlarında BOLA & Kurumsal Veri Sızıntısı Engeli
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/reports/reports.controller.ts`
+  - `apps/backend/src/modules/reports/reports.service.ts`
+- **Yapılan İşlem:**
+  1. `attendance`, `attendanceExcel`, `attendanceLog`, `attendanceLogExcel`, `overtimes`, `overtimeExcel`, `leaves`, `leaveExcel` metodlarına `@CurrentUser() user: AuthenticatedUser` entegre edildi.
+  2. Tüm sorgular `employeeScopedWhere(actor, base)` ile filtrelendi; birim yöneticilerinin ve çalışanların tüm kurumun puantaj, mesai ve izin dökümlerini çekmesi engellendi.
+- **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
+
+---
+
+### [FIX-012] SEC-012 — Kartlı Geçiş (Card Scan) Sahte Kimlik (Impersonation) Engeli
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/card/card.service.ts`
+- **Yapılan İşlem:**
+  1. `scan` metodunda okutulan kartın yalnızca kart sahibi personel (`credential.employeeId`) adına geçiş basabilmesi garanti edildi; farklı bir `employeeId` ile yapılan istekler `ForbiddenException` ile reddedildi.
+  2. `listCredentials` ve `listReaders` için `100` tavan sayfalama sınırı kondu.
+- **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
+
+---
+
+### [FIX-013] SEC-013 & PERF-004 — Dosya Yükleme Güvenlik Doğrulaması (Stored XSS Koruması) & Ek Sayfalama Tavanları
+- **Değiştirilen Dosyalar:**
+  - `apps/backend/src/modules/upload/upload.service.ts`
+  - `apps/backend/src/modules/employee-record/employee-record.service.ts`
+  - `apps/backend/src/modules/asset/asset.service.ts`
+  - `apps/backend/src/modules/attendance/attendance.service.ts`
+- **Yapılan İşlem:**
+  1. `upload.service.ts` içinde MIME türü ve dosya uzantısı için katı beyaz liste (`ALLOWED_EXTS`: PDF, JPG, PNG, WEBP, DOCX, XLSX, CSV) uygulandı. Betik (`.html`, `.svg`, `.exe`, `.js`) yüklemeleri engellenerek Stored XSS ve zararlı yazılım riski ortadan kaldırıldı.
+  2. `employee-record`, `asset` ve `attendance` (list, daily, qrCodes) sorgularına `100` tavan sayfalama sınırı uygulandı.
+- **Doğrulama:** Backend ve Frontend build 0 hata ile doğrulandı.
+

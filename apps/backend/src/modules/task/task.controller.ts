@@ -25,8 +25,8 @@ export class TaskController {
 
   @Get(':id')
   @RequirePermissions('task:read')
-  find(@Param('id') id: string) {
-    return this.taskService.find(id);
+  find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.taskService.find(id, user);
   }
 
   @Post()

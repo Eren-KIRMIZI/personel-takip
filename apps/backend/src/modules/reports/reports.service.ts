@@ -95,13 +95,15 @@ export class ReportsService {
     private readonly cache: CacheService,
   ) {}
 
-  async attendanceSummary(query: ReportQueryDto) {
+  async attendanceSummary(query: ReportQueryDto, actor?: AuthenticatedUser) {
     const { from, to } = dateRange(query);
+    const base = {
+      ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+      timestamp: { gte: from, lte: to },
+    };
+    const where = actor ? employeeScopedWhere(actor, base) : base;
     const records = await this.prisma.attendanceRecord.findMany({
-      where: {
-        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
-        timestamp: { gte: from, lte: to },
-      },
+      where,
       select: {
         employeeId: true,
         type: true,
@@ -166,13 +168,15 @@ export class ReportsService {
     };
   }
 
-  async overtimeSummary(query: ReportQueryDto) {
+  async overtimeSummary(query: ReportQueryDto, actor?: AuthenticatedUser) {
     const { from, to } = dateRange(query);
+    const base = {
+      ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+      date: { gte: from, lte: to },
+    };
+    const where = actor ? employeeScopedWhere(actor, base) : base;
     const records = await this.prisma.overtime.findMany({
-      where: {
-        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
-        date: { gte: from, lte: to },
-      },
+      where,
       select: { employeeId: true, hours: true, rate: true, status: true, employee: { select: employeeSelect } },
     });
 
@@ -196,14 +200,16 @@ export class ReportsService {
     return { from, to, summary, meta: { totalHours: Math.round(summary.reduce((s, r) => s + r.approvedHours, 0) * 100) / 100, records: records.length } };
   }
 
-  async leaveSummary(query: ReportQueryDto) {
+  async leaveSummary(query: ReportQueryDto, actor?: AuthenticatedUser) {
     const { from, to } = dateRange(query);
+    const base = {
+      ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+      startDate: { lte: to },
+      endDate: { gte: from },
+    };
+    const where = actor ? employeeScopedWhere(actor, base) : base;
     const records = await this.prisma.leaveRequest.findMany({
-      where: {
-        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
-        startDate: { lte: to },
-        endDate: { gte: from },
-      },
+      where,
       select: {
         employeeId: true,
         days: true,
@@ -297,13 +303,15 @@ export class ReportsService {
     return result;
   }
 
-  async attendanceLog(query: ReportQueryDto) {
+  async attendanceLog(query: ReportQueryDto, actor?: AuthenticatedUser) {
     const { from, to } = dateRange(query);
+    const base = {
+      ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+      timestamp: { gte: from, lte: to },
+    };
+    const where = actor ? employeeScopedWhere(actor, base) : base;
     const records = await this.prisma.attendanceRecord.findMany({
-      where: {
-        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
-        timestamp: { gte: from, lte: to },
-      },
+      where,
       select: {
         employeeId: true,
         type: true,
@@ -354,8 +362,8 @@ export class ReportsService {
     };
   }
 
-  async attendanceLogExcel(query: ReportQueryDto) {
-    const { from, to, rows } = await this.attendanceLog(query);
+  async attendanceLogExcel(query: ReportQueryDto, actor?: AuthenticatedUser) {
+    const { from, to, rows } = await this.attendanceLog(query, actor);
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Giriş-Çıkış');
     ws.addRow(['Tarih', 'Sicil No', 'Personel', 'Giriş', 'Çıkış', 'Çalışılan', 'Giriş Kaynağı', 'Çıkış Kaynağı']);
@@ -381,8 +389,8 @@ export class ReportsService {
     return this.toFile('giris-cikis-raporu.xlsx', buffer);
   }
 
-  async attendanceExcel(query: ReportQueryDto) {
-    const { from, to, summary, meta } = await this.attendanceSummary(query);
+  async attendanceExcel(query: ReportQueryDto, actor?: AuthenticatedUser) {
+    const { from, to, summary, meta } = await this.attendanceSummary(query, actor);
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Puantaj');
     ws.addRow(['Personel', 'Sicil No', 'Kayıt', 'Giriş', 'Çıkış', 'Çalışılan Süre', 'Gün Sayısı']);
@@ -398,8 +406,8 @@ export class ReportsService {
     return this.toFile('puantaj-raporu.xlsx', buffer);
   }
 
-  async overtimeExcel(query: ReportQueryDto) {
-    const { summary } = await this.overtimeSummary(query);
+  async overtimeExcel(query: ReportQueryDto, actor?: AuthenticatedUser) {
+    const { summary } = await this.overtimeSummary(query, actor);
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Mesai');
     ws.addRow(['Personel', 'Sicil No', 'Onaylı Saat', 'Toplam Saat', 'Kayıt']);
@@ -412,8 +420,8 @@ export class ReportsService {
     return this.toFile('mesai-raporu.xlsx', buffer);
   }
 
-  async leaveExcel(query: ReportQueryDto) {
-    const { summary } = await this.leaveSummary(query);
+  async leaveExcel(query: ReportQueryDto, actor?: AuthenticatedUser) {
+    const { summary } = await this.leaveSummary(query, actor);
     const typeNames = Array.from(new Set(summary.flatMap((s) => Object.keys(s.byType))));
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('İzin');

@@ -29,7 +29,7 @@ export class AttendanceService {
 
   async list(query: AttendanceListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const base: Prisma.AttendanceRecordWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
@@ -59,7 +59,7 @@ export class AttendanceService {
 
   async daily(query: AttendanceDailyQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
 
     const dayStart = new Date(`${query.day}T00:00:00`);
     const dayEnd = new Date(`${query.day}T23:59:59.999`);
@@ -174,7 +174,7 @@ export class AttendanceService {
 
   async qrCodes(query: { page?: number; pageSize?: number; includeInactive?: boolean }) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 50), 100);
     const where: Prisma.QrCodeWhereInput = {};
     if (!query.includeInactive) where.isActive = true;
 

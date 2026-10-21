@@ -19,50 +19,50 @@ export class ReportsController {
 
   @Get('attendance')
   @RequirePermissions('attendance:read')
-  attendance(@Query() query: ReportQueryDto) {
-    return this.reports.attendanceSummary(query);
+  attendance(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.attendanceSummary(query, user);
   }
 
   @Get('attendance/excel')
   @RequirePermissions('attendance:read')
-  attendanceExcel(@Query() query: ReportQueryDto) {
-    return this.reports.attendanceExcel(query);
+  attendanceExcel(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.attendanceExcel(query, user);
   }
 
   @Get('attendance-log')
   @RequirePermissions('attendance:read')
-  attendanceLog(@Query() query: ReportQueryDto) {
-    return this.reports.attendanceLog(query);
+  attendanceLog(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.attendanceLog(query, user);
   }
 
   @Get('attendance-log/excel')
   @RequirePermissions('attendance:read')
-  attendanceLogExcel(@Query() query: ReportQueryDto) {
-    return this.reports.attendanceLogExcel(query);
+  attendanceLogExcel(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.attendanceLogExcel(query, user);
   }
 
   @Get('overtimes')
   @RequirePermissions('overtime:read')
-  overtimes(@Query() query: ReportQueryDto) {
-    return this.reports.overtimeSummary(query);
+  overtimes(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.overtimeSummary(query, user);
   }
 
   @Get('overtimes/excel')
   @RequirePermissions('overtime:read')
-  overtimeExcel(@Query() query: ReportQueryDto) {
-    return this.reports.overtimeExcel(query);
+  overtimeExcel(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.overtimeExcel(query, user);
   }
 
   @Get('leaves')
   @RequirePermissions('leave:read')
-  leaves(@Query() query: ReportQueryDto) {
-    return this.reports.leaveSummary(query);
+  leaves(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.leaveSummary(query, user);
   }
 
   @Get('leaves/excel')
   @RequirePermissions('leave:read')
-  leaveExcel(@Query() query: ReportQueryDto) {
-    return this.reports.leaveExcel(query);
+  leaveExcel(@Query() query: ReportQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reports.leaveExcel(query, user);
   }
 
   @Get('entries')

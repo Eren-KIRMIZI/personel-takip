@@ -72,4 +72,52 @@
 - **Seviye:** DÜŞÜK / BİLGİ (P3)
 - **Konum:** `apps/backend/src/main.ts`
 - **Teknik Açıklama:** `SwaggerModule.setup('api/docs', app, document)` prodüksiyon ortamında da aktif kalmaktadır. Saldırganlara tüm endpoint haritasını sunar.
-- **Önerilen Minimal Düzeltme:** `NODE_ENV === 'production'` durumunda Swagger devre dışı bırakılmalı veya yetkili kullanıcılara sınırlandırılmalıdır.
+- **Durum:** DÜZELTİLDİ (FIX-004)
+
+---
+
+### [SEC-009] BOLA / IDOR — Personel Evrakları ve KVKK Dosya Erişimi
+- **Seviye:** KRİTİK (P0)
+- **Konum:** `apps/backend/src/modules/document/document.controller.ts` & `document.service.ts` (`GET /documents/:id`)
+- **Teknik Açıklama:** `list` sorgusunda departman ve personel kapsamı uygulanırken, tekil evrak sorgusunda (`find(id)`) hiçbir yetki veya sahiplik kontrolü bulunmamaktadır. Her personelde `document:read` yetkisi bulunduğundan, herhangi bir çalışan kurumdaki tüm çalışanların ve yöneticilerin resmi evraklarını ID girerek okuyabilir.
+- **OWASP:** API1:2023 (BOLA) & A01:2025 (Broken Access Control)
+
+---
+
+### [SEC-010] BOLA / IDOR — Görevler (Tasks) Detay ve Yorum İhlali
+- **Seviye:** YÜKSEK (P1)
+- **Konum:** `apps/backend/src/modules/task/task.controller.ts` & `task.service.ts` (`GET /tasks/:id`)
+- **Teknik Açıklama:** `find(id)` metodu görev detayını ve içindeki tüm gizli yorumları çağıran kullanıcının yetki kapsamını denetlemeden döndürmektedir.
+- **OWASP:** API1:2023 (BOLA)
+
+---
+
+### [SEC-011] Broken Object Level Authorization & Data Leakage — Raporlama Uçları
+- **Seviye:** KRİTİK (P0)
+- **Konum:** `apps/backend/src/modules/reports/reports.controller.ts` & `reports.service.ts` (`attendance`, `attendanceLog`, `overtimes`, `leaves` ve Excel çıktıları)
+- **Teknik Açıklama:** İlgili 8 raporlama endpoint'i `actor` kapsamını almamakta ve tüm şirket personelinin giriş-çıkış, mesai ve izin kayıtlarını filtrelemeden döndürmektedir. Birim yöneticisi veya yetkili personel tüm kurumun verisini çekebilmektedir.
+- **OWASP:** API1:2023 (BOLA) & API3:2023 (BOPLA)
+
+---
+
+### [SEC-012] Yetki Aşımı ve Sahte Kayıt (Impersonation) — Kartlı Geçiş Manipülasyonu
+- **Seviye:** YÜKSEK (P1)
+- **Konum:** `apps/backend/src/modules/card/card.service.ts` (`scan`)
+- **Teknik Açıklama:** `const employeeId = dto.employeeId ?? credential.employeeId;` ifadesi sebebiyle, sisteme tanımlı bir kart okutulurken `dto.employeeId` alanı manipüle edilerek başka bir çalışan adına giriş/çıkış basılabilmektedir.
+- **OWASP:** API1:2023 & API5:2023
+
+---
+
+### [SEC-013] Kısıtlanmamış Dosya Yükleme (Unrestricted File Upload & Stored XSS)
+- **Seviye:** YÜKSEK (P1)
+- **Konum:** `apps/backend/src/modules/upload/upload.service.ts`
+- **Teknik Açıklama:** Dosya yüklemede MIME türü listede olmadığında dosya uzantısı doğrulanmadan kabul edilmekte, `.html`, `.svg`, `.exe`, `.js` gibi tehlikeli dosyalar Supabase public depolama alanına yüklenebilmektedir.
+- **OWASP:** ASVS 12.1 & OWASP Top 10 A08:2025
+
+---
+
+### [PERF-002 / 003 / 004] Sınırsız Sayfalama (Unbounded Pagination)
+- **Seviye:** ORTA (P2)
+- **Konum:** `document.service.ts`, `task.service.ts`, `asset.service.ts`, `attendance.service.ts`, `employee-record.service.ts`
+- **Teknik Açıklama:** `pageSize` için üst sınır belirlenmemiştir, 10.000 gibi yüksek değerler veritabanını aşırı yükleyebilir.
+

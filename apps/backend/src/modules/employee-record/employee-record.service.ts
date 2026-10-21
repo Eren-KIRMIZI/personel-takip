@@ -20,7 +20,7 @@ export class EmployeeRecordService {
 
   async list(query: EmployeeRecordListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
     const base: Prisma.EmployeeRecordWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
     if (query.category) base.category = query.category;

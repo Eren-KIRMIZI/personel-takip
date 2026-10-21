@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, getScope } from '../../common/scope';
 import { CreateDocumentDto, UpdateDocumentDto, DocumentListQueryDto } from './dto/document.dto';
 
 @Injectable()
@@ -16,12 +16,15 @@ export class DocumentService {
         lastName: true,
         employeeNo: true,
         photoUrl: true,
+        departmentId: true,
       },
     },
   };
 
   async list(query: DocumentListQueryDto, actor: AuthenticatedUser) {
-    const { employeeId, priority, status, search, from, to, page = 1, pageSize = 20 } = query;
+    const page = query.page ?? 1;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
+    const { employeeId, priority, status, search, from, to } = query;
 
     const base: Record<string, unknown> = {};
 
@@ -67,12 +70,23 @@ export class DocumentService {
     return { items, total, page, pageSize };
   }
 
-  async find(id: string) {
+  async find(id: string, actor?: AuthenticatedUser) {
     const doc = await this.prisma.document.findUnique({
       where: { id },
       include: this.includeRelations,
     });
     if (!doc) throw new NotFoundException('Evrak bulunamadı');
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self' && doc.employeeId && doc.employeeId !== actor.employeeId) {
+        throw new ForbiddenException('Yalnızca kendi evraklarınızı görüntüleyebilirsiniz.');
+      }
+      if (scope.kind === 'department' && doc.employee?.departmentId && doc.employee.departmentId !== scope.departmentId) {
+        throw new ForbiddenException('Bu evrakı görüntüleme yetkiniz yok (Farklı departman).');
+      }
+    }
+
     return doc;
   }
 

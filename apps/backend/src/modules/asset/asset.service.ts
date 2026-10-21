@@ -23,7 +23,7 @@ export class AssetService {
 
   async list(query: AssetListQueryDto, actor: AuthenticatedUser) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
     const base: Prisma.AssetWhereInput = {};
     if (query.employeeId) base.employeeId = query.employeeId;
     if (query.status) base.status = query.status;

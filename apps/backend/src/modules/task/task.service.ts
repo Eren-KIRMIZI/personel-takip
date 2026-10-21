@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { employeeScopedWhere } from '../../common/scope';
+import { employeeScopedWhere, getScope } from '../../common/scope';
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStatusDto, TaskListQueryDto } from './dto/task.dto';
 
 @Injectable()
@@ -29,7 +29,9 @@ export class TaskService {
   };
 
   async list(query: TaskListQueryDto, actor: AuthenticatedUser) {
-    const { employeeId, priority, status, search, from, to, page = 1, pageSize = 20 } = query;
+    const page = query.page ?? 1;
+    const pageSize = Math.min(Math.max(1, query.pageSize ?? 20), 100);
+    const { employeeId, priority, status, search, from, to } = query;
 
     const base: Record<string, unknown> = {};
 
@@ -74,12 +76,29 @@ export class TaskService {
     return { items, total, page, pageSize };
   }
 
-  async find(id: string) {
+  async find(id: string, actor?: AuthenticatedUser) {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: this.includeEmployee,
     });
     if (!task) throw new NotFoundException('Görev bulunamadı');
+
+    if (actor) {
+      const scope = getScope(actor);
+      if (scope.kind === 'self') {
+        const isOwner = (actor.employeeId && task.employeeId === actor.employeeId) || (task.createdById === actor.userId);
+        if (!isOwner) {
+          throw new ForbiddenException('Yalnızca kendinize atanan veya oluşturduğunuz görevleri görüntüleyebilirsiniz.');
+        }
+      } else if (scope.kind === 'department') {
+        const inDepartment = task.employee?.department?.id === scope.departmentId;
+        const isCreator = task.createdById === actor.userId;
+        if (!inDepartment && !isCreator) {
+          throw new ForbiddenException('Bu görevi görüntüleme yetkiniz yok (Farklı departman).');
+        }
+      }
+    }
+
     return task;
   }
 

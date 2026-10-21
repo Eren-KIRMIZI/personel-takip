@@ -25,8 +25,8 @@ export class DocumentController {
 
   @Get(':id')
   @RequirePermissions('document:read')
-  find(@Param('id') id: string) {
-    return this.documentService.find(id);
+  find(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.documentService.find(id, user);
   }
 
   @Post()

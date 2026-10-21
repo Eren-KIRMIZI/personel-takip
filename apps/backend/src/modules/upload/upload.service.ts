@@ -10,7 +10,14 @@ const MIME_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-excel': 'xls',
+  'text/csv': 'csv',
 };
+
+const ALLOWED_EXTS = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp', 'docx', 'doc', 'xlsx', 'xls', 'csv']);
 
 @Injectable()
 export class UploadService {
@@ -26,20 +33,28 @@ export class UploadService {
       throw new BadRequestException('Depolama (bucket) hazırlanamadı.');
     }
 
-    const mime = dto.contentType || 'application/octet-stream';
+    const mimeNormalized = (dto.contentType || '').toLowerCase().trim();
+    const rawExt = (dto.fileName?.split('.').pop() || '').toLowerCase().trim();
+
+    const extFromMime = MIME_EXT[mimeNormalized];
+    const finalExt = extFromMime ?? (ALLOWED_EXTS.has(rawExt) ? rawExt : null);
+
+    if (!finalExt || !ALLOWED_EXTS.has(finalExt)) {
+      throw new BadRequestException(
+        'Desteklenmeyen dosya türü. Yalnızca PDF, görsel (PNG, JPG, WEBP) ve ofis belgeleri yüklenebilir.',
+      );
+    }
+
     const base64 = dto.base64.replace(/^data:[^;,]+;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
     if (buffer.length === 0) throw new BadRequestException('Dosya içeriği boş.');
     if (buffer.length > MAX_SIZE) throw new BadRequestException('Dosya boyutu 10 MB sınırını aşıyor.');
 
-    const ext =
-      MIME_EXT[mime.toLowerCase()] ??
-      (dto.fileName?.split('.').pop()?.toLowerCase() || 'bin');
     const folder = (dto.folder ?? 'leave-docs').replace(/[^a-z0-9_-]/gi, '') || 'files';
-    const path = `${folder}/${Date.now()}-${randomUUID()}.${ext}`;
+    const path = `${folder}/${Date.now()}-${randomUUID()}.${finalExt}`;
 
     const { error } = await storage.from(BUCKET).upload(path, buffer, {
-      contentType: mime,
+      contentType: mimeNormalized || 'application/octet-stream',
       upsert: false,
       cacheControl: '3600',
     });
