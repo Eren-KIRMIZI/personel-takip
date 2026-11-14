@@ -15,8 +15,6 @@ Proje `npm workspaces` tabanlı bir monorepo'dur:
 
 Uygulama Vercel üzerinde yayındadır; kimlik doğrulama, veritabanı, dosya depolama altyapısı Supabase (Frankfurt / eu-central-1), önbellek altyapısı Upstash Redis tarafından sağlanır.
 
-**Canlı URL:** https://personel-takip-sigma.vercel.app
-
 ## İçindekiler
 
 1. [Özellikler ve Modüller](#özellikler-ve-modüller)
