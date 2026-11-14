@@ -2,6 +2,9 @@
 
 Kurumsal personel ve İK yönetim sistemi. Personel özlük bilgileri, izin, puantaj (PDKS), giriş-çıkış (QR / kart / manuel), vardiya ve çalışma planları, mesai, maaş ve bordro, avans, prim, ceza/ödül, görev, zimmet, evrak, duyuru, bildirim ve kapsamlı raporlama süreçlerini tek platformda yönetir.
 
+Video:
+https://www.youtube.com/watch?v=6KKrMayb8JU
+
 Proje `npm workspaces` tabanlı bir monorepo'dur:
 
 * `apps/frontend` — React kullanıcı arayüzü
