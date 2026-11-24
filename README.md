@@ -13,7 +13,6 @@ Proje `npm workspaces` tabanlı bir monorepo'dur:
 * `prisma` — Veritabanı şeması ve migration'lar
 * `docs` — Mimari ve RBAC dokümanları
 
-Uygulama Vercel üzerinde yayındadır; kimlik doğrulama, veritabanı, dosya depolama altyapısı Supabase (Frankfurt / eu-central-1), önbellek altyapısı Upstash Redis tarafından sağlanır.
 
 ## İçindekiler
 
@@ -320,6 +319,12 @@ Koyu tema sidebar üzerinde 8 bölüm, 24 menü öğesi. Her öğe ilgili yetkiy
 * **Yönetim** — Roller ve Yetkiler, Kullanıcılar, İşlem Logları, Sistem Sağlığı
 
 Üst bar bildirim çekmecesi, 30 saniyede bir okunmamış bildirimleri kontrol eder; tekil ve toplu okundu işaretleme desteklenir.
+
+<img width="720" height="1600" alt="1" src="https://github.com/user-attachments/assets/9bcb95f6-2f97-429b-b202-6a2483a75fd8" />
+
+<img width="720" height="1600" alt="2" src="https://github.com/user-attachments/assets/6fce99df-9d3a-4e56-9a07-1dbaaf21bf64" />
+
+<img width="720" height="1600" alt="3" src="https://github.com/user-attachments/assets/ce1c80b9-102d-4176-9053-0919e018278e" />
 
 ---
 
